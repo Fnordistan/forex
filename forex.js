@@ -46,6 +46,7 @@ function (dojo, declare) {
         
         setup: function( gamedatas )
         {
+            dojo.destroy('debug_output');
             console.log( "Starting game setup" );
             
             // Setting up player boards

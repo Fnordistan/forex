@@ -13,10 +13,80 @@
  *
  */
 
- #currency_board {
-     background-size: 528px 816px;
-     background-image: url(img/forex_currency_board.jpg);
-     background-repeat: no-repeat;
-     width: 528px;
-     height: 816px;
- }
+ @font-face {
+    font-family: 'DM Mono', monospace;
+    src: local('DM Mono'), url(https://fonts.googleapis.com/css2?family=DM+Mono:wght);
+    font-style: normal;
+    font-weight: 500;
+
+}
+
+ /* this holds each contract display: the promise, contract card, and payout */
+.frx_contract_container {
+    display: flex;
+    flex-direction: row;
+}
+
+.frx_contract {
+    background-size: 293px 75px;
+    background-image: url(img/forex_contracts_lowres.jpg);
+    background-repeat: no-repeat;
+    width: 48px;
+    height: 75px;
+}
+
+.frx_A {
+    background-position: 0px 0px;
+}
+
+.frx_B {
+    background-position: -48px 0px;
+}
+
+.frx_C {
+    background-position: -97px 0px;
+}
+
+.frx_D {
+    background-position: -146px 0px;
+}
+
+.frx_E {
+    background-position: -195px 0px;
+}
+
+.frx_F {
+    background-position: -245px 0px;
+}
+
+#board_display {
+    display: flex;
+    flex-direction: row;
+    margin: 0 -5px;
+}
+
+#contract_display {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0 5px;
+}
+
+#contract_display h1 {
+    font-family: 'DM Mono';
+    font-weight: bolder;
+}
+
+#currency_board {
+    background-size: 528px 816px;
+    background-image: url(img/forex_currency_board_lowres.jpg);
+    background-repeat: no-repeat;
+    width: 528px;
+    height: 816px;
+    margin: 0 5px;
+}
+
+#availalable_certs_display {
+    height: 100%;
+    margin: 0 5px;
+}

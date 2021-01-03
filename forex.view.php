@@ -39,44 +39,19 @@
 
         /*********** Place your code below:  ************/
 
+        $template = self::getGameName() . "_" . self::getGameName();
 
-        /*
-        
-        // Examples: set the value of some element defined in your tpl file like this: {MY_VARIABLE_ELEMENT}
+        // this will make labels text translatable
+        $this->tpl['CONTRACT_DISPLAY'] = self::_("Contract Display");
+        $this->tpl['CERTS_AVAILABLE'] = self::_("Available Certificates");
+        $contracts = array('A', 'B', 'C', 'D', 'E', 'F');
 
-        // Display a specific number / string
-        $this->tpl['MY_VARIABLE_ELEMENT'] = $number_to_display;
-
-        // Display a string to be translated in all languages: 
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::_("A string to be translated");
-
-        // Display some HTML content of your own:
-        $this->tpl['MY_VARIABLE_ELEMENT'] = self::raw( $some_html_code );
-        
-        */
-        
-        /*
-        
-        // Example: display a specific HTML block for each player in this game.
-        // (note: the block is defined in your .tpl file like this:
-        //      <!-- BEGIN myblock --> 
-        //          ... my HTML code ...
-        //      <!-- END myblock --> 
-        
-
-        $this->page->begin_block( "forex_forex", "myblock" );
-        foreach( $players as $player )
-        {
-            $this->page->insert_block( "myblock", array( 
-                                                    "PLAYER_NAME" => $player['player_name'],
-                                                    "SOME_VARIABLE" => $some_value
-                                                    ...
-                                                     ) );
+        $this->page->begin_block($template, 'CONTRACTS_BLOCK');
+        foreach ( $contracts as $contract) {
+          $this->page->insert_block('CONTRACTS_BLOCK', array(
+            'CONTRACT' => $contract
+          ));
         }
-        
-        */
-
-
 
         /*********** Do not change anything below this line  ************/
   	}
