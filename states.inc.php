@@ -27,7 +27,7 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("LAST_RESOLVE", 70);
     define("CHOOSE_CURRENCY", 75);
     define("SCORING", 98);
-    define("ENGAME", 99);
+    define("ENDGAME", 99);
  }
  
 $machinestates = array(
