@@ -14,49 +14,15 @@
  *
  */
 
-/*
-   Game state machine is a tool used to facilitate game developpement by doing common stuff that can be set up
-   in a very easy way from this configuration file.
-
-   Please check the BGA Studio presentation about game state to understand this, and associated documentation.
-
-   Summary:
-
-   States types:
-   _ activeplayer: in this type of state, we expect some action from the active player.
-   _ multipleactiveplayer: in this type of state, we expect some action from multiple players (the active players)
-   _ game: this is an intermediary state where we don't expect any actions from players. Your game logic must decide what is the next game state.
-   _ manager: special type for initial and final state
-
-   Arguments of game states:
-   _ name: the name of the GameState, in order you can recognize it on your own code.
-   _ description: the description of the current game state is always displayed in the action status bar on
-                  the top of the game. Most of the time this is useless for game state with "game" type.
-   _ descriptionmyturn: the description of the current game state when it's your turn.
-   _ type: defines the type of game states (activeplayer / multipleactiveplayer / game / manager)
-   _ action: name of the method to call when this game state become the current game state. Usually, the
-             action method is prefixed by "st" (ex: "stMyGameStateName").
-   _ possibleactions: array that specify possible player actions on this step. It allows you to use "checkAction"
-                      method on both client side (Javacript: this.checkAction) and server side (PHP: self::checkAction).
-   _ transitions: the transitions are the possible paths to go from a game state to another. You must name
-                  transitions in order to use transition names in "nextState" PHP method, and use IDs to
-                  specify the next game state for each transition.
-   _ args: name of the method to call to retrieve arguments for this gamestate. Arguments are sent to the
-           client side to be used on "onEnteringState" or to set arguments in the gamestate description.
-   _ updateGameProgression: when specified, the game progression is updated (=> call to your getGameProgression
-                            method).
-*/
-
-//    !! It is not a good idea to modify this file when a game is running !!
-
 if (!defined('SETUP')) { // ensure this block is only invoked once, since it is included multiple times
     define("SETUP", 1);
-    define("NEXT_PLAYER", 2);
-    define("CHOOSE_ACTION", 10);
+    define("CHOOSE_ACTION", 2);
     define("SPOT_OFFER", 20);
+    define("OFFER_RESPONSE", 21);
     define("CONTRACT", 30);
     define("INVEST", 40);
     define("DIVEST", 50);
+    define("NEXT_PLAYER_DIVEST", 51);
     define("RESOLVE", 60);
     define("LAST_RESOLVE", 70);
     define("CHOOSE_CURRENCY", 75);
@@ -64,7 +30,6 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("ENGAME", 99);
  }
  
-
 $machinestates = array(
 
     // The initial state. Please do not modify.
@@ -73,29 +38,110 @@ $machinestates = array(
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => NEXT_PLAYER )
-    ),
-
-    NEXT_PLAYER => array(
-        "name" => "nextPlayer",
-        "description" => "",
-        "type" => "game",
-        "action" => "stNextPlayer",
         "transitions" => array( "" => CHOOSE_ACTION )
     ),
     
     CHOOSE_ACTION => array(
-        "name" => "playerTurn",
+        "name" => "playerAction",
         "description" => clienttranslate( '${actplayer} must choose an action' ),
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "spotOffer", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
-        "args" => "argChooseAction",
-        "transitions" => array( "spotOffer" => SPOT_OFFER,  )
+        "possibleactions" => array( "offerSpot", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
+        "transitions" => array( "spotOffer" => SPOT_OFFER, "contract" => CONTRACT, "invest" => INVEST, "divest" => DIVEST, "resolve" => RESOLVE  )
     ),
 
+    SPOT_OFFER => array(
+        "name" => "spotOffer",
+        "description" => clienttranslate( '${actplayer} may offer a Spot Trade' ),
+        "descriptionmyturn" => clienttranslate( '${you} may offer a Spot Trade' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "offerSpot", "cancelAction" ),
+        "transitions" => array( "spotOfferMade" => OFFER_RESPONSE, "canceled" => CHOOSE_ACTION  )
+    ),
 
-   
+    OFFER_RESPONSE => array(
+        "name" => "respondSpotOffer",
+        "description" => clienttranslate( '${actplayer} offered ${targetplayer} a Spot Trade of ${offer_num} ${offer_curr} for ${request_num} ${request_curr}' ),
+        "descriptionmyturn" => clienttranslate( '${actplayer} offered ${you} a Spot Trade of ${offer_num} ${offer_curr} for ${request_num} ${request_curr}' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "acceptOffer", "rejectOffer" ),
+        "args" => "argSpotTrade",
+        "transitions" => array( "" => CHOOSE_ACTION )
+    ),
+
+    CONTRACT => array(
+        "name" => "contract",
+        "description" => clienttranslate( '${actplayer} may make a Contract' ),
+        "descriptionmyturn" => clienttranslate( '${you} may make a Contract' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "makeContract", "cancelAction" ),
+        "transitions" => array( "" => CHOOSE_ACTION )
+    ),
+
+    INVEST => array(
+        "name" => "invest",
+        "description" => clienttranslate( '${actplayer} may Invest in 1 or 2 Currencies' ),
+        "descriptionmyturn" => clienttranslate( '${you} may may Invest in 1 or 2 Currencies' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "investCurrency", "cancelAction" ),
+        "transitions" => array( "" => CHOOSE_ACTION )
+    ),
+
+    DIVEST => array(
+        "name" => "divest",
+        "description" => clienttranslate( '${actplayer} may Divest in 1 Currency' ),
+        "descriptionmyturn" => clienttranslate( '${you} may may Divest in 1 Currency' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "divestCurrency", "cancelAction" ),
+        "transitions" => array( "" => CHOOSE_ACTION )
+    ),
+
+    NEXT_PLAYER_DIVEST => array(
+        "name" => "nextDivest",
+        "description" => clienttranslate( '${actplayer} may sell ${currency} Certificates' ),
+        "descriptionmyturn" => clienttranslate( '${you} may sell ${currency} Certificates' ),
+        "type" => "activeplayer",
+        "args" => "argSellCertificates",
+        "possibleactions" => array( "sellCertificates" ),
+        "transitions" => array( "nextDivest" => NEXT_PLAYER_DIVEST, "nextPlayer" => CHOOSE_ACTION )
+    ),
+
+    RESOLVE => array(
+        "name" => "resolve",
+        "description" => clienttranslate( '${actplayer} may Resolve Contract ${contract}' ),
+        "descriptionmyturn" => clienttranslate( '${you} may Resolve Contract ${contract}' ),
+        "type" => "activeplayer",
+        "args" => "argResolveContract",
+        "possibleactions" => array( "resolveContract", "cancelAction" ),
+        "transitions" => array( "resolved" => CHOOSE_ACTION, "canceled" => CHOOSE_ACTION, "endgame" => LAST_RESOLVE )
+    ),
+
+    LAST_RESOLVE => array(
+        "name" => "lastresolve",
+        "description" => "",
+        "type" => "game",
+        "action" => "stLastResolve",
+        "transitions" => array( "chooseCurrency" => CHOOSE_CURRENCY, "scoring" => SCORING )
+    ),
+
+    CHOOSE_CURRENCY => array(
+        "name" => "strongestCurrency",
+        "description" => clienttranslate( '${actplayer} must choose the strongest Currency for final scoring (${tied_curr})' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose the strongest Currency for final scoring (${tied_curr})' ),
+        "type" => "activeplayer",
+        "args" => "argChooseCurrency",
+        "possibleactions" => array( "chooseStrongestCurrency" ),
+        "transitions" => array( "" => SCORING )
+    ),
+
+    SCORING => array(
+        "name" => "scoring",
+        "description" => "",
+        "type" => "game",
+        "action" => "stScoring",
+        "transitions" => array( "" => ENDGAME )
+    ),
+
     // Final state.
     // Please do not modify (and do not overload action/args methods).
     ENDGAME => array(
