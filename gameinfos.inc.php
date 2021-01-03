@@ -13,19 +13,19 @@
 $gameinfos = array( 
 
 // Name of the game in English (will serve as the basis for translation) 
-'game_name' => "For-Ex",
+'game_name' => totranslate("For-Ex"),
 
 // Game designer (or game designers, separated by commas)
-'designer' => 'Tom Russell',       
+'designer' => 'Tom Russell',
 
 // Game artist (or game artists, separated by commas)
-'artist' => 'Cole Wehrle',         
+'artist' => 'Cole Wehrle',
 
 // Year of FIRST publication of this game. Can be negative.
-'year' => 2017,                 
+'year' => 2017,
 
 // Game publisher (use empty string if there is no publisher)
-'publisher' => 'Hollandspiele',                     
+'publisher' => 'Hollandspiele',
 
 // Url of game publisher website
 'publisher_website' => 'https://hollandspiele.com/',   
@@ -36,7 +36,6 @@ $gameinfos = array(
 // Board game geek ID of the game
 'bgg_id' => 227605,
 
-
 // Players configuration that can be played (ex: 2 to 4 players)
 'players' => array( 2,3,4,5,6 ),    
 
@@ -46,7 +45,6 @@ $gameinfos = array(
 // Discourage players to play with these numbers of players. Must be null if there is no such advice.
 'not_recommend_player_number' => null,
 // 'not_recommend_player_number' => array( 2, 3 ),      // <= example: this is not recommended to play this game with 2 or 3 players
-
 
 // Estimated game duration, in minutes (used only for the launch, afterward the real duration is computed)
 'estimated_duration' => 90,           
@@ -131,9 +129,9 @@ $gameinfos = array(
 // Each paragraph must be wrapped with totranslate() for translation and should not contain html (plain text without formatting).
 // A good length for this text is between 100 and 150 words (about 6 to 9 lines on a standard display)
 'presentation' => array(
-//    totranslate("This wonderful game is about geometric shapes!"),
-//    totranslate("It was awarded best triangle game of the year in 2005 and nominated for the Spiel des Jahres."),
-//    ...
+   totranslate("FOR-EX is the game of currency trading. An opaque, nerdy, butterfly-effect game, players take on the roles of international financiers who trade and manipulate currency values. Each of the game's several currencies only has value relative to one another, and these fluctuate according to player investments and divestments."),
+   totranslate("Players primarily make money by making long-term contracts to trade an amount of currency X for its equivalent in currency Y. Those contracts will be resolved several turns hence, during which time the exchange rate may have changed. But the contract is resolved according to the original, agreed-upon rate, enabling players to make profit. Players can (and should) make contracts promising money they don't yet have, and may use the resultant loans to give them a temporary leg-up (provided that they think they can make up the difference before the loan comes due)."),
+   totranslate("Once the game begins, there is zero randomness; every subtle, lovely tweak to the game state is the net result of the decisions each player makes. The game concludes when a player goes bankrupt, or when the last dividend has been paid. At that point, all monies are converted to the single strongest currency, and the player with the most money of that type wins."),
 ),
 
 // Games categories

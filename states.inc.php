@@ -2,7 +2,7 @@
 /**
  *------
  * BGA framework: © Gregory Isabelli <gisabelli@boardgamearena.com> & Emmanuel Colin <ecolin@boardgamearena.com>
- * ForEx implementation : © <Your name here> <Your email address here>
+ * ForEx implementation : © <David Edelstein> <david.edelstein@gmail.com>
  *
  * This code has been produced on the BGA studio platform for use on http://boardgamearena.com.
  * See http://en.boardgamearena.com/#!doc/Studio for more information.
@@ -49,55 +49,56 @@
 
 //    !! It is not a good idea to modify this file when a game is running !!
 
+if (!defined('SETUP')) { // ensure this block is only invoked once, since it is included multiple times
+    define("SETUP", 1);
+    define("NEXT_PLAYER", 2);
+    define("CHOOSE_ACTION", 10);
+    define("SPOT_OFFER", 20);
+    define("CONTRACT", 30);
+    define("INVEST", 40);
+    define("DIVEST", 50);
+    define("RESOLVE", 60);
+    define("LAST_RESOLVE", 70);
+    define("CHOOSE_CURRENCY", 75);
+    define("SCORING", 98);
+    define("ENGAME", 99);
+ }
  
+
 $machinestates = array(
 
     // The initial state. Please do not modify.
-    1 => array(
+    SETUP => array(
         "name" => "gameSetup",
         "description" => "",
         "type" => "manager",
         "action" => "stGameSetup",
-        "transitions" => array( "" => 2 )
+        "transitions" => array( "" => NEXT_PLAYER )
     ),
-    
-    // Note: ID=2 => your first state
 
-    2 => array(
-    		"name" => "playerTurn",
-    		"description" => clienttranslate('${actplayer} must play a card or pass'),
-    		"descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
-    		"type" => "activeplayer",
-    		"possibleactions" => array( "playCard", "pass" ),
-    		"transitions" => array( "playCard" => 2, "pass" => 2 )
-    ),
-    
-/*
-    Examples:
-    
-    2 => array(
+    NEXT_PLAYER => array(
         "name" => "nextPlayer",
-        "description" => '',
+        "description" => "",
         "type" => "game",
         "action" => "stNextPlayer",
-        "updateGameProgression" => true,   
-        "transitions" => array( "endGame" => 99, "nextPlayer" => 10 )
+        "transitions" => array( "" => CHOOSE_ACTION )
     ),
     
-    10 => array(
+    CHOOSE_ACTION => array(
         "name" => "playerTurn",
-        "description" => clienttranslate('${actplayer} must play a card or pass'),
-        "descriptionmyturn" => clienttranslate('${you} must play a card or pass'),
+        "description" => clienttranslate( '${actplayer} must choose an action' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "playCard", "pass" ),
-        "transitions" => array( "playCard" => 2, "pass" => 2 )
-    ), 
+        "possibleactions" => array( "spotOffer", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
+        "args" => "argChooseAction",
+        "transitions" => array( "spotOffer" => SPOT_OFFER,  )
+    ),
 
-*/    
+
    
     // Final state.
     // Please do not modify (and do not overload action/args methods).
-    99 => array(
+    ENDGAME => array(
         "name" => "gameEnd",
         "description" => clienttranslate("End of game"),
         "type" => "manager",
@@ -106,6 +107,3 @@ $machinestates = array(
     )
 
 );
-
-
-
