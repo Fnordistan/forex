@@ -21,10 +21,18 @@
 
 }
 
+/* space internal elements of contract r-l */
+.frx_contract_container > * {
+    margin: 0 5px;
+}
+
  /* this holds each contract display: the promise, contract card, and payout */
 .frx_contract_container {
-    display: flex;
+    display: inline-flex;
     flex-direction: row;
+    flex-wrap: nowrap;
+    margin: 5px -5px;
+    width: calc(100% + 5px);
 }
 
 .frx_contract {
@@ -33,6 +41,7 @@
     background-repeat: no-repeat;
     width: 48px;
     height: 75px;
+    margin: 5px;
 }
 
 .frx_A {
@@ -59,14 +68,16 @@
     background-position: -245px 0px;
 }
 
+/* holds all the other containers */
 #board_display {
     display: flex;
     flex-direction: row;
     margin: 0 -5px;
 }
 
+/* Holds the vertical Contract Display */
 #contract_display {
-    display: flex;
+    display: inline-flex;
     flex-direction: column;
     height: 100%;
     margin: 0 5px;
@@ -74,7 +85,6 @@
 
 #contract_display h1 {
     font-family: 'DM Mono';
-    font-weight: bolder;
 }
 
 #currency_board {
@@ -86,6 +96,7 @@
     margin: 0 5px;
 }
 
+/* Shows all available Certificates */
 #availalable_certs_display {
     height: 100%;
     margin: 0 5px;
