@@ -35,7 +35,8 @@
     width: calc(100% + 5px);
 }
 
-.frx_contract {
+/* contract card */
+.frx_contract_card {
     background-size: 293px 75px;
     background-image: url(img/forex_contracts_lowres.jpg);
     background-repeat: no-repeat;
@@ -49,23 +50,68 @@
 }
 
 .frx_B {
-    background-position: -48px 0px;
+    background-position: -48.8px 0px;
 }
 
 .frx_C {
-    background-position: -97px 0px;
+    background-position: -97.6px 0px;
 }
 
 .frx_D {
-    background-position: -146px 0px;
+    background-position: -146.4px 0px;
 }
 
 .frx_E {
-    background-position: -195px 0px;
+    background-position: -195.2px 0px;
 }
 
 .frx_F {
-    background-position: -245px 0px;
+    background-position: -244px 0px;
+}
+
+.frx_currency_card {
+    background-size: 75px 342px;
+    background-repeat: no-repeat;
+    width: 75px;
+    height: 48.8px;
+    margin: 5px;
+}
+
+/* these share the same dimensions, just different sprites */
+.frx_note {
+    background-image: url(img/forex_notes.jpg);
+}
+
+.frx_certificate {
+    background-image: url(img/forex_certificates.jpg);
+}
+
+.frx_GBP {
+    background-position: 0px 0px;
+}
+
+.frx_EUR {
+    background-position: 0px -48.8px;
+}
+
+.frx_USD {
+    background-position: 0px -97.6px;
+}
+
+.frx_CHF {
+    background-position: 0px -146.4px;
+}
+
+.frx_JPY {
+    background-position: 0px -195.2px;
+}
+
+.frx_CAD {
+    background-position: 0px -244px;
+}
+
+.frx_CNY {
+    background-position: 0px -292.8px;
 }
 
 /* holds all the other containers */
