@@ -11,9 +11,9 @@
 
 <div id="board_display">
     <div id="currency_board"></div>
-    <div id="availalable_certs_display" class="whiteblock"><h1>{CERTS_AVAILABLE}</h1>
+    <div id="available_certs_display" class="whiteblock"><h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
     </div>
-    <div id="contract_display" class="whiteblock"><h1>{CONTRACT_DISPLAY}</h1>
+    <div id="contract_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
         <!-- BEGIN CONTRACTS_BLOCK -->
         <div id="contract_{CONTRACT}" class="frx_contract_container">
             <div id="contract_promise_{CONTRACT}" class="frx_contract_promise frx_currency_card frx_note frx_CHF"></div>
@@ -22,6 +22,7 @@
         </div>
         <!-- END CONTRACTS_BLOCK -->
     </div>
+    <!-- <div id="contract_queu" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1></div> -->
 </div>
 
 <script type="text/javascript">

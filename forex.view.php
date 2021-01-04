@@ -44,6 +44,8 @@
         // this will make labels text translatable
         $this->tpl['CONTRACT_DISPLAY'] = self::_("Contract Display");
         $this->tpl['CERTS_AVAILABLE'] = self::_("Available Certificates");
+        $this->tpl['CONTRACT_QUEUE'] = self::_("Contract Queue");
+
         $contracts = array('A', 'B', 'C', 'D', 'E', 'F');
 
         $this->page->begin_block($template, 'CONTRACTS_BLOCK');

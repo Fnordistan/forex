@@ -75,6 +75,7 @@
     width: 75px;
     height: 48.8px;
     margin: 5px;
+    box-shadow: 3px 3px 10px black;
 }
 
 /* these share the same dimensions, just different sprites */
@@ -119,18 +120,15 @@
     display: flex;
     flex-direction: row;
     margin: 0 -5px;
+    height: 816px;
 }
 
 /* Holds the vertical Contract Display */
 #contract_display {
-    display: inline-flex;
+    display: flex;
     flex-direction: column;
     height: 100%;
     margin: 0 5px;
-}
-
-#contract_display h1 {
-    font-family: 'DM Mono';
 }
 
 #currency_board {
@@ -143,7 +141,15 @@
 }
 
 /* Shows all available Certificates */
-#availalable_certs_display {
+#available_certs_display {
+    display: flex;
+    flex-direction: column;
     height: 100%;
     margin: 0 5px;
+}
+
+.frx_col_hdr {
+    font-family: 'DM Mono';
+    font-weight: bold;
+    text-align: center;
 }
