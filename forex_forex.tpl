@@ -33,7 +33,8 @@
 
 // Javascript HTML templates
 
-var jstpl_curr_pair = '<span id="${curr}_${zone} class="frx_currency_pair frx_pr_${curr}"></span>';
+// the actual counter shown is always curr2 (the weaker currency)
+var jstpl_curr_pair = '<span id="pair_${curr}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
 </script>  
 

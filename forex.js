@@ -18,7 +18,8 @@
 define([
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
-    "ebg/counter"
+    "ebg/counter",
+    "ebg/zone"
 ],
 function (dojo, declare) {
     return declare("bgagame.forex", ebg.core.gamegui, {
@@ -56,14 +57,45 @@ function (dojo, declare) {
                          
                 // TODO: Setting up players boards if needed
             }
-            
-            // TODO: Set up your game interface here, according to "gamedatas"
-            
+
+            this.currencyPairZones = [];
+            this.placeInitialCounters();
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
             console.log( "Ending game setup" );
+        },
+
+        placeInitialCounters: function() {
+            ['GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY'].forEach(curr => {
+                var pairs = [];
+                for (let i = 1; i <= 10; i++) {
+                    var currZone = new ebg.zone();
+                    var zid = curr+'_'+i;
+                    currZone.create(this, zid, 25, 25);
+                    currZone.setPattern('verticalfit');
+                    pairs.push(currZone);
+                }
+                this.currencyPairZones.push(pairs);
+            });
+            // this is hardcoding the initial currency pair markers, which I will remove
+            // once the Db is hooked up
+            var curr_pr = this.format_block('jstpl_curr_pair', {
+                "curr": 'GBP',
+                "curr2": 'USD'
+            });
+            var pr = dojo.place(curr_pr, 'currency_board');
+            this.currencyPairZones[0][0].placeInZone(pr.id);
+
+            ['EUR', 'CHF', 'JPY'].forEach(weaker =>{
+                var weaker_pr = this.format_block('jstpl_curr_pair', {
+                    "curr": 'GBP',
+                    "curr2": weaker
+                });
+                var wk = dojo.place(weaker_pr, 'currency_board');
+                this.currencyPairZones[0][1].placeInZone(wk.id);
+            });
         },
        
 

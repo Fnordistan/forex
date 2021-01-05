@@ -16,7 +16,7 @@
 $this->contracts = array('A','B','C','D','E','F');
 
 $this->currencies = array(
-  'GPB',
+  'GBP',
   'EUR',
   'USD',
   'CHF',
