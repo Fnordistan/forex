@@ -24,8 +24,14 @@
  *
  */
   
-  require_once( APP_BASE_PATH."view/common/game.view.php" );
-  
+require_once( APP_BASE_PATH."view/common/game.view.php" );
+
+// values for curr_pr_zones, if we need to resize later
+define('ZONE_X', 90);
+define('ZONE_Y', 85);
+define('ZONE_H_GAP', 42);
+define('ZONE_V_GAP', 107);
+
   class view_forex_forex extends game_view
   {
     function getGameName() {
@@ -46,12 +52,10 @@
         $this->tpl['CERTS_AVAILABLE'] = self::_("Available Certificates");
         $this->tpl['CONTRACT_QUEUE'] = self::_("Contract Queue");
 
-        $contracts = array('A', 'B', 'C', 'D', 'E', 'F');
-        $currencies = array('GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY');
-        $y = 85;
         $this->page->begin_block($template, 'CURRENCY_PAIRS_BLOCK');
-        foreach( $currencies as $curr) {
-          $x = 90;
+        $y = ZONE_Y;
+        foreach( $this->game->currencies as $curr ) {
+          $x = ZONE_X;
           for ($i = 1; $i <= 10; $i++ ) {
             $this->page->insert_block('CURRENCY_PAIRS_BLOCK', array(
                 'CURR' => $curr,
@@ -59,13 +63,13 @@
                 'L' => $x,
                 'T' => $y
             ));
-            $x += 42;
+            $x += ZONE_H_GAP;
           }
-          $y += 107;
+          $y += ZONE_V_GAP;
         }
 
         $this->page->begin_block($template, 'CONTRACTS_BLOCK');
-        foreach ( $contracts as $contract) {
+        foreach ( $this->game->contracts as $contract ) {
           $this->page->insert_block('CONTRACTS_BLOCK', array(
             'CONTRACT' => $contract
           ));

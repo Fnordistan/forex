@@ -10,7 +10,17 @@
  *
  * material.inc.php
  *
- * ForEx game material description
+ * For-Ex game material description
  */
 
 $this->contracts = array('A','B','C','D','E','F');
+
+$this->currencies = array(
+  'GPB',
+  'EUR',
+  'USD',
+  'CHF',
+  'JPY',
+  'CAD',
+  'CNY'
+);
