@@ -47,6 +47,22 @@
         $this->tpl['CONTRACT_QUEUE'] = self::_("Contract Queue");
 
         $contracts = array('A', 'B', 'C', 'D', 'E', 'F');
+        $currencies = array('GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY');
+        $y = 85;
+        $this->page->begin_block($template, 'CURRENCY_PAIRS_BLOCK');
+        foreach( $currencies as $curr) {
+          $x = 90;
+          for ($i = 1; $i <= 10; $i++ ) {
+            $this->page->insert_block('CURRENCY_PAIRS_BLOCK', array(
+                'CURR' => $curr,
+                'ZONE' => $i,
+                'L' => $x,
+                'T' => $y
+            ));
+            $x += 42;
+          }
+          $y += 107;
+        }
 
         $this->page->begin_block($template, 'CONTRACTS_BLOCK');
         foreach ( $contracts as $contract) {

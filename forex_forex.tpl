@@ -10,7 +10,11 @@
 -->
 
 <div id="board_display">
-    <div id="currency_board"></div>
+    <div id="currency_board">
+        <!-- BEGIN CURRENCY_PAIRS_BLOCK -->
+        <div id="{CURR}_{ZONE}" class="frx_curr_pr_zone" style="top: {T}px; left: {L}px;"></div>
+        <!-- END CURRENCY_PAIRS_BLOCK -->
+    </div>
     <div id="available_certs_display" class="whiteblock"><h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
     </div>
     <div id="contract_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
@@ -29,11 +33,7 @@
 
 // Javascript HTML templates
 
-/*
-// Example:
-var jstpl_some_game_item='<div class="my_game_item" id="my_game_item_${MY_ITEM_ID}"></div>';
-
-*/
+var jstpl_curr_pair = '<span id="${curr}_${zone} class="frx_currency_pair frx_pr_${curr}"></span>';
 
 </script>  
 
