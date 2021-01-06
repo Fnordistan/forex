@@ -15,6 +15,16 @@
  *
  */
 
+const CURRENCY = {
+    "GBP" : 1,
+    "EUR" : 2,
+    "USD" : 3,
+    "CHF" : 4,
+    "JPY" : 5,
+    "CAD" : 6,
+    "CNY" : 7
+}
+
 define([
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
@@ -59,7 +69,7 @@ function (dojo, declare) {
             }
 
             this.currencyPairZones = [];
-            this.placeInitialCounters();
+            this.placeInitialCounters(gamedatas.currency_pairs);
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -67,7 +77,12 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
-        placeInitialCounters: function() {
+
+        /**
+         * Set initial locations.
+         * @param {Array} currency_pairs 
+         */
+        placeInitialCounters: function(currency_pairs) {
             ['GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY'].forEach(curr => {
                 var pairs = [];
                 for (let i = 1; i <= 10; i++) {
@@ -79,23 +94,16 @@ function (dojo, declare) {
                 }
                 this.currencyPairZones.push(pairs);
             });
-            // this is hardcoding the initial currency pair markers, which I will remove
-            // once the Db is hooked up
-            var curr_pr = this.format_block('jstpl_curr_pair', {
-                "curr": 'GBP',
-                "curr2": 'USD'
-            });
-            var pr = dojo.place(curr_pr, 'currency_board');
-            this.currencyPairZones[0][0].placeInZone(pr.id);
-
-            ['EUR', 'CHF', 'JPY'].forEach(weaker =>{
-                var weaker_pr = this.format_block('jstpl_curr_pair', {
-                    "curr": 'GBP',
-                    "curr2": weaker
+            for (const c in currency_pairs) {
+                let curr1 = currency_pairs[c]['stronger'];
+                let curr2 = currency_pairs[c]['curr1'] = curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
+                var curr_pr = this.format_block('jstpl_curr_pair', {
+                    "curr1": curr1,
+                    "curr2": curr2
                 });
-                var wk = dojo.place(weaker_pr, 'currency_board');
-                this.currencyPairZones[0][1].placeInZone(wk.id);
-            });
+                var currdiv = dojo.place(curr_pr, 'currency_board');
+                this.currencyPairZones[CURRENCY[curr1]-1][currency_pairs[c]['position']-1].placeInZone(currdiv.id);
+            }
         },
        
 

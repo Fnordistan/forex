@@ -163,6 +163,8 @@ class ForEx extends Table
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
+        $sql = "SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS ";
+        $result['currency_pairs'] = self::getObjectListFromDB( $sql );
   
         return $result;
     }

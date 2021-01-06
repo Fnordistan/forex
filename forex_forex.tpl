@@ -34,7 +34,7 @@
 // Javascript HTML templates
 
 // the actual counter shown is always curr2 (the weaker currency)
-var jstpl_curr_pair = '<span id="pair_${curr}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
+var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
 </script>  
 
