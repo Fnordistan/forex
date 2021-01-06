@@ -31,11 +31,11 @@ CREATE TABLE IF NOT EXISTS `CERTIFICATES` (
 
 CREATE TABLE IF NOT EXISTS `CONTRACTS` (
     `contract` varchar(8) NOT NULL COMMENT 'A-F, Div',
-    `owner` varchar(16) NOT NULL COMMENT 'player_id or null',
-    `promise` varchar(3) NOT NULL COMMENT 'currency',
-    `promise_amt` TINYINT NOT NULL,
-    `payout` varchar(3) NOT NULL COMMENT 'currency',
-    `payout_amt` TINYINT NOT NULL,
+    `owner` varchar(16) COMMENT 'player_id or null',
+    `promise` varchar(3) COMMENT 'currency',
+    `promise_amt` TINYINT,
+    `payout` varchar(3) COMMENT 'currency',
+    `payout_amt` TINYINT,
     `location` TINYINT COMMENT 'queue position or NULL',
     PRIMARY KEY (`contract`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS `CONTRACTS` (
 CREATE TABLE IF NOT EXISTS `BANK` (
     `player` INT(11) NOT NULL,
     `curr` varchar(3) NOT NULL,
-    `amt` TINYINT,
-    PRIMARY KEY (`player`)
+    `amt` TINYINT NOT NULL,
+    CONSTRAINT `Curr_Holdings` PRIMARY KEY (`player`, `curr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 CREATE TABLE IF NOT EXISTS `CURRENCY_PAIRS` (

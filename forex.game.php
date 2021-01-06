@@ -19,6 +19,7 @@
 
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
+define('DIVIDENDS', 'Dividends');
 
 class ForEx extends Table
 {
@@ -87,13 +88,26 @@ class ForEx extends Table
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
-        // TODO: setup the initial game situation here
+        // setup the initial game situation here
+        $this->giveStartingMonies($players);
         $this->setupCurrencyPairs();
+        $this->initializeContracts();
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
 
         /************ End of the game initialization *****/
+    }
+
+    /**
+     * Give everyone their starting 2 bucks in each currency
+     */
+    protected function giveStartingMonies($players) {
+        foreach ($players as $player_id => $player) {
+            foreach ($this->currencies as $c => $curr) {
+                self::DbQuery( "INSERT INTO BANK VALUES($player_id,\"$curr\",2)" );
+            }
+        }
     }
 
     /**
@@ -115,8 +129,18 @@ class ForEx extends Table
                 self::DbQuery( "INSERT INTO CURRENCY_PAIRS VALUES(\"$curr1\",\"$curr2\",\"$curr1\",$position)" );
             }
         }
-
     }
+
+    /**
+     * Init the contracts
+     */
+    protected function initializeContracts() {
+        foreach($this->contracts as $contract) {
+            self::DbQuery( "INSERT INTO CONTRACTS (contract) VALUES(\"$contract\")" );
+        }
+        self::DbQuery( "INSERT INTO CONTRACTS (contract) VALUES(\"".DIVIDENDS."\")" );
+    }
+
 
     /*
         getAllDatas: 
