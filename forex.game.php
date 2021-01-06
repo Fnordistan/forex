@@ -41,7 +41,7 @@ class ForEx extends Table
             //      ...
         ) );        
 	}
-	
+
     protected function getGameName( )
     {
 		// Used for translations and stuff. Please do not modify.
@@ -88,12 +88,34 @@ class ForEx extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // TODO: setup the initial game situation here
-       
+        $this->setupCurrencyPairs();
 
         // Activate first player (which is in general a good idea :) )
         $this->activeNextPlayer();
 
         /************ End of the game initialization *****/
+    }
+
+    /**
+     * Initialize currency pairs to starting positions.
+     */
+    protected function setupCurrencyPairs() {
+        // stock the currency pairs table
+        // with initial starting values
+        $starting_pairs = array();
+        $starting_pairs["GBP"] = array("USD" => 1, "EUR" => 2, "CHF" => 2, "JPY" => 2, "CAD" => 3, "CNY" => 7);
+        $starting_pairs["EUR"] = array("USD" => 1, "CHF" => 1, "JPY" => 2, "CAD" => 2, "CNY" => 6);
+        $starting_pairs["USD"] = array("CHF" => 1, "JPY" => 2, "CAD" => 2, "CNY" => 6);
+        $starting_pairs["CHF"] = array("JPY" => 2, "CAD" => 2, "CNY" => 6);
+        $starting_pairs["JPY"] = array("CAD" => 2, "CNY" => 5);
+        $starting_pairs["CAD"] = array("CNY" => 4);
+
+        foreach ($starting_pairs as $curr1 => $pairs) {
+            foreach ($pairs as $curr2 => $position) {
+                self::DbQuery( "INSERT INTO CURRENCY_PAIRS VALUES(\"$curr1\",\"$curr2\",\"$curr1\",$position)" );
+            }
+        }
+
     }
 
     /*

@@ -54,7 +54,7 @@ define('ZONE_V_GAP', 107);
 
         $this->page->begin_block($template, 'CURRENCY_PAIRS_BLOCK');
         $y = ZONE_Y;
-        foreach( $this->game->currencies as $curr ) {
+        foreach( $this->game->currencies as $c => $curr ) {
           $x = ZONE_X;
           for ($i = 1; $i <= 10; $i++ ) {
             $this->page->insert_block('CURRENCY_PAIRS_BLOCK', array(

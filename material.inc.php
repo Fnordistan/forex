@@ -16,11 +16,11 @@
 $this->contracts = array('A','B','C','D','E','F');
 
 $this->currencies = array(
-  'GBP',
-  'EUR',
-  'USD',
-  'CHF',
-  'JPY',
-  'CAD',
-  'CNY'
+  1 => 'GBP',
+  2 => 'EUR',
+  3 => 'USD',
+  4 => 'CHF',
+  5 => 'JPY',
+  6 => 'CAD',
+  7 => 'CNY'
 );

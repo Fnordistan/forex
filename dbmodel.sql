@@ -20,16 +20,39 @@
 
 -- Example 1: create a standard "card" table to be used with the "Deck" tools (see example game "hearts"):
 
--- CREATE TABLE IF NOT EXISTS `card` (
---   `card_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
---   `card_type` varchar(16) NOT NULL,
---   `card_type_arg` int(11) NOT NULL,
---   `card_location` varchar(16) NOT NULL,
---   `card_location_arg` int(11) NOT NULL,
---   PRIMARY KEY (`card_id`)
--- ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+CREATE TABLE IF NOT EXISTS `CERTIFICATES` ( 
+  `card_id` TINYINT unsigned NOT NULL AUTO_INCREMENT,
+  `card_type` varchar(3) NOT NULL COMMENT 'currency',
+  `card_type_arg` TINYINT NOT NULL COMMENT 'number',
+  `card_location` varchar(16) NOT NULL COMMENT 'player_id|available|discard',
+  `card_location_arg` TINYINT NULL,
+  PRIMARY KEY (`card_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
+CREATE TABLE IF NOT EXISTS `CONTRACTS` (
+    `contract` varchar(8) NOT NULL COMMENT 'A-F, Div',
+    `owner` varchar(16) NOT NULL COMMENT 'player_id or null',
+    `promise` varchar(3) NOT NULL COMMENT 'currency',
+    `promise_amt` TINYINT NOT NULL,
+    `payout` varchar(3) NOT NULL COMMENT 'currency',
+    `payout_amt` TINYINT NOT NULL,
+    `location` TINYINT COMMENT 'queue position or NULL',
+    PRIMARY KEY (`contract`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
--- Example 2: add a custom field to the standard "player" table
--- ALTER TABLE `player` ADD `player_my_custom_field` INT UNSIGNED NOT NULL DEFAULT '0';
+CREATE TABLE IF NOT EXISTS `BANK` (
+    `player` INT(11) NOT NULL,
+    `curr` varchar(3) NOT NULL,
+    `amt` TINYINT,
+    PRIMARY KEY (`player`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
+CREATE TABLE IF NOT EXISTS `CURRENCY_PAIRS` (
+    `curr1` varchar(3) NOT NULL,
+    `curr2` varchar(3) NOT NULL,
+    `stronger` varchar(3) NOT NULL,
+    `position` TINYINT NOT NULL COMMENT '1-10',
+    CONSTRAINT `Curr_Pair` PRIMARY KEY (`curr1`,`curr2`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+ ALTER TABLE `player` ADD `player_first` BOOLEAN NOT NULL DEFAULT '0';
