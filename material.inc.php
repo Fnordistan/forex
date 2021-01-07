@@ -24,3 +24,17 @@ $this->currencies = array(
   6 => 'CAD',
   7 => 'CNY'
 );
+
+// mapping of position on exchange track to value
+$this->exchange = array(
+  1 => 1,
+  2 => 1.5,
+  3 => 2,
+  4 => 2.5,
+  5 => 3,
+  6 => 3.5,
+  7 => 4,
+  8 => 5,
+  9 => 6,
+  10 => 8
+);

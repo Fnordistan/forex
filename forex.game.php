@@ -89,6 +89,7 @@ class ForEx extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // setup the initial game situation here
+        $this->createCertificates();
         $this->giveStartingMonies($players);
         $this->setupCurrencyPairs();
         $this->initializeContracts();
@@ -98,6 +99,11 @@ class ForEx extends Table
 
         /************ End of the game initialization *****/
     }
+
+    protected function createCertificates() {
+
+    }
+
 
     /**
      * Give everyone their starting 2 bucks in each currency
@@ -163,7 +169,7 @@ class ForEx extends Table
         $result['players'] = self::getCollectionFromDb( $sql );
   
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
-        $sql = "SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS ";
+        $sql = "SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS";
         $result['currency_pairs'] = self::getObjectListFromDB( $sql );
   
         return $result;
@@ -191,11 +197,138 @@ class ForEx extends Table
 //////////// Utility functions
 ////////////    
 
-    /*
-        In this space, you can put any utility methods useful for your game logic
-    */
+    /**
+     * Return associative array for all pairs with this currency, with this currency as the key.
+     * curr => $curr
+     * stronger => stronger
+     * pos => position
+     * pair => other currency
+     */
+    function getCurrencyPairs($curr) {
+        $stored_pairs = self::getObjectListFromDB("SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS WHERE curr1 = $curr OR curr2 = $curr");
+        $pairs = array();
+        foreach ($stored_pairs as $stored_pr) {
+            $pair = array("curr" => $curr, "stronger" => $stored_pr['stronger'], "pos" => $stored_pr['position'], "pair" => $stored_pr['curr1'] == $curr ? $stored_pr['curr2'] : $stored_pr['curr1']);
+            $pairs[] = $pair;
+        }
+        return $pairs;
+    }
 
+    /**
+     * Strengthen a currency, send notifications.
+     */
+    function strengthen($curr) {
+        $pairs = $this->getCurrencypairs($curr);
+        foreach ($pairs as $pair) {
+            $this->increase($curr, $pair);
+        }
+        self::notifyAllPlayers('currencyStrengthened', '${player_name} strengthened {$curr}', array (
+            'i18n' => array ('curr' ),
+            'player_id' => self::getActivePlayerId(),
+            'player_name' => self::getActivePlayerName(),
+            'curr' => $curr));
+    }
 
+    /**
+     * Weaken a currency, send notifications.
+     */
+    function weaken($curr) {
+        $pairs = $this->getCurrencypairs($curr);
+        foreach ($pairs as $pair) {
+            $this->decrease($curr, $pair);
+        }
+        self::notifyAllPlayers('currencyWeakened', '${player_name} weakened {$curr}', array (
+            'i18n' => array ('curr' ),
+            'player_id' => self::getActivePlayerId(),
+            'player_name' => self::getActivePlayerName(),
+            'curr' => $curr));
+    }
+
+    /**
+     * Increase a $curr relative to the other currency in the par. Update in Db.
+     */
+    function increase($curr, $pair) {
+        $pos = $pair['pos'];
+        $stronger = $pair['stronger'];
+        if ($curr == $stronger) {
+            $pos = min($pos+1, 10);
+        } else {
+            $pos--;
+            if ($pos == 0) {
+                $stronger = $curr;
+                $pos = 1;
+            }
+        }
+        $this->updateCurrencyPair($curr, $pair['pair'], $stronger, $pos);
+    }
+
+    /**
+     * Decrease a $curr relative to the other currency in the par. Update in Db.
+     */
+    function decrease($curr, $pair) {
+        $pos = $pair['pos'];
+        $stronger = $pair['stronger'];
+        if ($curr == $stronger) {
+            $pos--;
+            if ($pos == 0) {
+                $stronger = $pair['pair'];
+                $pos = 1;
+            }
+        } else {
+            $pos = min($pos+1, 10);
+        }
+        $this->updateCurrencyPair($curr, $pair['pair'], $stronger, $pos);
+    }
+
+    /**
+     * Update a pair in the Db.
+     */
+    function updateCurrencyPair($curr1, $curr2, $stronger, $pos) {
+        self::DbQuery("
+            UPDATE CURRENCY_PAIRS SET stronger = $stronger, position = $pos
+            WHERE (curr1 = $curr1 AND curr2 = $curr2) OR (curr1 = $curr2 AND curr2 = $curr1)
+        ");
+    }
+
+    /**
+     * Given two currencies, returns two-member array: the stronger of the two, and its value (exchange rate) for the weaker.
+     */
+    function calculateExchangeRate($curr1, $curr2) {
+        $pair = self::getNonEmptyObjectFromDB("
+            SELECT stronger, position from CURRENCY_PAIRS
+            WHERE (curr1 = $curr1 AND curr2 = $curr2 ) OR (curr1 = $curr2 AND curr2 = $curr1 )
+        ");
+        $xchang = $this->exchange[$pair['position']];
+        $pair = array($pair['stronger'], $xchang);
+        return $pair;
+    }
+
+    /**
+     * For an offer and request, returns two-member array, value/value (one will be 1)
+     */
+    function getSpotValues($offer, $request) {
+        $xchg = $this->calculateExchangeRate($curr1, $curr2);
+        if ($offer == $xchg[0]) {
+            return array(1, $xchg[1]);
+        } else {
+            return array($xchg[1], 1);
+        }
+    }
+
+    /**
+     * How much does this player have of this currency?
+     */
+    function getMonies($player_id, $curr) {
+        return self::getUniqueValueFromDB("SELECT amt from BANK WHERE player = $player_id AND curr = $curr");
+    }
+
+    /**
+     * How many Certificates does this player have of the given currency?
+     */
+    function countCertificates($player_id, $curr) {
+        $certs = self::getCollectionFromDB("SELECT card_id from CERTIFICATES WHERE card_type = $curr AND card_location = $player_id");
+        return count($certs);
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -232,7 +365,53 @@ class ForEx extends Table
     
     */
 
-    
+    function offerSpotTrade($offer, $request, $player) {
+        self::checkAction( 'offerSpot' ); 
+
+        $player_id = self::getActivePlayerId();
+        
+        $spot = $this->getSpotValues($offer, $request);
+        $off_amt = $spot[0];
+        $req_amt = $spot[1];
+        $mybucks = $this->getMonies($me, $offer);
+        if ($off_amt > $mybucks) {
+            throw new BgaUserException(self::_("You do not have ${off_amt} ${offer}"));
+        }
+        $theirbucks = $this->getMonies($player, $request);
+        if ($req_amt > $theirbucks) {
+            throw new BgaUserException(self::_("${player} does not have ${req_amt} ${request}"));
+        }
+        // sendOffer($offer, $off_amt, $request, $req_amt, $player);
+    }
+
+    /**
+     * Buy a certificate.
+     */
+    function invest($curr) {
+        self::checkAction( 'investCurrency' ); 
+
+        $player_id = self::getActivePlayerId();
+        $mybucks = $this->getMonies($player_id, $curr);
+        if ($mybucks < 2) {
+            throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
+        }
+        $mycerts = $this->countCertificates($player_id, $curr);
+        if ($mycerts >= 4) {
+            throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
+        }
+
+        self::DbQuery("UPDATE BANK SET amt = ".($mybucks-2)." WHERE player = $player_id AND curr = $curr");
+
+        // movedeck for certificates
+        self::notifyAllPlayers('currencyInvested', '${player_name} invested in ${curr}', array (
+            'i18n' => array ('curr' ),
+            'player_id' => self::getActivePlayerId(),
+            'player_name' => self::getActivePlayerName(),
+            'curr' => $curr));
+        $this->strengthen($curr);
+    }
+
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
 ////////////
