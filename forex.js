@@ -29,6 +29,7 @@ define([
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
     "ebg/counter",
+    "ebg/stock",
     "ebg/zone"
 ],
 function (dojo, declare) {
@@ -69,6 +70,7 @@ function (dojo, declare) {
             }
 
             this.currencyPairZones = [];
+            this.availableCertificates = [];
             this.placeInitialCounters(gamedatas.currency_pairs);
             this.setupCertificates(gamedatas.certificates);
  
@@ -84,7 +86,7 @@ function (dojo, declare) {
          * @param {Array} currency_pairs 
          */
         placeInitialCounters: function(currency_pairs) {
-            ['GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY'].forEach(curr => {
+            Object.keys(CURRENCY).forEach(curr => {
                 var pairs = [];
                 for (let i = 1; i <= 10; i++) {
                     var currZone = new ebg.zone();
@@ -112,7 +114,12 @@ function (dojo, declare) {
          * @param {*} certificates 
          */
         setupCertificates: function(certificates) {
+            Object.keys(CURRENCY).forEach( curr => {
+                var avail = new ebg.stock();
+            });
             for (const c in certificates) {
+
+
                 console.log(certificates[c]);
             }
         },
