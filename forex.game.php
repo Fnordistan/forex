@@ -20,6 +20,8 @@
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
 define('DIVIDENDS', 'Dividends');
+define('AVAILABLE', 'available');
+define('DISCARD', 'discard');
 
 class ForEx extends Table
 {
@@ -40,7 +42,11 @@ class ForEx extends Table
             //    "my_first_game_variant" => 100,
             //    "my_second_game_variant" => 101,
             //      ...
-        ) );        
+        ) );
+
+        $this->certificates = self::getNew("module.common.deck");
+        $this->certificates->init("CERTIFICATES");
+
 	}
 
     protected function getGameName( )
@@ -89,7 +95,7 @@ class ForEx extends Table
         //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
 
         // setup the initial game situation here
-        $this->createCertificates();
+        $this->setupCertificates();
         $this->giveStartingMonies($players);
         $this->setupCurrencyPairs();
         $this->initializeContracts();
@@ -100,10 +106,27 @@ class ForEx extends Table
         /************ End of the game initialization *****/
     }
 
+    /**
+     * Create certificates, 8 for each currency.
+     */
     protected function createCertificates() {
-
+        $certs = array();
+        foreach ($this->currencies as $c => $curr) {
+            $certs[] = array('type' => $curr, 'type_arg' => NULL, 'location' => AVAILABLE, 'location_arg' => null, 'nbr' => 8 );
+        }
+        return $certs;
     }
 
+    /**
+     * Create the certificates "deck"
+     */
+    protected function setupCertificates() {
+        $certs = $this->createCertificates();
+        $this->certificates->createCards( $certs, AVAILABLE );
+        // shuffle and randomly discard 6
+        $this->certificates->shuffle(AVAILABLE);
+        $this->certificates->pickCardsForLocation(6, AVAILABLE, DISCARD);
+    }
 
     /**
      * Give everyone their starting 2 bucks in each currency
@@ -171,7 +194,10 @@ class ForEx extends Table
         // TODO: Gather all information about current game situation (visible by player $current_player_id).
         $sql = "SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS";
         $result['currency_pairs'] = self::getObjectListFromDB( $sql );
-  
+        // even though this is a Deck, we're going to pull directly from Db because all certs are public info
+        // and get handled on client side
+        $result['certificates'] = self::getObjectListFromDB("SELECT card_id id, card_type curr, card_location loc FROM CERTIFICATES");
+
         return $result;
     }
 

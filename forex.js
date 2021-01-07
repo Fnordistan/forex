@@ -70,6 +70,7 @@ function (dojo, declare) {
 
             this.currencyPairZones = [];
             this.placeInitialCounters(gamedatas.currency_pairs);
+            this.setupCertificates(gamedatas.certificates);
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -106,6 +107,15 @@ function (dojo, declare) {
             }
         },
        
+        /**
+         * 
+         * @param {*} certificates 
+         */
+        setupCertificates: function(certificates) {
+            for (const c in certificates) {
+                console.log(certificates[c]);
+            }
+        },
 
         ///////////////////////////////////////////////////
         //// Game & client states
