@@ -31,7 +31,13 @@
         </div>
         <!-- END CONTRACTS_BLOCK -->
     </div>
-    <div id="contract_queue" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1></div>
+    <div id="contract_queue_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
+        <div id="contract_queue_container">
+            <!-- BEGIN QUEUE_BLOCK -->
+            <div id="queu_{Q}" class="frx_contract_queue_slot"></div>
+            <!-- END QUEUE_BLOCK -->
+        </div>
+    </div>
 </div>
 
 <script type="text/javascript">
