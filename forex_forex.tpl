@@ -18,7 +18,7 @@
     <div id="available_certs_display" class="whiteblock"><h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
         <!-- BEGIN CERTIFICATES_BLOCK -->
         <div id="avail_certs_{CURR}_container" class="frx_certs_container">
-            <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_ctr"></span>
+            <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
         </div>
         <!-- END CERTIFICATES_BLOCK -->
     </div>
@@ -36,6 +36,11 @@
             <!-- BEGIN QUEUE_BLOCK -->
             <div id="queu_{Q}" class="frx_contract_queue_slot"></div>
             <!-- END QUEUE_BLOCK -->
+        </div>
+        <div id="cash_container">
+            <!-- BEGIN CASH_BLOCK -->
+            <div id="cash_{CURR}" class="frx_currency_card frx_note frx_{CURR}"></div>
+            <!-- END CASH_BLOCK -->
         </div>
     </div>
 </div>

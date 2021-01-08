@@ -92,7 +92,7 @@
 }
 
 
-.frx_cert_ctr {
+.frx_cert_cntr {
     /* position: absolute;
     top: 0px;
     right: 0px; */
@@ -230,8 +230,20 @@
 
 #contract_queue_display {
     margin: 0 5px;
+    height: 100%;
 }
 
 #contract_queue_container > * {
     display: inline-block;
 }
+
+#cash_container {
+    position: absolute;
+    bottom: 0px;
+}
+
+#cash_container > * {
+    display: inline-block;
+    position: relative;
+}
+
