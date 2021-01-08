@@ -16,6 +16,11 @@
         <!-- END CURRENCY_PAIRS_BLOCK -->
     </div>
     <div id="available_certs_display" class="whiteblock"><h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
+        <!-- BEGIN CERTIFICATES_BLOCK -->
+        <div id="avail_certs_{CURR}_container" class="frx_certs_container">
+            <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_ctr"></span>
+        </div>
+        <!-- END CERTIFICATES_BLOCK -->
     </div>
     <div id="contract_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
         <!-- BEGIN CONTRACTS_BLOCK -->
@@ -26,7 +31,7 @@
         </div>
         <!-- END CONTRACTS_BLOCK -->
     </div>
-    <!-- <div id="contract_queu" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1></div> -->
+    <div id="contract_queue" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1></div>
 </div>
 
 <script type="text/javascript">

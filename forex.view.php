@@ -67,6 +67,12 @@ define('ZONE_V_GAP', 107);
           }
           $y += ZONE_V_GAP;
         }
+        $this->page->begin_block($template, 'CERTIFICATES_BLOCK');
+        foreach( $this->game->currencies as $c => $curr ) {
+          $this->page->insert_block('CERTIFICATES_BLOCK', array(
+              'CURR' => $curr
+          ));
+        }
 
         $this->page->begin_block($template, 'CONTRACTS_BLOCK');
         foreach ( $this->game->contracts as $contract ) {

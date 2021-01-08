@@ -25,6 +25,18 @@ const CURRENCY = {
     "CNY" : 7
 }
 
+const COLORS = {
+    "GBP" : '#EC1C26',
+    "EUR" : '#5156A5',
+    "USD" : '#2BB673',
+    "CHF" : '#A04978',
+    "JPY" : '#A38C7E',
+    "CAD" : '#603A17',
+    "CNY" : '#AD7C2C'
+}
+
+const CERT_SPRITES = 'img/forex_certificates.jpg'
+
 define([
     "dojo","dojo/_base/declare",
     "ebg/core/gamegui",
@@ -36,7 +48,10 @@ function (dojo, declare) {
     return declare("bgagame.forex", ebg.core.gamegui, {
         constructor: function(){
             console.log('forex constructor');
-              
+            this.cardwidth = 75;
+            this.cardheight = 48.8;
+            this.curr_tok_dim = 25;
+                      
             // Here, you can init the global variables of your user interface
             // Example:
             // this.myGlobalValue = 0;
@@ -71,8 +86,11 @@ function (dojo, declare) {
 
             this.currencyPairZones = [];
             this.availableCertificates = [];
-            this.placeInitialCounters(gamedatas.currency_pairs);
-            this.setupCertificates(gamedatas.certificates);
+            this.availableCertCounters = [];
+            this.createCurrencyPairTokens();
+            this.placeCurrencyCounters(gamedatas.currency_pairs);
+            this.createAvailableCertificates();
+            this.placeCertificates(gamedatas.certificates);
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -80,23 +98,54 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
-
         /**
-         * Set initial locations.
-         * @param {Array} currency_pairs 
+         * Create the zones to hold currency pairs.
          */
-        placeInitialCounters: function(currency_pairs) {
+        createCurrencyPairTokens: function() {
             Object.keys(CURRENCY).forEach(curr => {
                 var pairs = [];
                 for (let i = 1; i <= 10; i++) {
                     var currZone = new ebg.zone();
                     var zid = curr+'_'+i;
-                    currZone.create(this, zid, 25, 25);
+                    currZone.create(this, zid, this.curr_tok_dim, this.curr_tok_dim);
                     currZone.setPattern('verticalfit');
                     pairs.push(currZone);
                 }
                 this.currencyPairZones.push(pairs);
             });
+        },
+
+        /**
+         * First create the Stock piles holding available Certificates.
+         */
+        createAvailableCertificates: function() {
+            Object.keys(CURRENCY).forEach( curr => {
+                var avail = new ebg.stock();
+                avail.create( this, $('avail_certs_'+curr), this.cardwidth, this.cardheight );
+                avail.image_items_per_row = 1;
+                avail.extraClasses='frx_card_shadow';
+                avail.setSelectionMode(0);
+                avail.setOverlap(10, 0);
+                // hitch adding railroad as a class to each hand
+                avail.onItemCreate = dojo.hitch(this, this.setupCertificate);
+                avail.addItemType( curr, 0, g_gamethemeurl+CERT_SPRITES, CURRENCY[curr]-1 );
+                avail.autowidth = true;
+                this.availableCertificates.push(avail);
+                // and create a matching counter
+                var counter = new ebg.counter();
+                counter.create('avail_certs_'+curr+'_ctr');
+                dojo.style('avail_certs_'+curr+'_ctr', 'color', COLORS[curr]);
+                this.availableCertCounters.push(counter);
+            });
+        },
+
+
+
+        /**
+         * Set initial locations.
+         * @param {Array} currency_pairs 
+         */
+        placeCurrencyCounters: function(currency_pairs) {
             for (const c in currency_pairs) {
                 let curr1 = currency_pairs[c]['stronger'];
                 let curr2 = currency_pairs[c]['curr1'] = curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
@@ -108,20 +157,40 @@ function (dojo, declare) {
                 this.currencyPairZones[CURRENCY[curr1]-1][currency_pairs[c]['position']-1].placeInZone(currdiv.id);
             }
         },
-       
+
         /**
          * 
-         * @param {*} certificates 
+         * @param {Array} certificates 
          */
-        setupCertificates: function(certificates) {
-            Object.keys(CURRENCY).forEach( curr => {
-                var avail = new ebg.stock();
-            });
+        placeCertificates: function(certificates) {
             for (const c in certificates) {
-
-
-                console.log(certificates[c]);
+                var cert = certificates[c];
+                if (cert.loc == 'available') {
+                    this.placeAvailableCertificate(cert);
+                }
+                // console.log(certificates[c]);
             }
+        },
+
+
+        /**
+         * Adds a Certificate to its appropriate available pile, incrementing the counter.
+         * @param {Object} certificate
+         * @param {string} from html id it's coming from
+         */
+        placeAvailableCertificate(certificate, from) {
+            this.availableCertificates[CURRENCY[certificate.curr]-1].addToStockWithId(certificate.curr, certificate.id);
+            this.availableCertCounters[CURRENCY[certificate.curr]-1].incValue(1);
+        },
+
+        /**
+         * Adds tooltip to a Certificate
+         * @param {string} card_div 
+         * @param {string} card_type 
+         * @param {string} cert_item 
+         */
+        setupCertificate: function(card_div, card_type, cert_item) {
+            this.addTooltip( card_div.id, _(card_type+' Certificate'), '');
         },
 
         ///////////////////////////////////////////////////

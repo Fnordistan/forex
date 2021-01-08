@@ -21,6 +21,11 @@
 
 }
 
+.frx_certs_container > * {
+    /* position: relative; */
+    display: inline-block;
+}
+
 /* space internal elements of contract r-l */
 .frx_contract_container > * {
     margin: 0 5px;
@@ -67,6 +72,18 @@
 
 .frx_F {
     background-position: -244px 0px;
+}
+.frx_cert_ctr {
+    /* position: absolute;
+    top: 0px;
+    right: 0px; */
+    font-size: 24px;
+    vertical-align: top;
+    margin-left: 10px;
+}
+
+.frx_card_shadow {
+    box-shadow: 3px 3px 10px black;
 }
 
 .frx_currency_card {
