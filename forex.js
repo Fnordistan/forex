@@ -76,17 +76,51 @@ function (dojo, declare) {
             dojo.destroy('debug_output');
             console.log( "Starting game setup" );
             
+            this.certCounters = [];
+            this.noteCounters = [];
+
             // Setting up player boards
             for( var player_id in gamedatas.players )
             {
                 var player = gamedatas.players[player_id];
-                         
-                // TODO: Setting up players boards if needed
+                this.certCounters[player_id] = [];         
+                this.noteCounters[player_id] = [];
+                // Setting up player board
+                var player_board_div = $('player_board_'+player_id);
+                Object.keys(CURRENCY).forEach(curr => {
+                    dojo.place( this.format_block('jstpl_note_counter_icon', {
+                        "curr": curr,
+                        "id": player_id
+                    }), player_board_div);
+                    dojo.place( this.format_block('jstpl_note_counter', {
+                        "curr": curr,
+                        "id": player_id
+                    }), player_board_div);
+                    dojo.place( this.format_block('jstpl_cert_counter_icon', {
+                        "curr": curr,
+                        "id": player_id
+                    }), player_board_div);
+                    dojo.place( this.format_block('jstpl_cert_counter', {
+                        "curr": curr,
+                        "id": player_id
+                    }), player_board_div);
+
+                    var note_counter = new ebg.counter();
+                    note_counter.create(curr+'_note_counter_'+player_id);
+                    this.noteCounters[player_id].push(note_counter);
+
+                    var cert_counter = new ebg.counter();
+                    cert_counter.create(curr+'_cert_counter_'+player_id);
+                    this.certCounters[player_id].push(cert_counter);
+                    // this.addTooltip(curr+'_counter_icon_'+player_id, dojo.string.substitute(_("${rr} Shares"), {rr: RAILROADS[rri]}), '');
+
+                });
             }
 
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
+            this.addMonies();
             this.createCurrencyPairTokens();
             this.placeCurrencyCounters(gamedatas.currency_pairs);
             this.createAvailableCertificates();
@@ -96,6 +130,17 @@ function (dojo, declare) {
             this.setupNotifications();
 
             console.log( "Ending game setup" );
+        },
+
+
+        /**
+         * Tick all the currency counters
+         */
+        addMonies: function() {
+            for (const n in this.gamedatas.notes) {
+                var note = this.gamedatas.notes[n];
+                this.noteCounters[note['player']][CURRENCY[note['curr']]-1].incValue(note['amt']);
+            }
         },
 
         /**

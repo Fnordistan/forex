@@ -114,6 +114,16 @@
     box-shadow: 3px 3px 10px black;
 }
 
+.frx_currency_icon {
+    background-size: 25px 114px;
+    background-repeat: no-repeat;
+    width: 25px;
+    height: 16.2px;
+    background-position: top;
+    box-shadow: 1px 1px 2px black;
+}
+
+
 /* these share the same dimensions, just different sprites */
 .frx_note {
     background-image: url(img/forex_notes.jpg);
@@ -149,6 +159,34 @@
 
 .frx_CNY {
     background-position: 0px -292.8px;
+}
+
+.frx_icon_GBP {
+    background-position: 0px 0px;
+}
+
+.frx_icon_EUR {
+    background-position: 0px -16.2px;
+}
+
+.frx_icon_USD {
+    background-position: 0px -32.5px;
+}
+
+.frx_icon_CHF {
+    background-position: 0px -48.8px;
+}
+
+.frx_icon_JPY {
+    background-position: 0px -65px;
+}
+
+.frx_icon_CAD {
+    background-position: 0px -81.3px;
+}
+
+.frx_icon_CNY {
+    background-position: 0px -97.6px;
 }
 
 .frx_curr_pr_zone {

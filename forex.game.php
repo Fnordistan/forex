@@ -197,6 +197,8 @@ class ForEx extends Table
         // even though this is a Deck, we're going to pull directly from Db because all certs are public info
         // and get handled on client side
         $result['certificates'] = self::getObjectListFromDB("SELECT card_id id, card_type curr, card_location loc FROM CERTIFICATES");
+        // all the money each player has
+        $result['notes'] = self::getObjectListFromDB("SELECT * FROM BANK");
 
         return $result;
     }
