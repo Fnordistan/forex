@@ -59,12 +59,10 @@
 // the actual counter shown is always curr2 (the weaker currency)
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
-var jstpl_cert_counter_icon = '<span id="${curr}_cert_counter_icon_${id}" class="frx_currency_icon frx_certificate frx_icon_${curr}"></span>';
-var jstpl_cert_counter = '<span id="${curr}_cert_counter_${id}"></span>';
-
-var jstpl_note_counter_icon = '<span id="${curr}_note_counter_icon_${id}" class="frx_currency_icon frx_note frx_icon_${curr}"></span>';
-var jstpl_note_counter = '<span id="${curr}_note_counter_${id}"></span>';
-
+var jstpl_mon_counter = '<div class="frx_ctr_container">\
+                                <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\
+                                <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
+                                </div>';
 
 </script>  
 

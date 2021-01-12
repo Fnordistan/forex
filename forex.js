@@ -93,20 +93,15 @@ function (dojo, declare) {
                 // Setting up player board
                 var player_board_div = $('player_board_'+player_id);
                 Object.keys(CURRENCY).forEach(curr => {
-                    dojo.place( this.format_block('jstpl_note_counter_icon', {
+                    dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
+                        "type": 'note',
                         "id": player_id
                     }), player_board_div);
-                    dojo.place( this.format_block('jstpl_note_counter', {
+
+                    dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
-                        "id": player_id
-                    }), player_board_div);
-                    dojo.place( this.format_block('jstpl_cert_counter_icon', {
-                        "curr": curr,
-                        "id": player_id
-                    }), player_board_div);
-                    dojo.place( this.format_block('jstpl_cert_counter', {
-                        "curr": curr,
+                        "type": 'cert',
                         "id": player_id
                     }), player_board_div);
 

@@ -21,6 +21,24 @@
 }
 
 :root {
+    --color_cert_GBP: #ED2026;
+    --color_cert_EUR: #5256A5;
+    --color_cert_USD: #2BB673;
+    --color_cert_CHF: #A04777;
+    --color_cert_JPY: #9C8679;
+    --color_cert_CAD: #5F3916;
+    --color_cert_CNY: #AF7E2B;
+
+    --color_note_GBP: #501114;
+    --color_note_EUR: #201D57;
+    --color_note_USD: #0B3B1E;
+    --color_note_CHF: #6A0D35;
+    --color_note_JPY: #362E23;
+    --color_note_CAD: #3C1F12;
+    --color_note_CNY: #E63A25;
+
+    --board_h: 816px;
+    --board_w: 528px;
     --contract_w: 97.66px;
     --contract_h: 150px;
     --currency_w: 150px;
@@ -128,22 +146,12 @@
     box-shadow: 3px 3px 10px black;
 }
 
-.frx_currency_icon {
-    background-size: 25px 114px;
-    background-repeat: no-repeat;
-    width: 25px;
-    height: 16.2px;
-    background-position: top;
-    box-shadow: 1px 1px 2px black;
-}
-
-
 /* these share the same dimensions, just different sprites */
 .frx_note {
     background-image: url(img/forex_notes.jpg);
 }
 
-.frx_certificate {
+.frx_cert {
     background-image: url(img/forex_certificates.jpg);
 }
 
@@ -175,6 +183,22 @@
     background-position: 0px calc(-6 * var(--scale) * var(--currency_h));
 }
 
+/* holds an rr icon and counter */
+.frx_ctr_container {
+    margin: 3px;
+    display: inline-block;
+}
+
+.frx_ctr_container > * {
+    display: inline-block;
+}
+
+.frx_ctr {
+    font-family: 'DM Mono';
+    font-size: 32px;
+    font-weight: 700;
+    vertical-align: 5px;
+}
 
 .frx_curr_pr_zone {
     height: 50px;
@@ -231,7 +255,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     margin: 0 -5px;
-    height: calc(816px + (var(--currency_h)*var(--scale)) + 20);
+    height: calc(var(--board_h) + (var(--currency_h)*var(--scale)) + 20);
 }
 
 #paper_display {
@@ -241,11 +265,11 @@
 }
 
 #currency_board {
-    background-size: 528px 816px;
+    background-size: var(--board_w) var(--board_h);
     background-image: url(img/forex_currency_board_lowres.jpg);
     background-repeat: no-repeat;
-    width: 528px;
-    height: 816px;
+    width: var(--board_w);
+    height: var(--board_h);
     margin: 0 5px;
 }
 
@@ -277,9 +301,3 @@
 #cash_container {
     margin: 5px;
 }
-
-/* #cash_container > * {
-    display: inline-block;
-    position: relative;
-} */
-
