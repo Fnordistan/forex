@@ -183,6 +183,15 @@
     background-position: 0px calc(-6 * var(--scale) * var(--currency_h));
 }
 
+/* same dims as contracts */
+.frx_dividend {
+    background-size: calc(5 * var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
+    background-image: url(img/forex_dividends.jpg);
+    background-repeat: no-repeat;
+    width: calc(var(--scale) * var(--contract_w));
+    height: calc(var(--scale) * var(--contract_h));
+}
+
 /* holds an rr icon and counter */
 .frx_ctr_container {
     margin: 3px;

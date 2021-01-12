@@ -45,7 +45,7 @@
             <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
             <div id="contract_queue_container">
                 <!-- BEGIN QUEUE_BLOCK -->
-                <div id="queu_{Q}" class="frx_contract_queue_slot"></div>
+                <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
                 <!-- END QUEUE_BLOCK -->
             </div>
         </div>
@@ -58,6 +58,8 @@
 
 // the actual counter shown is always curr2 (the weaker currency)
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
+
+var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span>';
 
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\

@@ -125,6 +125,7 @@ function (dojo, declare) {
             this.placeCurrencyCounters(gamedatas.currency_pairs);
             this.createAvailableCertificates();
             this.placeCertificates(gamedatas.certificates);
+            this.createContractQueue();
  
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -223,9 +224,44 @@ function (dojo, declare) {
          * @param {Object} certificate
          * @param {string} from html id it's coming from
          */
-        placeAvailableCertificate(certificate, from) {
+        placeAvailableCertificate: function(certificate, from) {
             this.availableCertificates[CURRENCY[certificate.curr]-1].addToStockWithId(certificate.curr, certificate.id);
             this.availableCertCounters[CURRENCY[certificate.curr]-1].incValue(1);
+        },
+
+
+        createContractQueue: function() {
+            for (const c in this.gamedatas.contracts) {
+                var contract = this.gamedatas.contracts[c];
+                var q = 8-contract.location;
+                var q_div = 'queue_'+q;
+                if (contract.contract == 'Dividend') {
+                    this.createDividendsStack(q_div);
+                }
+            }
+        },
+
+        /**
+         * 
+         * @param {string} div_el 
+         */
+        createDividendsStack: function(div_el) {
+            this.divstack = new ebg.zone();
+            this.divstack.item_margin = 2;
+            this.divstack.create(this, div_el, this.cardwidth, this.cardheight);
+            this.divstack.setPattern('diagonal');
+            // put each remaining dividend in stack, last first
+            var dividends = parseInt(this.gamedatas.dividends);
+            for (var i = 0; i < dividends; i++) {
+                var div_num = 4-i;
+                var dividend = this.format_block('jstpl_dividend', {
+                    "div_num" : div_num
+                });
+                var divdiv = dojo.place(dividend, 'contract_queue_container');
+                var off_x = -div_num * this.cardwidth;
+                dojo.style(divdiv, "background-position", off_x+"px 0px");
+                this.divstack.placeInZone(divdiv.id);
+            }
         },
 
         /**

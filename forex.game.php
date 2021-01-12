@@ -36,7 +36,7 @@ class ForEx extends Table
         parent::__construct();
         
         self::initGameStateLabels( array( 
-            //    "my_first_global_variable" => 10,
+               "dividend_count" => 10,
             //    "my_second_global_variable" => 11,
             //      ...
             //    "my_first_game_variant" => 100,
@@ -87,7 +87,7 @@ class ForEx extends Table
         /************ Start the game initialization *****/
 
         // Init global values with their initial values
-        //self::setGameStateInitialValue( 'my_first_global_variable', 0 );
+        self::setGameStateInitialValue( 'dividend_count', 5 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -167,9 +167,9 @@ class ForEx extends Table
         foreach($this->contracts as $contract) {
             self::DbQuery( "INSERT INTO CONTRACTS (contract) VALUES(\"$contract\")" );
         }
-        self::DbQuery( "INSERT INTO CONTRACTS (contract) VALUES(\"".DIVIDENDS."\")" );
+        // dividends go in first queue position
+        self::DbQuery( "INSERT INTO CONTRACTS (contract, location) VALUES(\"".DIVIDENDS."\", 1)" );
     }
-
 
     /*
         getAllDatas: 
@@ -199,6 +199,13 @@ class ForEx extends Table
         $result['certificates'] = self::getObjectListFromDB("SELECT card_id id, card_type curr, card_location loc FROM CERTIFICATES");
         // all the money each player has
         $result['notes'] = self::getObjectListFromDB("SELECT * FROM BANK");
+        // Dividends left
+        $result['dividends'] = self::getGameStateValue('dividend_count');
+        $contracts = self::getNonEmptyCollectionFromDB("
+            SELECT contract, owner player_id, promise, promise_amt, payout, payout_amt, location FROM CONTRACTS
+            WHERE location IS NOT NULL 
+        ");
+        $result['contracts'] = $contracts;
 
         return $result;
     }
