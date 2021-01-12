@@ -18,13 +18,22 @@
     src: local('DM Mono'), url(https://fonts.googleapis.com/css2?family=DM+Mono:wght);
     font-style: normal;
     font-weight: 500;
-
 }
+
+:root {
+    --contract_w: 97.66px;
+    --contract_h: 150px;
+    --currency_w: 150px;
+    --currency_h: 97.66px;
+    --scale: 0.5;
+}
+
 
 .frx_col_hdr {
     font-family: 'DM Mono';
     font-weight: bold;
     text-align: center;
+    margin-bottom: 10px;
 }
 
 .frx_certs_container > * {
@@ -49,11 +58,11 @@
 
 /* contract card */
 .frx_contract_card {
-    background-size: 293px 75px;
-    background-image: url(img/forex_contracts_lowres.jpg);
+    background-size: calc(6 * var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
+    background-image: url(img/forex_contracts.jpg);
     background-repeat: no-repeat;
-    width: 48px;
-    height: 75px;
+    width: calc(var(--scale) * var(--contract_w));
+    height: calc(var(--scale) * var(--contract_h));
     margin: 5px;
 }
 
@@ -62,35 +71,40 @@
 }
 
 .frx_B {
-    background-position: -48.8px 0px;
+    background-position: calc(-1 * var(--scale) * var(--contract_w)) 0px;
 }
 
 .frx_C {
-    background-position: -97.6px 0px;
+    background-position: calc(-2 * var(--scale) * var(--contract_w)) 0px;
 }
 
 .frx_D {
-    background-position: -146.4px 0px;
+    background-position: calc(-3 * var(--scale) * var(--contract_w)) 0px;
 }
 
 .frx_E {
-    background-position: -195.2px 0px;
+    background-position: calc(-4 * var(--scale) * var(--contract_w)) 0px;
 }
 
 .frx_F {
-    background-position: -244px 0px;
+    background-position: calc(-5 * var(--scale) * var(--contract_w)) 0px;
 }
 
 .frx_contract_queue_slot {
-    background-size: 293px 75px;
-    background-image: url(img/forex_contracts_lowres.jpg);
-    background-repeat: no-repeat;
-    width: 48px;
-    height: 75px;
+    border: 1 px black;
+    border-style: solid;
+    width: calc(var(--scale) * var(--contract_w));
+    height: calc(var(--scale) * var(--contract_h));
     margin: 5px;
-    background-position: 0px 0px;
 }
 
+.frx_currency_slot {
+    border: 1 px black;
+    border-style: solid;
+    width: calc(var(--scale) * var(--currency_w));
+    height: calc(var(--scale) * var(--currency_h));
+    margin: 5px;
+}
 
 .frx_cert_cntr {
     /* position: absolute;
@@ -106,10 +120,10 @@
 }
 
 .frx_currency_card {
-    background-size: 75px 342px;
+    background-size: calc(var(--currency_w) * var(--scale)) calc(7 * var(--currency_h) * var(--scale));
     background-repeat: no-repeat;
-    width: 75px;
-    height: 48.8px;
+    width: calc(var(--scale) * var(--currency_w));
+    height: calc(var(--scale) * var(--currency_h));
     margin: 5px;
     box-shadow: 3px 3px 10px black;
 }
@@ -138,56 +152,29 @@
 }
 
 .frx_EUR {
-    background-position: 0px -48.8px;
+    background-position: 0px calc(-1 * var(--scale) * var(--currency_h));
 }
 
 .frx_USD {
-    background-position: 0px -97.6px;
+    background-position: 0px calc(-2 * var(--scale) * var(--currency_h));
 }
 
 .frx_CHF {
-    background-position: 0px -146.4px;
+    background-position: 0px calc(-3 * var(--scale) * var(--currency_h));
 }
 
 .frx_JPY {
-    background-position: 0px -195.2px;
+    background-position: 0px calc(-4 * var(--scale) * var(--currency_h));
 }
 
 .frx_CAD {
-    background-position: 0px -244px;
+    background-position: 0px calc(-5 * var(--scale) * var(--currency_h));
 }
 
 .frx_CNY {
-    background-position: 0px -292.8px;
+    background-position: 0px calc(-6 * var(--scale) * var(--currency_h));
 }
 
-.frx_icon_GBP {
-    background-position: 0px 0px;
-}
-
-.frx_icon_EUR {
-    background-position: 0px -16.2px;
-}
-
-.frx_icon_USD {
-    background-position: 0px -32.5px;
-}
-
-.frx_icon_CHF {
-    background-position: 0px -48.8px;
-}
-
-.frx_icon_JPY {
-    background-position: 0px -65px;
-}
-
-.frx_icon_CAD {
-    background-position: 0px -81.3px;
-}
-
-.frx_icon_CNY {
-    background-position: 0px -97.6px;
-}
 
 .frx_curr_pr_zone {
     height: 50px;
@@ -232,13 +219,25 @@
     background-position: -150px 0px;
 }
 
+#table_area {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+}
 
 /* holds all the other containers */
 #board_display {
     display: flex;
     flex-direction: row;
+    flex-wrap: wrap;
     margin: 0 -5px;
-    height: 816px;
+    height: calc(816px + (var(--currency_h)*var(--scale)) + 20);
+}
+
+#paper_display {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
 }
 
 #currency_board {
@@ -276,12 +275,11 @@
 }
 
 #cash_container {
-    position: absolute;
-    bottom: 0px;
+    margin: 5px;
 }
 
-#cash_container > * {
+/* #cash_container > * {
     display: inline-block;
     position: relative;
-}
+} */
 

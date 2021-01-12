@@ -9,38 +9,45 @@
 -- See http://en.boardgamearena.com/#!doc/Studio for more information.
 -->
 
-<div id="board_display">
-    <div id="currency_board">
-        <!-- BEGIN CURRENCY_PAIRS_BLOCK -->
-        <div id="{CURR}_{ZONE}" class="frx_curr_pr_zone" style="top: {T}px; left: {L}px;"></div>
-        <!-- END CURRENCY_PAIRS_BLOCK -->
-    </div>
-    <div id="available_certs_display" class="whiteblock"><h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
-        <!-- BEGIN CERTIFICATES_BLOCK -->
-        <div id="avail_certs_{CURR}_container" class="frx_certs_container">
-            <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
-        </div>
-        <!-- END CERTIFICATES_BLOCK -->
-    </div>
-    <div id="contract_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
-        <!-- BEGIN CONTRACTS_BLOCK -->
-        <div id="contract_{CONTRACT}" class="frx_contract_container">
-            <div id="contract_promise_{CONTRACT}" class="frx_contract_promise frx_currency_card frx_note frx_CHF"></div>
-            <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
-            <div id="contract_payout_{CONTRACT}" class="frx_contract_payout frx_currency_card frx_note frx_USD"></div>
-        </div>
-        <!-- END CONTRACTS_BLOCK -->
-    </div>
-    <div id="contract_queue_display" class="whiteblock"><h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
-        <div id="contract_queue_container">
-            <!-- BEGIN QUEUE_BLOCK -->
-            <div id="queu_{Q}" class="frx_contract_queue_slot"></div>
-            <!-- END QUEUE_BLOCK -->
+<div id="table_area">
+    <div id="board_display">
+        <div id="currency_board">
+            <!-- BEGIN CURRENCY_PAIRS_BLOCK -->
+            <div id="{CURR}_{ZONE}" class="frx_curr_pr_zone" style="top: {T}px; left: {L}px;"></div>
+            <!-- END CURRENCY_PAIRS_BLOCK -->
         </div>
         <div id="cash_container">
             <!-- BEGIN CASH_BLOCK -->
             <div id="cash_{CURR}" class="frx_currency_card frx_note frx_{CURR}"></div>
             <!-- END CASH_BLOCK -->
+        </div>
+    </div>
+    <div id="paper_display">
+        <div id="available_certs_display" class="whiteblock">
+            <h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
+            <!-- BEGIN CERTIFICATES_BLOCK -->
+            <div id="avail_certs_{CURR}_container" class="frx_certs_container">
+                <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
+            </div>
+            <!-- END CERTIFICATES_BLOCK -->
+        </div>
+        <div id="contract_display" class="whiteblock">
+            <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
+            <!-- BEGIN CONTRACTS_BLOCK -->
+            <div id="contract_{CONTRACT}" class="frx_contract_container">
+                <div id="contract_promise_{CONTRACT}" class="frx_currency_slot"></div>
+                <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
+                <div id="contract_payout_{CONTRACT}" class="frx_currency_slot"></div>
+            </div>
+            <!-- END CONTRACTS_BLOCK -->
+        </div>
+        <div id="contract_queue_display" class="whiteblock">
+            <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
+            <div id="contract_queue_container">
+                <!-- BEGIN QUEUE_BLOCK -->
+                <div id="queu_{Q}" class="frx_contract_queue_slot"></div>
+                <!-- END QUEUE_BLOCK -->
+            </div>
         </div>
     </div>
 </div>

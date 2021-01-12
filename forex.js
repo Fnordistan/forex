@@ -36,6 +36,9 @@ const COLORS = {
 }
 
 const CERT_SPRITES = 'img/forex_certificates.jpg'
+// these to match css
+const CURR_BASE_W = 150;
+const CURR_BASE_H = 97.66;
 
 define([
     "dojo","dojo/_base/declare",
@@ -48,8 +51,10 @@ function (dojo, declare) {
     return declare("bgagame.forex", ebg.core.gamegui, {
         constructor: function(){
             console.log('forex constructor');
-            this.cardwidth = 75;
-            this.cardheight = 48.8;
+            // matches css
+            var scale = 0.5;
+            this.cardwidth = CURR_BASE_W*scale;
+            this.cardheight = CURR_BASE_H*scale;
             this.curr_tok_dim = 25;
                       
             // Here, you can init the global variables of your user interface
