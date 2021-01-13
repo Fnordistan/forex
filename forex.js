@@ -34,11 +34,22 @@ const COLORS = {
     "CAD" : '#603A17',
     "CNY" : '#AD7C2C'
 }
+const CONTRACT = {
+    A: 0,
+    B: 1,
+    C: 2,
+    D: 3,
+    E: 4,
+    F: 5
+}
+
 
 const CERT_SPRITES = 'img/forex_certificates.jpg'
 // these to match css
 const CURR_BASE_W = 150;
 const CURR_BASE_H = 97.66;
+const DIVIDEND_BASE_H = 150;
+const DIVIDEND_BASE_W = 97.8;
 
 define([
     "dojo","dojo/_base/declare",
@@ -55,6 +66,8 @@ function (dojo, declare) {
             var scale = 0.5;
             this.cardwidth = CURR_BASE_W*scale;
             this.cardheight = CURR_BASE_H*scale;
+            this.dvdwidth = DIVIDEND_BASE_W*scale;
+            this.dvdheight = DIVIDEND_BASE_H*scale;
             this.curr_tok_dim = 25;
                       
             // Here, you can init the global variables of your user interface
@@ -120,11 +133,16 @@ function (dojo, declare) {
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
+            this.promiseStacks = [];
+            this.payoutStacks = [];
+            this.promiseCounters = [];
+            this.payoutCounters = [];
             this.addMonies();
             this.createCurrencyPairTokens();
-            this.placeCurrencyCounters(gamedatas.currency_pairs);
+            this.placeCurrencyCounters();
             this.createAvailableCertificates();
-            this.placeCertificates(gamedatas.certificates);
+            this.placeCertificates();
+            this.createContractDisplay();
             this.createContractQueue();
  
             // Setup game notifications to handle (see "setupNotifications" method below)
@@ -189,9 +207,9 @@ function (dojo, declare) {
 
         /**
          * Set initial locations.
-         * @param {Array} currency_pairs 
          */
-        placeCurrencyCounters: function(currency_pairs) {
+        placeCurrencyCounters: function() {
+            var currency_pairs = this.gamedatas.currency_pairs;
             for (const c in currency_pairs) {
                 let curr1 = currency_pairs[c]['stronger'];
                 let curr2 = currency_pairs[c]['curr1'] = curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
@@ -208,7 +226,8 @@ function (dojo, declare) {
          * 
          * @param {Array} certificates 
          */
-        placeCertificates: function(certificates) {
+        placeCertificates: function() {
+            var certificates = this.gamedatas.certificates;
             for (const c in certificates) {
                 var cert = certificates[c];
                 if (cert.loc == 'available') {
@@ -229,40 +248,70 @@ function (dojo, declare) {
             this.availableCertCounters[CURRENCY[certificate.curr]-1].incValue(1);
         },
 
+        createContractDisplay: function() {
+            Object.keys(CONTRACT).forEach(C => {
+                var prom_id = 'contract_promise_'+C;
+                this.promiseStacks[CONTRACT.C] = new ebg.zone();
+                this.promiseStacks[CONTRACT.C].create(this, prom_id, this.cardwidth, this.cardheight);
+                this.promiseStacks[CONTRACT.C].setPattern('diagonal');
 
+                var pay_id = 'contract_payout_'+C;
+                this.payoutStacks[CONTRACT.C] = new ebg.zone();
+                this.payoutStacks[CONTRACT.C].create(this, prom_id, this.cardwidth, this.cardheight);
+                this.payoutStacks[CONTRACT.C].setPattern('diagonal');
+
+                this.promiseCounters[CONTRACT.C] = new ebg.counter();
+                this.promiseCounters[CONTRACT.C].create('promise_'+C+'_cntr');
+
+                this.payoutCounters[CONTRACT.C] = new ebg.counter();
+                this.payoutCounters[CONTRACT.C].create('payout_'+C+'_cntr');
+            });
+        },
+
+
+        /**
+         * Creates the Contract Queue, puts all Contracts in it
+         */
         createContractQueue: function() {
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
                 var q = 8-contract.location;
                 var q_div = 'queue_'+q;
                 if (contract.contract == 'Dividend') {
-                    this.createDividendsStack(q_div);
+                    this.createDividendsStack(q_div, q);
                 }
             }
         },
 
         /**
-         * 
-         * @param {string} div_el 
+         * Create the Dividends stack as a Zone.
+         * @param {String} div_el 
+         * @param {q} int
          */
-        createDividendsStack: function(div_el) {
+        createDividendsStack: function(div_el, q) {
             this.divstack = new ebg.zone();
-            this.divstack.item_margin = 2;
-            this.divstack.create(this, div_el, this.cardwidth, this.cardheight);
-            this.divstack.setPattern('diagonal');
+            this.divstack.create(this, div_el, this.dvdwidth, this.dvdheight);
+            this.divstack.setPattern('verticalfit');
             // put each remaining dividend in stack, last first
             var dividends = parseInt(this.gamedatas.dividends);
+            var divdiv;
             for (var i = 0; i < dividends; i++) {
                 var div_num = 4-i;
                 var dividend = this.format_block('jstpl_dividend', {
                     "div_num" : div_num
                 });
-                var divdiv = dojo.place(dividend, 'contract_queue_container');
-                var off_x = -div_num * this.cardwidth;
+                divdiv = dojo.place(dividend, 'contract_queue_container');
+                var off_x = -div_num * this.dvdwidth;
                 dojo.style(divdiv, "background-position", off_x+"px 0px");
                 this.divstack.placeInZone(divdiv.id);
             }
-        },
+            // we put the counter on top of the last Dividend
+            this.dividendCounter = new ebg.counter();
+            dojo.place(this.format_block('jstpl_dividend_counter'), divdiv.id);
+            this.dividendCounter.create('dividend_counter');
+            this.dividendCounter.incValue(dividends);
+    },
+
 
         /**
          * Adds tooltip to a Certificate

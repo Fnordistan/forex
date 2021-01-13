@@ -35,9 +35,9 @@
             <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
             <!-- BEGIN CONTRACTS_BLOCK -->
             <div id="contract_{CONTRACT}" class="frx_contract_container">
-                <div id="contract_promise_{CONTRACT}" class="frx_currency_slot"></div>
+                <div id="contract_promise_{CONTRACT}" class="frx_currency_zone"><span id="promise_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
                 <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
-                <div id="contract_payout_{CONTRACT}" class="frx_currency_slot"></div>
+                <div id="contract_payout_{CONTRACT}" class="frx_currency_zone"><span id="payout_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
             </div>
             <!-- END CONTRACTS_BLOCK -->
         </div>
@@ -60,6 +60,8 @@
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
 var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span>';
+
+var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\

@@ -116,7 +116,7 @@
     margin: 5px;
 }
 
-.frx_currency_slot {
+.frx_currency_zone {
     border: 1 px black;
     border-style: solid;
     width: calc(var(--scale) * var(--currency_w));
@@ -131,6 +131,21 @@
     font-size: 24px;
     vertical-align: top;
     margin-left: 10px;
+}
+
+.frx_dividend_counter {
+    font-family: 'DM Mono';
+    font-size: 44px;
+    font-weight: 500px;
+    position: absolute;
+    left: calc(var(--scale) * 0.25 * var(--contract_w));
+    color: #F9F4EA;
+    text-shadow:
+        3px 3px 0 black,
+        -1px -1px 0 black,  
+        1px -1px 0 black,
+        -1px 1px 0 black,
+        1px 1px 0 black;
 }
 
 .frx_card_shadow {

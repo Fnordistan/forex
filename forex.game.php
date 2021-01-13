@@ -282,7 +282,7 @@ class ForEx extends Table
     /**
      * Increase a $curr relative to the other currency in the par. Update in Db.
      */
-    function increase($curr, $pair) {
+    protected function increase($curr, $pair) {
         $pos = $pair['pos'];
         $stronger = $pair['stronger'];
         if ($curr == $stronger) {
@@ -300,7 +300,7 @@ class ForEx extends Table
     /**
      * Decrease a $curr relative to the other currency in the par. Update in Db.
      */
-    function decrease($curr, $pair) {
+    protected function decrease($curr, $pair) {
         $pos = $pair['pos'];
         $stronger = $pair['stronger'];
         if ($curr == $stronger) {
@@ -351,6 +351,28 @@ class ForEx extends Table
     }
 
     /**
+     * Assumes all checks have already been done and trade is valid.
+     */
+    function spotTrade($player1, $curr1, $offer, $player2, $curr2, $payment) {
+        $players = self::loadPlayersBasicInfos();
+        $this->adjustMonies($player1, $curr1, -$offer);
+        $this->adjustMonies($player2, $curr1, $offer);
+        $this->adjustMonies($player1, $curr2, $receive);
+        $this->adjustMonies($player2, $curr2, -$receive);
+        self::notifyAllPlayers("spotTradeCompleted", clienttranslate("${player1_name} gives ${player2_name} ${offer} ${curr1} for ${payment} ${curr2} in a Spot Trade"), array(
+            'player1' => $player1,
+            'player2' => $player2,
+            'player1_name' => $players[$player1]['player_name'],
+            'player2_name' => $players[$player2]['player_name'],
+            'offer' => $offer,
+            'payment' => $payment,
+            'curr1' => $curr1,
+            'curr2' => $curr2,
+        ));
+    }
+    
+
+    /**
      * How much does this player have of this currency?
      */
     function getMonies($player_id, $curr) {
@@ -358,12 +380,52 @@ class ForEx extends Table
     }
 
     /**
-     * How many Certificates does this player have of the given currency?
+     * Changes amount of money in player's bank
      */
-    function countCertificates($player_id, $curr) {
-        $certs = self::getCollectionFromDB("SELECT card_id from CERTIFICATES WHERE card_type = $curr AND card_location = $player_id");
-        return count($certs);
+    function adjustMonies($player_id, $curr, $amt) {
+        $players = self::loadPlayersBasicInfos();
+        self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = $curr");
+        self::notifyAllPlayers('moniesChanged', clienttranslate("${player_name} ${adj} ${chg} ${curr}"), array(
+            'player_id' => $player_id,
+            'player_name' => $players[$player_id]['player_name'],
+            'adj' => $amt < 0 ? self::_("loses") : self::_("adds"),
+            'chg' => abs($amt),
+            'amt' => $amt,
+            'curr' => $curr
+        ));
+
     }
+
+    /**
+     * Return an array of card ids of the certificates a player has of the currency.
+     */
+    function getCertificates($player_id, $curr) {
+        $certs = self::getCollectionFromDB("SELECT card_id from CERTIFICATES WHERE card_type = $curr AND card_location = $player_id");
+        return $certs;
+    }
+
+    /**
+     * Checks the player has this many certs, then subtracts them (but does NOT add )
+     */
+    function divestCertificates($player_id, $curr, $amt) {
+        $mycerts = $self->getCertificates($player_id, $curr);
+        $count = count($mycerts);
+        if ($count < $amt) {
+            throw new BGAUserException(self::_("You only have ${count} ${curr} Certificates"));
+        }
+        // only choose n certs
+        $certs_to_divest = array_keys(array_slice($mycerts, 0, $amt));
+        $self::DBQuery("UPDATE CERTIFICATES SET card_location = ".AVAILABLE." WHERE card_id IN $certs_to_divest");
+        return $certs_to_divest;
+    }
+
+    /**
+     * Adds 1 to every Contract in the queue
+     */
+    function pushContractQueue() {
+        self::DBQuery("UPDATE CONTRACTS SET location = location+1 WHERE location IS NOT NULL");
+    }
+        
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -374,32 +436,7 @@ class ForEx extends Table
         (note: each method below must match an input method in forex.action.php)
     */
 
-    /*
     
-    Example:
-
-    function playCard( $card_id )
-    {
-        // Check that this is the player's turn and that it is a "possible action" at this game state (see states.inc.php)
-        self::checkAction( 'playCard' ); 
-        
-        $player_id = self::getActivePlayerId();
-        
-        // Add your game logic to play a card there 
-        ...
-        
-        // Notify all players about the card played
-        self::notifyAllPlayers( "cardPlayed", clienttranslate( '${player_name} plays ${card_name}' ), array(
-            'player_id' => $player_id,
-            'player_name' => self::getActivePlayerName(),
-            'card_name' => $card_name,
-            'card_id' => $card_id
-        ) );
-          
-    }
-    
-    */
-
     function offerSpotTrade($offer, $request, $player) {
         self::checkAction( 'offerSpot' ); 
 
@@ -430,22 +467,43 @@ class ForEx extends Table
         if ($mybucks < 2) {
             throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
         }
-        $mycerts = $this->countCertificates($player_id, $curr);
-        if ($mycerts >= 4) {
+        $mycerts = $this->getCertificates($player_id, $curr);
+        if (count($mycerts) >= 4) {
             throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
         }
 
         self::DbQuery("UPDATE BANK SET amt = ".($mybucks-2)." WHERE player = $player_id AND curr = $curr");
 
         // movedeck for certificates
-        self::notifyAllPlayers('currencyInvested', '${player_name} invested in ${curr}', array (
-            'i18n' => array ('curr' ),
+        self::notifyAllPlayers('currencyInvested', clienttranslate("${player_name} invested in ${curr}"), array (
+            'i18n' => array ('curr'),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
             'curr' => $curr));
+
         $this->strengthen($curr);
     }
 
+    /**
+     * Sell one or more certificates
+     */
+    function divest($curr, $amt) {
+        $player_id = self::getActivePlayerId();
+        $divested_certs = $self->divestCertificates($player_id, $curr, $amt);
+        $cash = $amt*2;
+        $self->adjustMonies($player_id, $curr, $cash);
+        $self::notifyAllPlayers('certificatesSold', clienttranslate("${player_name} sold ${amt} ${curr} Certificates for ${cash} ${curr}"), array(
+            'i18n' => array ('amt', 'curr', 'cash'),
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'curr' => $curr,
+            'amt' => $amt,
+            'cash' => $cash,
+            'divested' => $divested_certs,
+        ));
+        $self->weakenCurrency($curr, $amt);
+    }
+    
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
