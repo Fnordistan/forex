@@ -63,6 +63,8 @@ var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span
 
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
+var jstpl_certs_counter = 'avail_certs_${curr}_ctr';
+
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\
                                 <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\

@@ -198,12 +198,14 @@ function (dojo, declare) {
                 // and create a matching counter
                 var counter = new ebg.counter();
                 counter.create('avail_certs_'+curr+'_ctr');
-                dojo.style('avail_certs_'+curr+'_ctr', 'color', COLORS[curr]);
+                dojo.addClass('avail_certs_'+curr+'_ctr', 'frx_ctr');
+                dojo.style('avail_certs_'+curr+'_ctr', {
+                    'color': COLORS[curr],
+                    'vertical-align': 'top'
+                });
                 this.availableCertCounters.push(counter);
             });
         },
-
-
 
         /**
          * Set initial locations.
@@ -387,20 +389,18 @@ function (dojo, declare) {
                       
             if( this.isCurrentPlayerActive() )
             {            
-                switch( stateName )
-                {
-/*               
-                 Example:
+                switch( stateName ) {
  
-                 case 'myGameState':
+                 case 'playerAction':
                     
                     // Add 3 action buttons in the action status bar:
                     
-                    this.addActionButton( 'button_1_id', _('Button 1 label'), 'onMyMethodToCall1' ); 
-                    this.addActionButton( 'button_2_id', _('Button 2 label'), 'onMyMethodToCall2' ); 
-                    this.addActionButton( 'button_3_id', _('Button 3 label'), 'onMyMethodToCall3' ); 
+                    this.addActionButton( 'spot_btn', _('Spot Trade'), 'spotTrade' ); 
+                    this.addActionButton( 'invest_btn', _('Invest'), 'investCurrency' ); 
+                    this.addActionButton( 'divest_btn', _('Divest'), 'divestCurrency' ); 
+                    this.addActionButton( 'contract_btn', _('Make Contract'), 'makeContract' ); 
+                    this.addActionButton( 'resolve_btn', _('Resolve Contract'), 'resolveContract' ); 
                     break;
-*/
                 }
             }
         },        
@@ -430,6 +430,27 @@ function (dojo, declare) {
         
         */
         
+        spotTrade: function(evt) {
+            console.log('clicked '+evt);
+        },
+
+        investCurrency: function(evt) {
+            console.log('clicked '+evt);
+        },
+
+        divestCurrency: function(evt) {
+            console.log('clicked '+evt);
+        },
+
+        makeContract: function(evt) {
+            console.log('clicked '+evt);
+        },
+
+        resolveContract: function(evt) {
+            console.log('clicked '+evt);
+        },
+
+
         /* Example:
         
         onMyMethodToCall1: function( evt )

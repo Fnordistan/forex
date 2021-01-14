@@ -125,9 +125,7 @@
 }
 
 .frx_cert_cntr {
-    /* position: absolute;
-    top: 0px;
-    right: 0px; */
+    font-family: 'DM Mono';
     font-size: 24px;
     vertical-align: top;
     margin-left: 10px;
@@ -222,6 +220,13 @@
     font-size: 32px;
     font-weight: 700;
     vertical-align: 5px;
+    text-shadow:
+        1px 1px 0 white,
+        -1px -1px 0 white,  
+        1px -1px 0 white,
+        -1px 1px 0 white,
+        1px 1px 0 white;
+
 }
 
 .frx_curr_pr_zone {
