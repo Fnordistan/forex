@@ -34,6 +34,7 @@ const COLORS = {
     "CAD" : '#603A17',
     "CNY" : '#AD7C2C'
 }
+
 const CONTRACT = {
     A: 0,
     B: 1,
@@ -43,6 +44,16 @@ const CONTRACT = {
     F: 5
 }
 
+// map actions to function names
+const ACTIONS = {
+    SPOT: 'spotTrade',
+    INVEST: 'investCurrency',
+    DIVEST: 'divestCurrency',
+    CONTRACT: 'makeContract',
+    RESOLVE: 'resolveContract',
+    CANCEL: 'cancelAction',
+}
+const BTN = '_btn';
 
 const CERT_SPRITES = 'img/forex_certificates.jpg'
 // these to match css
@@ -392,14 +403,7 @@ function (dojo, declare) {
                 switch( stateName ) {
  
                  case 'playerAction':
-                    
-                    // Add 3 action buttons in the action status bar:
-                    
-                    this.addActionButton( 'spot_btn', _('Spot Trade'), 'spotTrade' ); 
-                    this.addActionButton( 'invest_btn', _('Invest'), 'investCurrency' ); 
-                    this.addActionButton( 'divest_btn', _('Divest'), 'divestCurrency' ); 
-                    this.addActionButton( 'contract_btn', _('Make Contract'), 'makeContract' ); 
-                    this.addActionButton( 'resolve_btn', _('Resolve Contract'), 'resolveContract' ); 
+                     this.addPlayerActionButtons();
                     break;
                 }
             }
@@ -407,14 +411,31 @@ function (dojo, declare) {
 
         ///////////////////////////////////////////////////
         //// Utility methods
-        
-        /*
-        
-            Here, you can defines some utility methods that you can use everywhere in your javascript
-            script.
-        
-        */
 
+        /**
+         * Add the Action buttons in the menu bar while we are choosing another action.
+         */
+        addPlayerActionButtons: function() {
+            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
+            this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
+            this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
+            this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
+            this.addActionButton( ACTIONS.RESOLVE+BTN, _('Resolve Contract'), ACTIONS.RESOLVE);
+        },
+
+        removeActionButtons: function() {
+            for (const A in ACTIONS) {
+                dojo.destroy(ACTIONS[A]+BTN);
+            }
+        },
+
+        /**
+         * Change the title banner.
+         * @param {string} text 
+         */
+        changeTitleText(text) {
+            dojo.byId("pagemaintitletext").innerHTML = text;
+        },
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -431,6 +452,12 @@ function (dojo, declare) {
         */
         
         spotTrade: function(evt) {
+            if (this.checkAction('offerSpot', true)) {
+                this.removeActionButtons();
+            }
+            this.changeTitleText("Offer a Spot Trade");
+            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), 'spotTrade');
+            this.addActionButton( ACTIONS.CANCEL+BTN, _('Cancel'), 'cancelAction', null, false, 'red');
             console.log('clicked '+evt);
         },
 
@@ -448,6 +475,18 @@ function (dojo, declare) {
 
         resolveContract: function(evt) {
             console.log('clicked '+evt);
+        },
+
+        /**
+         * Delete all buttons and add the default ones back
+         * @param {*} evt 
+         */
+        cancelAction: function(evt) {
+            this.removeActionButtons();
+            this.addPlayerActionButtons();
+            var id = dojo.byId("pagemaintitletext");
+            dojo.empty(id);
+            dojo.place(this.format_block('jstpl_action_banner'), id);
         },
 
 

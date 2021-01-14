@@ -56,6 +56,9 @@
 
 // Javascript HTML templates
 
+var jstpl_action_banner = '<span style="font-weight:bold;color:#ff0000;">You</span> must choose an action';
+
+
 // the actual counter shown is always curr2 (the weaker currency)
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
