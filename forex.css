@@ -290,6 +290,10 @@
     white-space: nowrap;
 }
 
+.frx_player_btn:disabled {
+    color: gray;
+}
+
 #table_area {
     display: flex;
     flex-direction: row;

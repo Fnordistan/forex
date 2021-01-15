@@ -528,9 +528,11 @@ function (dojo, declare) {
          * @param {*} otherPlayers 
          */
         addPlayerTradeActions: function(otherPlayers) {
-            for (p in otherPlayers) {
-                var player = otherPlayers[p];
-                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, 'tradePlayer' );
+            for (let p in otherPlayers) {
+                let player = otherPlayers[p];
+                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, function(){
+                    this.offerTrade(player, otherPlayers);
+                });
             }
         },
 
@@ -618,8 +620,18 @@ function (dojo, declare) {
          * Action when a player button is chosen in Spot Trade
          * @param {*} evt 
          */
-        tradePlayer: function(evt) {
-            console.log("clicked button  for " + evt.currentTarget.id);
+        offerTrade: function(player, otherPlayers) {
+            console.log("clicked button  for " + player['name']);
+            var target_id = 'trade_'+player['id']+'_btn';
+            // are we clicking or unclicking it?
+            var is_active = dojo.getAttr(target_id, 'active') ?? false;
+            dojo.attr('trade_'+player['id']+'_btn', 'active', !is_active);
+            for (p in otherPlayers) {
+                var p2 = otherPlayers[p];
+                if (player != p2) {
+                    dojo.attr('trade_'+p2['id']+'_btn', 'disabled', !is_active);
+                }
+            }
         },
 
         /**
