@@ -56,8 +56,7 @@
 
 // Javascript HTML templates
 
-var jstpl_action_banner = '<span style="font-weight:bold;color:#ff0000;">You</span> must choose an action';
-
+// var jstpl_you = '<span style="font-weight:bold;color:#${color};background-color:#{color_bg}">__("lang_mainsite", "You")</span>';
 
 // the actual counter shown is always curr2 (the weaker currency)
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
@@ -67,6 +66,8 @@ var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
 var jstpl_certs_counter = 'avail_certs_${curr}_ctr';
+
+var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class="frx_player_btn" style="--color: #${color}; --bg_color: #${bgcolor};">${player_name}</button>';
 
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\

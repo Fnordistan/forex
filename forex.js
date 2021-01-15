@@ -51,6 +51,7 @@ const ACTIONS = {
     DIVEST: 'divestCurrency',
     CONTRACT: 'makeContract',
     RESOLVE: 'resolveContract',
+    CONFIRM: 'confirmAction',
     CANCEL: 'cancelAction',
 }
 const BTN = '_btn';
@@ -61,6 +62,10 @@ const CURR_BASE_W = 150;
 const CURR_BASE_H = 97.66;
 const DIVIDEND_BASE_H = 150;
 const DIVIDEND_BASE_W = 97.8;
+
+// string that get inserted into format_string_recursive
+const X_SPOT_TRADE = "x_spot_trade";
+
 
 define([
     "dojo","dojo/_base/declare",
@@ -162,6 +167,25 @@ function (dojo, declare) {
             console.log( "Ending game setup" );
         },
 
+        /* @Override */
+        format_string_recursive : function(log, args) {
+            try {
+                if (log && args && !args.processed) {
+                    args.processed = true;
+
+                    if (args.you) {
+                        log = log.replace("You", args.you);
+                    }
+                    if (args.X_SPOT_TRADE) {
+                        log = log + this.insertTradeButtons(args.X_SPOT_TRADE) + '<br/>';
+                    }
+                }
+            } catch (e) {
+                console.error(log, args, "Exception thrown", e.stack);
+            }
+            return this.inherited(arguments);
+        },
+
 
         /**
          * Tick all the currency counters
@@ -201,7 +225,6 @@ function (dojo, declare) {
                 avail.extraClasses='frx_card_shadow';
                 avail.setSelectionMode(0);
                 avail.setOverlap(10, 0);
-                // hitch adding railroad as a class to each hand
                 avail.onItemCreate = dojo.hitch(this, this.setupCertificate);
                 avail.addItemType( curr, 0, g_gamethemeurl+CERT_SPRITES, CURRENCY[curr]-1 );
                 avail.autowidth = true;
@@ -430,18 +453,137 @@ function (dojo, declare) {
         },
 
         /**
+         * Create the Cancel Button.
+         */
+        addCancelButton: function() {
+            this.addActionButton( ACTIONS.CANCEL+BTN, _('Cancel'), 'cancelAction', null, false, 'red');
+        },
+
+
+        /**
+         * Create the Confirm button
+         */
+        addConfirmButton: function() {
+            this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), 'confirmAction');
+        },
+
+        /**
          * Change the title banner.
          * @param {string} text 
          */
-        changeTitleText(text) {
-            dojo.byId("pagemaintitletext").innerHTML = text;
+        setMainTitle : function(text) {
+            var main = $('pagemaintitletext');
+            main.innerHTML = text;
+        },
+
+        /**
+         * From BGA Cookbook. Return "You" in this player's color
+         */
+        divYou : function() {
+            var color = this.gamedatas.players[this.player_id].color;
+            var color_bg = "";
+            if (this.gamedatas.players[this.player_id] && this.gamedatas.players[this.player_id].color_back) {
+                color_bg = "background-color:#" + this.gamedatas.players[this.player_id].color_back + ";";
+            }
+            var you = "<span style=\"font-weight:bold;color:#" + color + ";" + color_bg + "\">" + __("lang_mainsite", "You") + "</span>";
+            return you;
+        },
+
+        /**
+         * Create a div with a row of player buttons
+         * @param {*} players 
+         */
+        insertTradeButtons: function(players) {
+            var row_of_buttons = "";
+            for (const p in players) {
+                var player_button = this.playerButton(players[p]);
+                row_of_buttons += " "+player_button;
+            }
+            return row_of_buttons;
+        },
+
+        /**
+         * Takes a player and returns the player's name formatted in their color.
+         * @param {Object} player
+         */
+        playerButton: function(player) {
+            var player_id = player['id'];
+            var player_name = player['name'];
+            var color = player.color;
+            var color_bg = "";
+            if (player.color_back) {
+                color_bg = player.color_back;
+            }
+            var button = this.format_block('jstpl_player_btn', {
+                'player_id': player_id,
+                'player_name': player_name,
+                'bgcolor': color_bg,
+                'color': color,
+            });
+            return button;
+        },
+
+        /**
+         * 
+         * @param {*} otherPlayers 
+         */
+        addPlayerTradeActions: function(otherPlayers) {
+            for (p in otherPlayers) {
+                var player = otherPlayers[p];
+                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, 'tradePlayer' );
+            }
+        },
+
+        /**
+         * 
+         * @param {*} text 
+         * @param {*} moreargs 
+         */
+        setDescriptionOnMyTurn : function(text, moreargs) {
+            this.gamedatas.gamestate.descriptionmyturn = text;
+            var tpl = dojo.clone(this.gamedatas.gamestate.args);
+            
+            if (!tpl) {
+                tpl = {};
+            }
+            if (typeof moreargs != 'undefined') {
+                for ( var key in moreargs) {
+                    if (moreargs.hasOwnProperty(key)) {
+                        tpl[key]=moreargs[key];
+                    }
+                }
+            }
+ 
+            var title = "";
+            if (this.isCurrentPlayerActive() && text !== null) {
+                tpl.you = this.divYou();
+            }
+            if (text !== null) {
+                title = this.format_string_recursive(text, tpl);
+            }
+            if (title == "") {
+                this.setMainTitle("&nbsp;");
+            } else {
+                this.setMainTitle(title);
+            }
+        },
+
+
+        /**
+         * Return an array of all the players not this one.
+         * Assumes a current player_id
+         */
+        getOtherPlayers: function() {
+            var player_cpy = dojo.clone(this.gamedatas.players);
+            delete player_cpy[this.player_id];
+            return player_cpy;
+
         },
 
         ///////////////////////////////////////////////////
         //// Player's action
         
         /*
-        
             Here, you are defining methods to handle player's action (ex: results of mouse click on 
             game objects).
             
@@ -450,31 +592,82 @@ function (dojo, declare) {
             _ make a call to the game server
         
         */
-        
+
+        /**
+         * Sets up the Spot Trade Panel.
+         * @param {*} evt 
+         */
         spotTrade: function(evt) {
             if (this.checkAction('offerSpot', true)) {
                 this.removeActionButtons();
+
+                // this adds the buttons
+                var otherPlayers = this.getOtherPlayers();
+                this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers});
+
+                this.addPlayerTradeActions(otherPlayers);
+
+                this.addConfirmButton();
+                this.addCancelButton();
+                console.log('clicked '+evt);
             }
-            this.changeTitleText("Offer a Spot Trade");
-            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), 'spotTrade');
-            this.addActionButton( ACTIONS.CANCEL+BTN, _('Cancel'), 'cancelAction', null, false, 'red');
-            console.log('clicked '+evt);
+    },
+
+
+        /**
+         * Action when a player button is chosen in Spot Trade
+         * @param {*} evt 
+         */
+        tradePlayer: function(evt) {
+            console.log("clicked button  for " + evt.currentTarget.id);
         },
 
+        /**
+         * Player clicked Invest
+         * @param {*} evt 
+         */
         investCurrency: function(evt) {
-            console.log('clicked '+evt);
+            if (this.checkAction('investCurrency', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton();
+                this.addCancelButton();
+            }
         },
 
+        /**
+         * Player clicked Divest.
+         * @param {*} evt 
+         */
         divestCurrency: function(evt) {
-            console.log('clicked '+evt);
+            if (this.checkAction('divestCurrency', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton();
+                this.addCancelButton();
+            }
         },
 
+        /**
+         * Player clicked Contract.
+         * @param {*} evt 
+         */
         makeContract: function(evt) {
-            console.log('clicked '+evt);
-        },
+            if (this.checkAction('makeContract', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton();
+                this.addCancelButton();
+            }
+    },
 
+        /**
+         * Player clicked Resolve.
+         * @param {*} evt 
+         */
         resolveContract: function(evt) {
-            console.log('clicked '+evt);
+            if (this.checkAction('resolveContract', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton();
+                this.addCancelButton();
+            }
         },
 
         /**
@@ -484,11 +677,12 @@ function (dojo, declare) {
         cancelAction: function(evt) {
             this.removeActionButtons();
             this.addPlayerActionButtons();
-            var id = dojo.byId("pagemaintitletext");
-            dojo.empty(id);
-            dojo.place(this.format_block('jstpl_action_banner'), id);
+            this.setDescriptionOnMyTurn(_("You must choose an action"));
         },
 
+        confirmAction: function(evt) {
+            console.log('confirmed '+ evt);
+        },
 
         /* Example:
         
