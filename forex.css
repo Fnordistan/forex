@@ -159,6 +159,14 @@
     box-shadow: 3px 3px 10px black;
 }
 
+.frx_curr_btn {
+    box-shadow: 1px 1px 3px white;
+}
+
+.frx_curr_btn:active {
+    border: red;
+}
+
 /* these share the same dimensions, just different sprites */
 .frx_note {
     background-image: url(img/forex_notes.jpg);

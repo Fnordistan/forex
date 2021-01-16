@@ -44,6 +44,9 @@ const CONTRACT = {
     F: 5
 }
 
+// 0-indexed array
+const EXCHANGE_RATE = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8];
+
 // map actions to function names
 const ACTIONS = {
     SPOT: 'spotTrade',
@@ -63,8 +66,21 @@ const CURR_BASE_H = 97.66;
 const DIVIDEND_BASE_H = 150;
 const DIVIDEND_BASE_W = 97.8;
 
-// string that get inserted into format_string_recursive
-const X_SPOT_TRADE = "x_spot_trade";
+// strings that get inserted into format_string_recursive
+const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
+const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
+const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
+
+// constants used for tempStateArgs
+const SPOT_OFFER = 'spot_offer';
+const SPOT_REQUEST = 'spot_request';
+const SPOT_TRADE_PLAYER = 'spot_trade_player';
+const SPOT_TRADE_TEXT = 'spot_trade_text';
+
+const CURRENCY_TYPE = {
+    NOTE: "note",
+    CERTIFICATE: "cert"
+}
 
 
 define([
@@ -160,7 +176,10 @@ function (dojo, declare) {
             this.placeCertificates();
             this.createContractDisplay();
             this.createContractQueue();
- 
+
+            // these are read by UI buttons while players are choosing actions
+            this.tempStateArgs = {};
+
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
 
@@ -179,13 +198,18 @@ function (dojo, declare) {
                     if (args.X_SPOT_TRADE) {
                         log = log + this.insertTradeButtons(args.X_SPOT_TRADE) + '<br/>';
                     }
+                    if (args.X_CURRENCY) {
+                        log = log + this.insertCurrencyButtons(args.X_CURRENCY)+'<br/>';
+                    }
+                    if (args.X_ACTION_TEXT) {
+                        log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
+                    }
                 }
             } catch (e) {
                 console.error(log, args, "Exception thrown", e.stack);
             }
             return this.inherited(arguments);
         },
-
 
         /**
          * Tick all the currency counters
@@ -248,7 +272,7 @@ function (dojo, declare) {
             var currency_pairs = this.gamedatas.currency_pairs;
             for (const c in currency_pairs) {
                 let curr1 = currency_pairs[c]['stronger'];
-                let curr2 = currency_pairs[c]['curr1'] = curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
+                let curr2 = currency_pairs[c]['curr1'] == curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
                 var curr_pr = this.format_block('jstpl_curr_pair', {
                     "curr1": curr1,
                     "curr2": curr2
@@ -321,8 +345,8 @@ function (dojo, declare) {
 
         /**
          * Create the Dividends stack as a Zone.
-         * @param {String} div_el 
-         * @param {q} int
+         * @param {string} div_el 
+         * @param {int} q
          */
         createDividendsStack: function(div_el, q) {
             this.divstack = new ebg.zone();
@@ -346,7 +370,7 @@ function (dojo, declare) {
             dojo.place(this.format_block('jstpl_dividend_counter'), divdiv.id);
             this.dividendCounter.create('dividend_counter');
             this.dividendCounter.incValue(dividends);
-    },
+        },
 
 
         /**
@@ -436,38 +460,6 @@ function (dojo, declare) {
         //// Utility methods
 
         /**
-         * Add the Action buttons in the menu bar while we are choosing another action.
-         */
-        addPlayerActionButtons: function() {
-            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
-            this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
-            this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
-            this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
-            this.addActionButton( ACTIONS.RESOLVE+BTN, _('Resolve Contract'), ACTIONS.RESOLVE);
-        },
-
-        removeActionButtons: function() {
-            for (const A in ACTIONS) {
-                dojo.destroy(ACTIONS[A]+BTN);
-            }
-        },
-
-        /**
-         * Create the Cancel Button.
-         */
-        addCancelButton: function() {
-            this.addActionButton( ACTIONS.CANCEL+BTN, _('Cancel'), 'cancelAction', null, false, 'red');
-        },
-
-
-        /**
-         * Create the Confirm button
-         */
-        addConfirmButton: function() {
-            this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), 'confirmAction');
-        },
-
-        /**
          * Change the title banner.
          * @param {string} text 
          */
@@ -477,9 +469,25 @@ function (dojo, declare) {
         },
 
         /**
+         * Create span with Player's name in color.
+         * @param {*} player 
+         */
+        spanPlayerName: function(player) {
+            var player_id = player['id'];
+            var player_name = player['name'];
+            var color = player.color;
+            var color_bg = "";
+            if (player.color_back) {
+                color_bg = player.color_back;
+            }
+            var pname = "<span style=\"font-weight:bold;color:#" + color + ";" + color_bg + "\">" + player_name + "</span>";
+            return pname;
+        },
+
+        /**
          * From BGA Cookbook. Return "You" in this player's color
          */
-        divYou : function() {
+        spanYou : function() {
             var color = this.gamedatas.players[this.player_id].color;
             var color_bg = "";
             if (this.gamedatas.players[this.player_id] && this.gamedatas.players[this.player_id].color_back) {
@@ -490,51 +498,28 @@ function (dojo, declare) {
         },
 
         /**
-         * Create a div with a row of player buttons
-         * @param {*} players 
+         * Create row of Currency buttons
+         * @param {string} curr_type 
          */
-        insertTradeButtons: function(players) {
-            var row_of_buttons = "";
-            for (const p in players) {
-                var player_button = this.playerButton(players[p]);
-                row_of_buttons += " "+player_button;
-            }
-            return row_of_buttons;
-        },
-
-        /**
-         * Takes a player and returns the player's name formatted in their color.
-         * @param {Object} player
-         */
-        playerButton: function(player) {
-            var player_id = player['id'];
-            var player_name = player['name'];
-            var color = player.color;
-            var color_bg = "";
-            if (player.color_back) {
-                color_bg = player.color_back;
-            }
-            var button = this.format_block('jstpl_player_btn', {
-                'player_id': player_id,
-                'player_name': player_name,
-                'bgcolor': color_bg,
-                'color': color,
+        insertCurrencyButtons: function(curr_type) {
+            var note_buttons = "";
+            Object.keys(CURRENCY).forEach(curr => {
+                note_buttons += " "+this.createNoteButton(curr_type, curr);
             });
-            return button;
+            return note_buttons;
         },
 
         /**
-         * 
-         * @param {*} otherPlayers 
+         * Create a button with a currency (either Note or Certificate)
+         * @param {string} curr_type
+         * @param {string} curr 
          */
-        addPlayerTradeActions: function(otherPlayers) {
-            for (let p in otherPlayers) {
-                let player = otherPlayers[p];
-                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, function(){
-                    this.offerTrade(player, otherPlayers);
-                });
-            }
-        },
+        createNoteButton: function(curr_type, curr) {
+            return this.format_block('jstpl_curr_btn', {
+                "type": curr_type,
+                "curr": curr, 
+            });
+       },
 
         /**
          * 
@@ -558,7 +543,7 @@ function (dojo, declare) {
  
             var title = "";
             if (this.isCurrentPlayerActive() && text !== null) {
-                tpl.you = this.divYou();
+                tpl.you = this.spanYou();
             }
             if (text !== null) {
                 title = this.format_string_recursive(text, tpl);
@@ -570,7 +555,6 @@ function (dojo, declare) {
             }
         },
 
-
         /**
          * Return an array of all the players not this one.
          * Assumes a current player_id
@@ -579,7 +563,223 @@ function (dojo, declare) {
             var player_cpy = dojo.clone(this.gamedatas.players);
             delete player_cpy[this.player_id];
             return player_cpy;
+        },
 
+        /**
+         * Get pair corresponding to curr1 and curr2.
+         * @param {*} curr1 
+         * @param {*} curr2 
+         */
+        getCurrencyPair: function(curr1, curr2) {
+            var currency_pairs = this.gamedatas.currency_pairs;
+            for (const c in currency_pairs) {
+                var pair = currency_pairs[c];
+                if ((pair['curr1'] == curr1 && pair['curr2'] == curr2) || (pair['curr1'] == curr2 && pair['curr2'] == curr1)) {
+                    return pair;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * For curr1 and curr2, returns two-element array: {strongercurrency: value}
+         * @param {*} curr1 
+         * @param {*} curr2 
+         */
+        getExchangeRate: function(curr1, curr2) {
+            var exch = [];
+            var pair = this.getCurrencyPair(curr1, curr2);
+            if (pair != null) {
+                exch.push(pair['stronger']);
+                exch.push(EXCHANGE_RATE[pair['position']-1]);
+            }
+            return exch;
+        },
+
+        ///////////////////////////////////////////////////
+        //// Client "State" Functions
+        ///////////////////////////////////////////////////
+
+        /**
+         * Add the Action buttons in the menu bar while we are choosing another action.
+         */
+        addPlayerActionButtons: function() {
+            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
+            this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
+            this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
+            this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
+            this.addActionButton( ACTIONS.RESOLVE+BTN, _('Resolve Contract'), ACTIONS.RESOLVE);
+        },
+
+        removeActionButtons: function() {
+            for (const A in ACTIONS) {
+                dojo.destroy(ACTIONS[A]+BTN);
+            }
+        },
+
+        /**
+         * Create the Cancel Button.
+         */
+        addCancelButton: function() {
+            this.addActionButton( ACTIONS.CANCEL+BTN, _('Cancel'), 'cancelAction', null, false, 'red');
+        },
+
+        /**
+         * Create the Confirm button
+         */
+        addConfirmButton: function() {
+            this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), 'confirmAction');
+        },
+
+        ///////////////////////// SPOT TRADE /////////////////////////
+
+        /**
+         * Create a div with a row of player buttons
+         * @param {*} players 
+         */
+        insertTradeButtons: function(players) {
+            var trade_to_btns = "";
+            for (const p in players) {
+                var player_button = this.createPlayerButton(players[p]);
+                trade_to_btns += " "+player_button;
+            }
+            return trade_to_btns;
+        },
+
+        /**
+         * Takes a player and returns the player's name formatted in their color.
+         * @param {Object} player
+         */
+        createPlayerButton: function(player) {
+            var player_id = player['id'];
+            var player_name = player['name'];
+            var color = player.color;
+            var color_bg = "";
+            if (player.color_back) {
+                color_bg = player.color_back;
+            }
+            var button = this.format_block('jstpl_player_btn', {
+                'player_id': player_id,
+                'player_name': player_name,
+                'bgcolor': color_bg,
+                'color': color,
+            });
+            return button;
+        },
+
+        /**
+         * Action when a player button is chosen in Spot Trade
+         * @param {*} evt 
+         */
+        offerTrade: function(player, otherPlayers) {
+            console.log("clicked button  for " + player['name']);
+
+            // are we clicking or unclicking it?
+            var disable = false;
+            if (this.tempStateArgs[SPOT_TRADE_PLAYER] == player) {
+                // clear all
+                this.tempStateArgs = [];
+            } else {
+                this.tempStateArgs[SPOT_TRADE_PLAYER] = player;
+                disable = true;
+            }
+
+            for (p in otherPlayers) {
+                var p2 = otherPlayers[p];
+                if (player != p2) {
+                    dojo.attr('trade_'+p2['id']+'_btn', 'disabled', disable);
+                }
+            }
+            this.setSpotTradeMessage();
+        },
+
+        /**
+         * Add actions to Buttons for players to offer trade to.
+         * @param {*} otherPlayers 
+         */
+        addPlayerTradeActions: function(otherPlayers) {
+            for (let p in otherPlayers) {
+                let player = otherPlayers[p];
+                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, function(){
+                    this.offerTrade(player, otherPlayers);
+                });
+            }
+        },
+
+        /**
+         * Add the actions to Spot Trading buttons
+         */
+        addSpotTradeActions: function() {
+            Object.keys(CURRENCY).forEach(curr => {
+                let btn_id = curr+'_note_btn';
+                dojo.connect( $(btn_id), 'onclick', this, function(){
+                    this.spotTradeAction(curr, btn_id);
+                });
+            });
+        },
+
+        /**
+         * Action that happens when clicked on a note
+         * @param {string} curr
+         * @param {string} btn_id 
+         */
+        spotTradeAction: function(curr, btn_id) {
+            if (this.tempStateArgs[SPOT_TRADE_PLAYER] == null) {
+                return;
+            }
+            if (this.tempStateArgs[SPOT_OFFER] == null) {
+                // there should be no currencies clicked, so this is the offer
+                this.tempStateArgs[SPOT_OFFER] = curr;
+                this.tempStateArgs[SPOT_REQUEST] = null;
+            } else if (this.tempStateArgs[SPOT_REQUEST] == null) {
+                // an offer is already clicked, so this is the requested currency
+                this.tempStateArgs[SPOT_REQUEST] = curr;
+            } else if (this.tempStateArgs[SPOT_OFFER] == curr) {
+                // we clicked the currency we previously selected to offer, so deselect both
+                this.tempStateArgs[SPOT_OFFER] = null;
+                this.tempStateArgs[SPOT_REQUEST] = null;
+            } else if (this.tempStateArgs[SPOT_REQUEST] == curr) {
+                // we clicked the currency we previously selected to request, so deselect
+                this.tempStateArgs[SPOT_REQUEST] = null;
+            } else {
+                // we have two currencies already selected, so we're replacing the requested currency
+                this.tempStateArgs[SPOT_REQUEST] = curr;
+            }
+            this.setSpotTradeMessage();
+        },
+
+        /**
+         * Change the text on the spot trade message
+         * @param {*} text 
+         */
+        setSpotTradeMessage: function() {
+            var text = "";
+            var offer_txt = "";
+            var request_txt = "";
+            if (this.tempStateArgs[SPOT_TRADE_PLAYER]) {
+                text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_PLAYER]);
+                if (this.tempStateArgs[SPOT_OFFER]) {
+                    offer_txt = this.tempStateArgs[SPOT_OFFER];
+                }
+                if (this.tempStateArgs[SPOT_REQUEST]) {
+                    request_txt = this.tempStateArgs[SPOT_REQUEST]
+                }
+                if (this.tempStateArgs[SPOT_OFFER] && this.tempStateArgs[SPOT_REQUEST]) {
+                    var xchg = this.getExchangeRate(this.tempStateArgs[SPOT_OFFER], this.tempStateArgs[SPOT_REQUEST]);
+                    if (this.tempStateArgs[SPOT_OFFER] == xchg[0]) {
+                        // the offer is the stronger currency, worth n request bucks
+                        offer_txt = "1 " + offer_txt;
+                        request_txt = xchg[1] +" "+ request_txt;
+                    } else {
+                        // the offer is the weaker currency, the request is worth n offer bucks
+                        offer_txt = xchg[1] +" "+ offer_txt;
+                        request_txt = "1 " + request_txt;
+                    }
+                    request_txt = _(" for ")+request_txt;
+                }
+                text = text +" "+offer_txt+request_txt;
+            }
+            dojo.byId('spot_trade_txt').innerHTML = text;
         },
 
         ///////////////////////////////////////////////////
@@ -602,35 +802,18 @@ function (dojo, declare) {
         spotTrade: function(evt) {
             if (this.checkAction('offerSpot', true)) {
                 this.removeActionButtons();
+                // initialize the currencies for trading: to-from
+                this.tempStateArgs[SPOT_OFFER] = null;
+                this.tempStateArgs[SPOT_REQUEST] = null;
 
                 // this adds the buttons
                 var otherPlayers = this.getOtherPlayers();
-                this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers});
-
+                this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'spot_trade_txt'});
                 this.addPlayerTradeActions(otherPlayers);
+                this.addSpotTradeActions();
 
                 this.addConfirmButton();
                 this.addCancelButton();
-                console.log('clicked '+evt);
-            }
-    },
-
-
-        /**
-         * Action when a player button is chosen in Spot Trade
-         * @param {*} evt 
-         */
-        offerTrade: function(player, otherPlayers) {
-            console.log("clicked button  for " + player['name']);
-            var target_id = 'trade_'+player['id']+'_btn';
-            // are we clicking or unclicking it?
-            var is_active = dojo.getAttr(target_id, 'active') ?? false;
-            dojo.attr('trade_'+player['id']+'_btn', 'active', !is_active);
-            for (p in otherPlayers) {
-                var p2 = otherPlayers[p];
-                if (player != p2) {
-                    dojo.attr('trade_'+p2['id']+'_btn', 'disabled', !is_active);
-                }
             }
         },
 
@@ -668,7 +851,7 @@ function (dojo, declare) {
                 this.addConfirmButton();
                 this.addCancelButton();
             }
-    },
+        },
 
         /**
          * Player clicked Resolve.
@@ -687,6 +870,7 @@ function (dojo, declare) {
          * @param {*} evt 
          */
         cancelAction: function(evt) {
+            this.tempStateArgs = {};
             this.removeActionButtons();
             this.addPlayerActionButtons();
             this.setDescriptionOnMyTurn(_("You must choose an action"));
