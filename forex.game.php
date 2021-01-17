@@ -321,7 +321,7 @@ class ForEx extends Table
     function updateCurrencyPair($curr1, $curr2, $stronger, $pos) {
         self::DbQuery("
             UPDATE CURRENCY_PAIRS SET stronger = $stronger, position = $pos
-            WHERE (curr1 = $curr1 AND curr2 = $curr2) OR (curr1 = $curr2 AND curr2 = $curr1)
+            WHERE (curr1 = \"$curr1\" AND curr2 = \"$curr2\") OR (curr1 = \"$curr2\" AND curr2 = \"$curr1\")
         ");
     }
 
@@ -331,7 +331,7 @@ class ForEx extends Table
     function calculateExchangeRate($curr1, $curr2) {
         $pair = self::getNonEmptyObjectFromDB("
             SELECT stronger, position from CURRENCY_PAIRS
-            WHERE (curr1 = $curr1 AND curr2 = $curr2 ) OR (curr1 = $curr2 AND curr2 = $curr1 )
+            WHERE (curr1 = \"$curr1\" AND curr2 = \"$curr2\" ) OR (curr1 = \"$curr2\" AND curr2 = \"$curr1\" )
         ");
         $xchang = $this->exchange[$pair['position']];
         $pair = array($pair['stronger'], $xchang);
@@ -342,7 +342,7 @@ class ForEx extends Table
      * For an offer and request, returns two-member array, value/value (one will be 1)
      */
     function getSpotValues($offer, $request) {
-        $xchg = $this->calculateExchangeRate($curr1, $curr2);
+        $xchg = $this->calculateExchangeRate($offer, $request);
         if ($offer == $xchg[0]) {
             return array(1, $xchg[1]);
         } else {
@@ -376,7 +376,7 @@ class ForEx extends Table
      * How much does this player have of this currency?
      */
     function getMonies($player_id, $curr) {
-        return self::getUniqueValueFromDB("SELECT amt from BANK WHERE player = $player_id AND curr = $curr");
+        return self::getUniqueValueFromDB("SELECT amt from BANK WHERE player = $player_id AND curr = \"$curr\"");
     }
 
     /**
@@ -436,8 +436,12 @@ class ForEx extends Table
         (note: each method below must match an input method in forex.action.php)
     */
 
-    
-    function offerSpotTrade($offer, $request, $player) {
+
+    /**
+     * When player submits a Spot Trade. Checks whether both parties have required bucks,
+     * then sends offer.
+     */
+    function offerSpotTrade($player, $offer, $request) {
         self::checkAction( 'offerSpot' ); 
 
         $player_id = self::getActivePlayerId();
@@ -445,13 +449,15 @@ class ForEx extends Table
         $spot = $this->getSpotValues($offer, $request);
         $off_amt = $spot[0];
         $req_amt = $spot[1];
-        $mybucks = $this->getMonies($me, $offer);
+        $mybucks = $this->getMonies($player_id, $offer);
         if ($off_amt > $mybucks) {
             throw new BgaUserException(self::_("You do not have ${off_amt} ${offer}"));
         }
         $theirbucks = $this->getMonies($player, $request);
         if ($req_amt > $theirbucks) {
-            throw new BgaUserException(self::_("${player} does not have ${req_amt} ${request}"));
+            $players = self::loadPlayersBasicInfos();
+            $player_name = $players[$player]['player_name'];
+            throw new BgaUserException(self::_("${player_name} does not have ${req_amt} ${request}"));
         }
         // sendOffer($offer, $off_amt, $request, $req_amt, $player);
     }

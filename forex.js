@@ -642,8 +642,10 @@ function (dojo, declare) {
         /**
          * Create the Confirm button
          */
-        addConfirmButton: function() {
-            this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), 'confirmAction');
+        addConfirmButton: function(action) {
+            this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), () => {
+                this.confirmAction(action);
+            });
         },
 
         ///////////////////////// SPOT TRADE /////////////////////////
@@ -742,29 +744,21 @@ function (dojo, declare) {
             if (this.tempStateArgs[SPOT_TRADE_PLAYER] == null) {
                 return;
             }
-            console.log(this.tempStateArgs[SPOT_OFFER] + " for " + this.tempStateArgs[SPOT_REQUEST]);
             if (this.tempStateArgs[SPOT_OFFER] == null) {
                 // there should be no currencies clicked, so this is the offer
                 this.tempStateArgs[SPOT_OFFER] = curr;
                 this.tempStateArgs[SPOT_REQUEST] = null;
-            } else if (this.tempStateArgs[SPOT_REQUEST] == null) {
-                // an offer is already clicked, so this is the requested currency
-                if (this.tempStateArgs[SPOT_OFFER] == curr) {
-                    // we clicked the currency previously chosen, so deselect
-                    this.tempStateArgs[SPOT_OFFER] = null;
-                    this.tempStateArgs[SPOT_REQUEST] = null;
-                } else {
-                    this.tempStateArgs[SPOT_REQUEST] = curr;
-                }
             } else if (this.tempStateArgs[SPOT_OFFER] == curr) {
-                // we clicked the currency we previously selected to offer, so deselect both
+                // clicked on the previously offered currency, so clear both
                 this.tempStateArgs[SPOT_OFFER] = null;
                 this.tempStateArgs[SPOT_REQUEST] = null;
+            } else if (this.tempStateArgs[SPOT_REQUEST] == null) {
+                // this is the request
+                this.tempStateArgs[SPOT_REQUEST] = curr;
             } else if (this.tempStateArgs[SPOT_REQUEST] == curr) {
-                // we clicked the currency we previously selected to request, so deselect
+                // clicked on previous request currency, so clear it
                 this.tempStateArgs[SPOT_REQUEST] = null;
             } else {
-                // we have two currencies already selected, so we're replacing the requested currency
                 this.tempStateArgs[SPOT_REQUEST] = curr;
             }
             this.setSpotTradeMessage();
@@ -776,32 +770,32 @@ function (dojo, declare) {
          */
         setSpotTradeMessage: function() {
             var text = "";
-            var offer_txt = "";
-            var request_txt = "";
             if (this.tempStateArgs[SPOT_TRADE_PLAYER]) {
                 text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_PLAYER]);
-                if (this.tempStateArgs[SPOT_OFFER] && this.tempStateArgs[SPOT_REQUEST]) {
-                    // create complete trade message
-                    var xchg = this.getExchangeRate(this.tempStateArgs[SPOT_OFFER], this.tempStateArgs[SPOT_REQUEST]);
-                    if (this.tempStateArgs[SPOT_OFFER] == xchg[0]) {
-                        // the offer is the stronger currency, worth n request bucks
-                        offer_txt = this.createMoniesXstr(1, this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
-                        request_txt = this.createMoniesXstr(xchg[1], this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
-                    } else {
-                        // the offer is the weaker currency, the request is worth n offer bucks
-                        offer_txt = xchg[1] +" "+ offer_txt;
-                        request_txt = "1 " + request_txt;
-                    }
-                    request_txt = _(" for ")+request_txt;
-                } else {
-                    if (this.tempStateArgs[SPOT_OFFER]) {
-                        offer_txt = this.createMoniesXstr("", this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
-                    }
+                if (this.tempStateArgs[SPOT_OFFER]) {
+                    var offer_txt = " ";
                     if (this.tempStateArgs[SPOT_REQUEST]) {
-                        request_txt = this.createMoniesXstr("", this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
+                        // construct a complete message
+                        var offer_val = "";
+                        var req_val = "";
+                        var xchg = this.getExchangeRate(this.tempStateArgs[SPOT_OFFER], this.tempStateArgs[SPOT_REQUEST]);
+                        if (this.tempStateArgs[SPOT_OFFER] == xchg[0]) {
+                            // the offer is the stronger currency, worth n request bucks
+                            offer_val = 1;
+                            req_val = xchg[1];
+                        } else {
+                            // the offer is the weaker currency, the request is worth n offer bucks
+                            offer_val = xchg[1];
+                            req_val = 1;
+                        }
+                        offer_txt += this.createMoniesXstr(offer_val, this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
+                        offer_txt += _(" for ")+this.createMoniesXstr(req_val, this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
+                    } else {
+                        // only have offer
+                        offer_txt += this.createMoniesXstr('', this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
                     }
+                    text += offer_txt;
                 }
-                text = text +" "+offer_txt+request_txt;
             }
             dojo.byId('spot_trade_txt').innerHTML = text;
         },
@@ -850,8 +844,30 @@ function (dojo, declare) {
                 this.addPlayerTradeActions(otherPlayers);
                 this.addSpotTradeActions();
 
-                this.addConfirmButton();
+                this.addConfirmButton(ACTIONS.SPOT);
                 this.addCancelButton();
+            }
+        },
+
+        /**
+         * Actual Ajax call to submit offer.
+         */
+        submitSpotTrade: function() {
+            if (this.checkAction('offerSpot', true)) {
+                // have all the parameters been filled?
+                var player = this.tempStateArgs[SPOT_TRADE_PLAYER];
+                var offer = this.tempStateArgs[SPOT_OFFER];
+                var request = this.tempStateArgs[SPOT_REQUEST];
+                if (player && offer && request) {
+                    this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
+                        to_player: player['id'],
+                        off_curr: offer,
+                        req_curr: request,
+                        lock: true 
+                    }, this, function( result ) {  }, function( is_error) { } );                        
+                } else {
+                    this.showMessage(_("You must select player to offer trade to, offered currency, and requested currency"), 'info');
+                }
             }
         },
 
@@ -862,7 +878,7 @@ function (dojo, declare) {
         investCurrency: function(evt) {
             if (this.checkAction('investCurrency', true)) {
                 this.removeActionButtons();
-                this.addConfirmButton();
+                this.addConfirmButton(ACTIONS.INVEST);
                 this.addCancelButton();
             }
         },
@@ -874,7 +890,7 @@ function (dojo, declare) {
         divestCurrency: function(evt) {
             if (this.checkAction('divestCurrency', true)) {
                 this.removeActionButtons();
-                this.addConfirmButton();
+                this.addConfirmButton(ACTIONS.DIVEST);
                 this.addCancelButton();
             }
         },
@@ -886,7 +902,7 @@ function (dojo, declare) {
         makeContract: function(evt) {
             if (this.checkAction('makeContract', true)) {
                 this.removeActionButtons();
-                this.addConfirmButton();
+                this.addConfirmButton(ACTIONS.CONTRACT);
                 this.addCancelButton();
             }
         },
@@ -898,7 +914,7 @@ function (dojo, declare) {
         resolveContract: function(evt) {
             if (this.checkAction('resolveContract', true)) {
                 this.removeActionButtons();
-                this.addConfirmButton();
+                this.addConfirmButton(ACTIONS.RESOLVE);
                 this.addCancelButton();
             }
         },
@@ -914,8 +930,25 @@ function (dojo, declare) {
             this.setDescriptionOnMyTurn(_("You must choose an action"));
         },
 
-        confirmAction: function(evt) {
-            console.log('confirmed '+ evt);
+        /**
+         * After pressing a confirm button, actually submits the action
+         * @param {enum} action 
+         */
+        confirmAction: function(action) {
+            console.log('confirmed '+ action);
+            switch(action) {
+                case ACTIONS.SPOT:
+                    this.submitSpotTrade();
+                    break;
+                case ACTIONS.INVEST:
+                    break;
+                case ACTIONS.DIVEST:
+                    break;
+                case ACTIONS.CONTRACT:
+                    break;
+                case ACTIONS.RESOLVE:
+                    break;
+            }
         },
 
         /* Example:

@@ -69,7 +69,7 @@ var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class=
 
 var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_curr_btn frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.4;"></button>';
 
-var jstpl_monies = '<span class="frx_cur_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>';
+var jstpl_monies = '<span class="frx_cur_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}"></span>';
 
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\

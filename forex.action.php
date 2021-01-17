@@ -40,28 +40,18 @@
   	} 
   	
   	// TODO: defines your action entry points there
+    /**
+     * Either lead or follow
+     */
+    public function offerSpotTrade() {
+      self::setAjaxMode();     
+      $player_id = self::getArg( "to_player", AT_posint, true );
+      $offer = self::getArg( "off_curr", AT_alphanum, true );
+      $request = self::getArg( "req_curr", AT_alphanum, true );
 
-
-    /*
-    
-    Example:
-  	
-    public function myAction()
-    {
-        self::setAjaxMode();     
-
-        // Retrieve arguments
-        // Note: these arguments correspond to what has been sent through the javascript "ajaxcall" method
-        $arg1 = self::getArg( "myArgument1", AT_posint, true );
-        $arg2 = self::getArg( "myArgument2", AT_posint, true );
-
-        // Then, call the appropriate method in your game logic, like "playCard" or "myAction"
-        $this->game->myAction( $arg1, $arg2 );
-
-        self::ajaxResponse( );
+      $this->game->offerSpotTrade( $player_id, $offer, $request );
+      self::ajaxResponse( );
     }
-    
-    */
 
   }
   
