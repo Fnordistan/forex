@@ -56,8 +56,6 @@
 
 // Javascript HTML templates
 
-// var jstpl_you = '<span style="font-weight:bold;color:#${color};background-color:#{color_bg}">__("lang_mainsite", "You")</span>';
-
 // the actual counter shown is always curr2 (the weaker currency)
 var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
 
@@ -70,6 +68,8 @@ var jstpl_certs_counter = 'avail_certs_${curr}_ctr';
 var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class="frx_player_btn" style="--color: #${color}; --bg_color: #${bgcolor};">${player_name}</button>';
 
 var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_curr_btn frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.4;"></button>';
+
+var jstpl_monies = '<span class="frx_cur_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>';
 
 var jstpl_mon_counter = '<div class="frx_ctr_container">\
                                 <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\

@@ -70,6 +70,7 @@ const DIVIDEND_BASE_W = 97.8;
 const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
 const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
 const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
+const X_MONIES = "x_monies_icon"; // indicates an array of MONIES #_CURR_note|cert
 
 // constants used for tempStateArgs
 const SPOT_OFFER = 'spot_offer';
@@ -81,7 +82,6 @@ const CURRENCY_TYPE = {
     NOTE: "note",
     CERTIFICATE: "cert"
 }
-
 
 define([
     "dojo","dojo/_base/declare",
@@ -203,6 +203,21 @@ function (dojo, declare) {
                     }
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
+                    }
+                    if (args.X_MONIES) {
+                        for (const m in args.X_MONIES) {
+                            var mstr = args.X_MONIES[m];
+                            var monies = mstr.split('_');
+                            var num = parseInt(monies[0]);
+                            var curr = monies[1];
+                            var type = monies[2];
+                            var monies_span = this.format_block('jstpl_monies', {
+                                "num": num,
+                                "type": type,
+                                "curr": curr,
+                            });
+                            log = log.replace(mstr, monies_span);
+                        }
                     }
                 }
             } catch (e) {
@@ -671,7 +686,7 @@ function (dojo, declare) {
          * Action when a player button is chosen in Spot Trade
          * @param {*} evt 
          */
-        offerTrade: function(player, otherPlayers) {
+        choosePlayer: function(player, otherPlayers) {
             console.log("clicked button  for " + player['name']);
 
             // are we clicking or unclicking it?
@@ -701,7 +716,7 @@ function (dojo, declare) {
             for (let p in otherPlayers) {
                 let player = otherPlayers[p];
                 dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, function(){
-                    this.offerTrade(player, otherPlayers);
+                    this.choosePlayer(player, otherPlayers);
                 });
             }
         },
@@ -727,13 +742,20 @@ function (dojo, declare) {
             if (this.tempStateArgs[SPOT_TRADE_PLAYER] == null) {
                 return;
             }
+            console.log(this.tempStateArgs[SPOT_OFFER] + " for " + this.tempStateArgs[SPOT_REQUEST]);
             if (this.tempStateArgs[SPOT_OFFER] == null) {
                 // there should be no currencies clicked, so this is the offer
                 this.tempStateArgs[SPOT_OFFER] = curr;
                 this.tempStateArgs[SPOT_REQUEST] = null;
             } else if (this.tempStateArgs[SPOT_REQUEST] == null) {
                 // an offer is already clicked, so this is the requested currency
-                this.tempStateArgs[SPOT_REQUEST] = curr;
+                if (this.tempStateArgs[SPOT_OFFER] == curr) {
+                    // we clicked the currency previously chosen, so deselect
+                    this.tempStateArgs[SPOT_OFFER] = null;
+                    this.tempStateArgs[SPOT_REQUEST] = null;
+                } else {
+                    this.tempStateArgs[SPOT_REQUEST] = curr;
+                }
             } else if (this.tempStateArgs[SPOT_OFFER] == curr) {
                 // we clicked the currency we previously selected to offer, so deselect both
                 this.tempStateArgs[SPOT_OFFER] = null;
@@ -758,28 +780,44 @@ function (dojo, declare) {
             var request_txt = "";
             if (this.tempStateArgs[SPOT_TRADE_PLAYER]) {
                 text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_PLAYER]);
-                if (this.tempStateArgs[SPOT_OFFER]) {
-                    offer_txt = this.tempStateArgs[SPOT_OFFER];
-                }
-                if (this.tempStateArgs[SPOT_REQUEST]) {
-                    request_txt = this.tempStateArgs[SPOT_REQUEST]
-                }
                 if (this.tempStateArgs[SPOT_OFFER] && this.tempStateArgs[SPOT_REQUEST]) {
+                    // create complete trade message
                     var xchg = this.getExchangeRate(this.tempStateArgs[SPOT_OFFER], this.tempStateArgs[SPOT_REQUEST]);
                     if (this.tempStateArgs[SPOT_OFFER] == xchg[0]) {
                         // the offer is the stronger currency, worth n request bucks
-                        offer_txt = "1 " + offer_txt;
-                        request_txt = xchg[1] +" "+ request_txt;
+                        offer_txt = this.createMoniesXstr(1, this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
+                        request_txt = this.createMoniesXstr(xchg[1], this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
                     } else {
                         // the offer is the weaker currency, the request is worth n offer bucks
                         offer_txt = xchg[1] +" "+ offer_txt;
                         request_txt = "1 " + request_txt;
                     }
                     request_txt = _(" for ")+request_txt;
+                } else {
+                    if (this.tempStateArgs[SPOT_OFFER]) {
+                        offer_txt = this.createMoniesXstr("", this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
+                    }
+                    if (this.tempStateArgs[SPOT_REQUEST]) {
+                        request_txt = this.createMoniesXstr("", this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
+                    }
                 }
                 text = text +" "+offer_txt+request_txt;
             }
             dojo.byId('spot_trade_txt').innerHTML = text;
+        },
+
+        /**
+         * Create a string for the X_MONIES arg in logs
+         * @param {*} num 
+         * @param {*} curr 
+         * @param {*} type 
+         */
+        createMoniesXstr: function(num, curr, type) {
+            return this.format_block('jstpl_monies', {
+                "num": num,
+                "curr": curr,
+                "type": type
+            });
         },
 
         ///////////////////////////////////////////////////

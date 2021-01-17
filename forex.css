@@ -150,6 +150,11 @@
     box-shadow: 3px 3px 10px black;
 }
 
+.frx_cur_val {
+    font-family: 'DM Mono';
+    font-weight: bold;
+}
+
 .frx_currency_card {
     background-size: calc(var(--currency_w) * var(--scale)) calc(7 * var(--currency_h) * var(--scale));
     background-repeat: no-repeat;
