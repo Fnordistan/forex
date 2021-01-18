@@ -107,11 +107,6 @@ function (dojo, declare) {
             this.dvdwidth = DIVIDEND_BASE_W*scale;
             this.dvdheight = DIVIDEND_BASE_H*scale;
             this.curr_tok_dim = 25;
-                      
-            // Here, you can init the global variables of your user interface
-            // Example:
-            // this.myGlobalValue = 0;
-
         },
         
         /*
@@ -144,17 +139,23 @@ function (dojo, declare) {
                 // Setting up player board
                 var player_board_div = $('player_board_'+player_id);
                 Object.keys(CURRENCY).forEach(curr => {
+                    var container = dojo.place( this.format_block('jstpl_mon_container', {
+                        "curr": curr,
+                        "id": player_id
+                    }), player_board_div);
+                    dojo.place( this.format_block('jspl_curr_tag', {
+                        "curr": curr
+                    }), container);
                     dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
                         "type": 'note',
                         "id": player_id
-                    }), player_board_div);
-
+                    }), container);
                     dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
                         "type": 'cert',
                         "id": player_id
-                    }), player_board_div);
+                    }), container);
 
                     var note_counter = new forex.fcounter();
                     note_counter.create(curr+'_note_counter_'+player_id);
@@ -163,8 +164,6 @@ function (dojo, declare) {
                     var cert_counter = new ebg.counter();
                     cert_counter.create(curr+'_cert_counter_'+player_id);
                     this.certCounters[player_id].push(cert_counter);
-                    // this.addTooltip(curr+'_counter_icon_'+player_id, dojo.string.substitute(_("${rr} Shares"), {rr: RAILROADS[rri]}), '');
-
                 });
             }
 
@@ -610,6 +609,62 @@ function (dojo, declare) {
             return exch;
         },
 
+        /**
+         * For moving money between a player's pile and the bank
+         */
+        moveBankNotes: function(player_id, curr, amt) {
+            // debugger;
+            // first create the html image
+            var bank_notes = 'bank_'+curr;
+            var player_notes = curr+'_note_counter_icon_'+player_id;
+            var from = bank_notes;
+            var to = player_notes;
+            var parent_id = bank_container;
+            if (amt < 0) {
+                // it's going from player to bank
+                from = player_notes;
+                to = bank_notes;
+                parent_id = curr+'_note_'+player_id+'_container';
+            }
+            var note_html = this.format_block('jstpl_bank_note', {
+                "curr": curr
+            });
+            for (var i = 0; i < Math.abs(amt); i++) {
+                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
+            }
+        },
+
+        /**
+         * Animates moving notes between players in spot trades
+         * @param {*} off_player who made the offer 
+         * @param {*} to_player accepted the offer
+         * @param {*} off_curr 
+         * @param {*} req_curr 
+         * @param {*} off_amt 
+         * @param {*} req_amt 
+         */
+        tradeBankeNotes: function(off_player, req_player, off_curr, req_curr, off_amt, req_amt) {
+            var off_player_notes = off_curr+'_note_counter_icon_'+off_player;
+            var req_player_notes = req_curr+'_note_counter_icon_'+req_player;
+            var off_parent_id = off_curr+'_note_'+off_player+'_container';
+            var req_parent_id = req_curr+'_note_'+req_player+'_container';
+            // animate offer currency going off_player -> req_player
+            // debugger;
+            var off_note_html = this.format_block('jstpl_bank_note', {
+                "curr": off_curr
+            });
+            for (var i = 0; i < Math.ceil(Math.abs(off_amt)); i++) {
+                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, 500 ).play();
+            }
+            // animate request currency going req_player -> from_player
+            var req_note_html = this.format_block('jstpl_bank_note', {
+                "curr": req_curr
+            });
+            for (var j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
+                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 500 ).play();
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Client "State" Functions
         ///////////////////////////////////////////////////
@@ -1047,7 +1102,7 @@ function (dojo, declare) {
             dojo.subscribe( 'spotTradeRejected', this, "notif_spotTradeRejected" );
             dojo.subscribe( 'certificatesBought', this, "notif_certificatesBought" );
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
-        },  
+        },
         
         // TODO: from this point and below, you can write your game notifications handling methods
         // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
@@ -1055,7 +1110,7 @@ function (dojo, declare) {
             console.log( 'notif_moniesChanged' );
             var player_id = notif.args.player_id;
             var curr = notif.args.curr;
-            var amt = parseInt(notif.args.amt);
+            var amt = parseFloat(notif.args.amt);
             this.noteCounters[player_id][CURRENCY[curr]-1].incValue(amt);
         },
 
@@ -1078,8 +1133,14 @@ function (dojo, declare) {
          * If I am the offerer, remove my Spot Trade button
          */
         notif_spotTradeAccepted: function( notif ) {
-            // dojo.destroy(ACTIONS.SPOT+BTN);
-        },    
+            var to_player = notif.args.to_player;
+            var from_player = notif.args.from_player;
+            var offer = notif.args.off_curr;
+            var request = notif.args.req_curr;
+            var off_amt = parseFloat(notif.args.off_amt);
+            var req_amt = parseFloat(notif.args.req_amt);
+            this.tradeBankeNotes(from_player, to_player, offer, request, off_amt, req_amt);
+        },
 
         notif_spotTradeRejected: function( notif ) {
             console.log( 'notif_spotTradeRejected' );

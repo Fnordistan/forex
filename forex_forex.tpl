@@ -16,10 +16,10 @@
             <div id="{CURR}_{ZONE}" class="frx_curr_pr_zone" style="top: {T}px; left: {L}px;"></div>
             <!-- END CURRENCY_PAIRS_BLOCK -->
         </div>
-        <div id="cash_container">
-            <!-- BEGIN CASH_BLOCK -->
-            <div id="cash_{CURR}" class="frx_currency_card frx_note frx_{CURR}"></div>
-            <!-- END CASH_BLOCK -->
+        <div id="bank_container">
+            <!-- BEGIN BANK_BLOCK -->
+            <div id="bank_{CURR}" class="frx_currency_card frx_note frx_{CURR}"></div>
+            <!-- END BANK_BLOCK -->
         </div>
     </div>
     <div id="paper_display">
@@ -69,12 +69,22 @@ var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class=
 
 var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_curr_btn frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.4;"></button>';
 
-var jstpl_monies = '<span class="frx_cur_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}"></span>';
+// an individual note
+var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_{curr}"></div>';
 
-var jstpl_mon_counter = '<div class="frx_ctr_container">\
-                                <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;"></span>\
-                                <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
-                                </div>';
+// displays "<n> <curr> <icon>"
+var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}" title="${curr} ${type}"></span>';
+
+var jspl_curr_tag = '<span class="frx_curr_lbl" style="color: var(--color_note_${curr}); --scale: 0.25;">${curr}</span>';
+
+// holds each player's Note and Certificates (two jstpl_mon_counters)
+var jstpl_mon_container = '<div id="${curr}_${id}_monies" class="frx_mon_container" style="background-color: var(--color_cert_${curr});"></div>';
+
+// holds a Note/Certificate and Counter pair
+var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ctr_container">\
+                            <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
+                            <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
+                        </div>';
 
 </script>  
 

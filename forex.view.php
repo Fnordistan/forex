@@ -88,9 +88,9 @@ define('ZONE_V_GAP', 107);
           ));
         }
 
-        $this->page->begin_block($template, 'CASH_BLOCK');
+        $this->page->begin_block($template, 'BANK_BLOCK');
         foreach( $this->game->currencies as $c => $curr ) {
-          $this->page->insert_block('CASH_BLOCK', array(
+          $this->page->insert_block('BANK_BLOCK', array(
             'CURR' => $curr
           ));
         }

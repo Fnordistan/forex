@@ -377,10 +377,24 @@ class ForEx extends Table
         $spot = $this->getSpotValues($off_curr, $req_curr);
         $off_amt = $spot[0];
         $req_amt = $spot[1];
+
+        $players = self::loadPlayersBasicInfos();
+        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${off_amt} ${off_curr} for ${req_amt} ${req_curr}'), array(
+            'i18n' => array ('from_player_name', 'to_player_name', 'off_curr', 'req_curr'),
+            'to_player' => $to_player,
+            'to_player_name' => self::getActivePlayerName(),
+            'from_player' => $from_player,
+            'from_player_name' => $players[$from_player]['player_name'],
+            'off_curr' => $off_curr,
+            'off_amt' => $off_amt,
+            'req_curr' => $req_curr,
+            'req_amt' => $req_amt,
+        ));
         $this->adjustMonies($from_player, $off_curr, -$off_amt);
         $this->adjustMonies($to_player, $off_curr, $off_amt);
         $this->adjustMonies($from_player, $req_curr, $req_amt);
         $this->adjustMonies($to_player, $req_curr, -$req_amt);
+
         // flag spot trade done, can't do another
         self::setGameStateValue('spot_trade_done', 1);
     }
@@ -512,10 +526,6 @@ class ForEx extends Table
         self::checkAction( 'respondSpotTrade' ); 
 
         if ($accept) {
-            self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${player_name} accepts trade'), array(
-                'i18n' => array ('player_name'),
-                'player_name' => self::getActivePlayerName(),
-            ));
             $this->spotTrade();
         } else {
             // rejected
