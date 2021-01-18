@@ -90,10 +90,14 @@ define([
     "ebg/core/gamegui",
     "ebg/counter",
     "ebg/stock",
-    "ebg/zone"
+    "ebg/zone",
+    g_gamethemeurl + "modules/fcounter.js"
 ],
 function (dojo, declare) {
-    return declare("bgagame.forex", ebg.core.gamegui, {
+    return declare("bgagame.forex", [
+        ebg.core.gamegui,
+        forex.fcounter
+    ], {
         constructor: function(){
             console.log('forex constructor');
             // matches css
@@ -152,7 +156,7 @@ function (dojo, declare) {
                         "id": player_id
                     }), player_board_div);
 
-                    var note_counter = new ebg.counter();
+                    var note_counter = new forex.fcounter();
                     note_counter.create(curr+'_note_counter_'+player_id);
                     this.noteCounters[player_id].push(note_counter);
 
@@ -337,10 +341,10 @@ function (dojo, declare) {
                 this.payoutStacks[CONTRACT.C].create(this, prom_id, this.cardwidth, this.cardheight);
                 this.payoutStacks[CONTRACT.C].setPattern('diagonal');
 
-                this.promiseCounters[CONTRACT.C] = new ebg.counter();
+                this.promiseCounters[CONTRACT.C] = new forex.fcounter();
                 this.promiseCounters[CONTRACT.C].create('promise_'+C+'_cntr');
 
-                this.payoutCounters[CONTRACT.C] = new ebg.counter();
+                this.payoutCounters[CONTRACT.C] = new forex.fcounter();
                 this.payoutCounters[CONTRACT.C].create('payout_'+C+'_cntr');
             });
         },
@@ -436,23 +440,13 @@ function (dojo, declare) {
         {
             console.log( 'Leaving state: '+stateName );
             
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Hide the HTML block we are displaying only during this game state
-                dojo.style( 'my_html_block_id', 'display', 'none' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
-            }               
+            switch( stateName ) {
+                case 'playerAction':
+                    this.removeActionButtons();
+                    break;
+                case 'dummmy':
+                    break;
+            }
         }, 
 
         // onUpdateActionButtons: in this method you can manage "action buttons" that are displayed in the
@@ -467,7 +461,7 @@ function (dojo, declare) {
                 switch( stateName ) {
  
                  case 'playerAction':
-                     this.addPlayerActionButtons();
+                    this.addPlayerActionButtons();
                     break;
                 case 'offerResponse':
                     this.addSpotTradeButtons();
@@ -1062,7 +1056,6 @@ function (dojo, declare) {
             var player_id = notif.args.player_id;
             var curr = notif.args.curr;
             var amt = parseInt(notif.args.amt);
-            // debugger;
             this.noteCounters[player_id][CURRENCY[curr]-1].incValue(amt);
         },
 
@@ -1085,7 +1078,7 @@ function (dojo, declare) {
          * If I am the offerer, remove my Spot Trade button
          */
         notif_spotTradeAccepted: function( notif ) {
-            dojo.destroy(ACTIONS.SPOT+BTN);
+            // dojo.destroy(ACTIONS.SPOT+BTN);
         },    
 
         notif_spotTradeRejected: function( notif ) {
