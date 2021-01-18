@@ -1085,9 +1085,7 @@ function (dojo, declare) {
          * If I am the offerer, remove my Spot Trade button
          */
         notif_spotTradeAccepted: function( notif ) {
-            if (this.isCurrentPlayerActive()) {
-                dojo.destroy(ACTIONS.SPOT+BTN);
-            }
+            dojo.destroy(ACTIONS.SPOT+BTN);
         },    
 
         notif_spotTradeRejected: function( notif ) {
