@@ -78,7 +78,8 @@ const X_MONIES = "x_monies_icon"; // indicates an array of MONIES #_CURR_note|ce
 const SPOT_OFFER = 'spot_offer';
 const SPOT_REQUEST = 'spot_request';
 const SPOT_TRADE_PLAYER = 'spot_trade_player';
-const SPOT_TRADE_TEXT = 'spot_trade_text';
+const SPOT_TRADE_OPT = true;
+
 
 const CURRENCY_TYPE = {
     NOTE: "note",
@@ -121,7 +122,6 @@ function (dojo, declare) {
             
             "gamedatas" argument contains all datas retrieved by your "getAllDatas" PHP method.
         */
-        
         setup: function( gamedatas )
         {
             dojo.destroy('debug_output');
@@ -184,6 +184,7 @@ function (dojo, declare) {
 
             // these are read by UI buttons while players are choosing actions
             this.tempStateArgs = {};
+            this.tempStateArgs[SPOT_TRADE_OPT] = this.gamedatas.spot_trade_opt;
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -409,27 +410,16 @@ function (dojo, declare) {
         // onEnteringState: this method is called each time we are entering into a new game state.
         //                  You can use this method to perform some user interface changes at this moment.
         //
-        onEnteringState: function( stateName, args )
-        {
+        onEnteringState: function( stateName, args ) {
             console.log( 'Entering state: '+stateName );
+
+            // switch( stateName ) {
             
-            switch( stateName )
-            {
-            
-            /* Example:
-            
-            case 'myGameState':
-            
-                // Show some HTML block at this game state
-                dojo.style( 'my_html_block_id', 'display', 'block' );
-                
-                break;
-           */
-           
-           
-            case 'dummmy':
-                break;
-            }
+            // case 'playerAction':
+            //     break;
+            // case 'dummmy':
+            //     break;
+            // }
         },
 
         // onLeavingState: this method is called each time we are leaving a game state.
@@ -613,7 +603,6 @@ function (dojo, declare) {
          * For moving money between a player's pile and the bank
          */
         moveBankNotes: function(player_id, curr, amt) {
-            // debugger;
             // first create the html image
             var bank_notes = 'bank_'+curr;
             var player_notes = curr+'_note_counter_icon_'+player_id;
@@ -649,7 +638,6 @@ function (dojo, declare) {
             var off_parent_id = off_curr+'_note_'+off_player+'_container';
             var req_parent_id = req_curr+'_note_'+req_player+'_container';
             // animate offer currency going off_player -> req_player
-            // debugger;
             var off_note_html = this.format_block('jstpl_bank_note', {
                 "curr": off_curr
             });
@@ -673,7 +661,7 @@ function (dojo, declare) {
          * Add the Action buttons in the menu bar while we are choosing another action.
          */
         addPlayerActionButtons: function() {
-            if (this.gamedatas.spot_trade_opt) {
+            if (this.tempStateArgs[SPOT_TRADE_OPT]) {
                 this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
             }
             this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
@@ -901,7 +889,7 @@ function (dojo, declare) {
          */
         spotTrade: function(evt) {
             if (this.checkAction('offerSpotTrade', true)) {
-                if (this.gamedatas.spot_trade_opt) {
+                if (this.tempStateArgs[SPOT_TRADE_OPT]) {
                     this.removeActionButtons();
                     // initialize the currencies for trading: to-from
                     this.tempStateArgs[SPOT_OFFER] = null;
@@ -1010,7 +998,10 @@ function (dojo, declare) {
          * @param {*} evt 
          */
         cancelAction: function(evt) {
+            var can_spot_trade = this.tempStateArgs[SPOT_TRADE_OPT];
+            // refresh everything else
             this.tempStateArgs = {};
+            this.tempStateArgs[SPOT_TRADE_OPT] = can_spot_trade;
             this.removeActionButtons();
             this.addPlayerActionButtons();
             this.setDescriptionOnMyTurn(_("You must choose an action"));
@@ -1140,6 +1131,8 @@ function (dojo, declare) {
             var off_amt = parseFloat(notif.args.off_amt);
             var req_amt = parseFloat(notif.args.req_amt);
             this.tradeBankeNotes(from_player, to_player, offer, request, off_amt, req_amt);
+            // flag no more spot trades
+            this.tempStateArgs[SPOT_TRADE_OPT] = false;
         },
 
         notif_spotTradeRejected: function( notif ) {
