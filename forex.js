@@ -624,7 +624,9 @@ function (dojo, declare) {
          * Add the Action buttons in the menu bar while we are choosing another action.
          */
         addPlayerActionButtons: function() {
-            this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
+            if (this.gamedatas.spot_trade_opt) {
+                this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
+            }
             this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
             this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
             this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
@@ -850,19 +852,23 @@ function (dojo, declare) {
          */
         spotTrade: function(evt) {
             if (this.checkAction('offerSpotTrade', true)) {
-                this.removeActionButtons();
-                // initialize the currencies for trading: to-from
-                this.tempStateArgs[SPOT_OFFER] = null;
-                this.tempStateArgs[SPOT_REQUEST] = null;
-
-                // this adds the buttons
-                var otherPlayers = this.getOtherPlayers();
-                this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'spot_trade_txt'});
-                this.addPlayerTradeActions(otherPlayers);
-                this.addSpotTradeActions();
-
-                this.addConfirmButton(ACTIONS.SPOT);
-                this.addCancelButton();
+                if (this.gamedatas.spot_trade_opt) {
+                    this.removeActionButtons();
+                    // initialize the currencies for trading: to-from
+                    this.tempStateArgs[SPOT_OFFER] = null;
+                    this.tempStateArgs[SPOT_REQUEST] = null;
+    
+                    // this adds the buttons
+                    var otherPlayers = this.getOtherPlayers();
+                    this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'spot_trade_txt'});
+                    this.addPlayerTradeActions(otherPlayers);
+                    this.addSpotTradeActions();
+    
+                    this.addConfirmButton(ACTIONS.SPOT);
+                    this.addCancelButton();
+                } else {
+                    this.showMessage(_("You have already performed a Spot Trade this turn"), 'info');
+                }
             }
         },
 
@@ -1053,7 +1059,11 @@ function (dojo, declare) {
         // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
         notif_moniesChanged: function( notif ) {
             console.log( 'notif_moniesChanged' );
-            console.log( notif );
+            var player_id = notif.args.player_id;
+            var curr = notif.args.curr;
+            var amt = parseInt(notif.args.amt);
+            // debugger;
+            this.noteCounters[player_id][CURRENCY[curr]-1].incValue(amt);
         },
 
         notif_currencyStrengthened: function( notif ) {
@@ -1071,9 +1081,13 @@ function (dojo, declare) {
             console.log( notif );
         },    
 
+        /**
+         * If I am the offerer, remove my Spot Trade button
+         */
         notif_spotTradeAccepted: function( notif ) {
-            console.log( 'notif_spotTradeAccepted' );
-            console.log( notif );
+            if (this.isCurrentPlayerActive()) {
+                dojo.destroy(ACTIONS.SPOT+BTN);
+            }
         },    
 
         notif_spotTradeRejected: function( notif ) {

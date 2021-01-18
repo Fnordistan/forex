@@ -17,6 +17,7 @@
 if (!defined('SETUP')) { // ensure this block is only invoked once, since it is included multiple times
     define("SETUP", 1);
     define("CHOOSE_ACTION", 2);
+    define("NEXT_PLAYER", 3);
     define("SPOT_OFFER", 20);
     define("HANDLE_OFFER", 21); // game manager between traders
     define("HANDLE_RESPONSE", 22);
@@ -51,10 +52,18 @@ $machinestates = array(
         "transitions" => array( "spotOffer" => HANDLE_OFFER, "contract" => CONTRACT, "invest" => INVEST, "divest" => DIVEST, "resolve" => RESOLVE  )
     ),
 
+    NEXT_PLAYER => array(
+        "name" => "nextPlayer",
+        "description" => "",
+        "type" => "game",
+        "action" => "stNextPlayer",
+        "transitions" => array( "" => CHOOSE_ACTION  )
+    ),
+
     HANDLE_OFFER => array(
         "name" => "spotTrade",
         "description" => "",
-        "type" => "manager",
+        "type" => "game",
         "action" => "stSpotOffer",
         "transitions" => array( "getResponse" => SPOT_OFFER )
     ),
@@ -72,7 +81,7 @@ $machinestates = array(
     HANDLE_RESPONSE => array(
         "name" => "spotResponse",
         "description" => "",
-        "type" => "manager",
+        "type" => "game",
         "action" => "stSpotResponse",
         "transitions" => array( "" => CHOOSE_ACTION )
     ),

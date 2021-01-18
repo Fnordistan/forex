@@ -42,6 +42,7 @@ class ForEx extends Table
                "spot_player_to" => 21,
                "spot_offer" => 22,
                "spot_request" => 23,
+               "spot_trade_done" => 24, // this player has already done a spot trade
 
                 //    "my_first_game_variant" => 100,
                 //    "my_second_game_variant" => 101,
@@ -98,6 +99,7 @@ class ForEx extends Table
         self::setGameStateInitialValue( 'spot_player_to', 0 );
         self::setGameStateInitialValue( 'spot_offer', 0 );
         self::setGameStateInitialValue( 'spot_request', 0 );
+        self::setGameStateInitialValue( 'spot_trade_done', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -216,6 +218,8 @@ class ForEx extends Table
             WHERE location IS NOT NULL 
         ");
         $result['contracts'] = $contracts;
+        // can we do a spot trade?
+        $result['spot_trade_opt'] = (self::getGameStateValue('spot_trade_done') == 0);
 
         return $result;
     }
@@ -377,6 +381,8 @@ class ForEx extends Table
         $this->adjustMonies($to_player, $off_curr, $off_amt);
         $this->adjustMonies($from_player, $req_curr, $req_amt);
         $this->adjustMonies($to_player, $req_curr, -$req_amt);
+        // flag spot trade done, can't do another
+        self::setGameStateValue('spot_trade_done', 1);
     }
 
     /**
@@ -395,7 +401,7 @@ class ForEx extends Table
         self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${chg} ${curr}'), array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'adj' => $amt < 0 ? self::_("loses") : self::_("adds"),
+            'adj' => $amt < 0 ? self::_("subtracts") : self::_("adds"),
             'chg' => abs($amt),
             'amt' => $amt,
             'curr' => $curr
@@ -458,7 +464,10 @@ class ForEx extends Table
      * then sends offer.
      */
     function offerSpotTrade($to_player, $offer, $request) {
-        self::checkAction( 'offerSpotTrade' ); 
+        self::checkAction( 'offerSpotTrade' );
+        if (self::getGameStatevalue('spot_trade_done') != 0) {
+            throw new BgaVisibleSystemException("Spot Trade already performed; should not allow action again");
+        }
 
         $player_id = self::getActivePlayerId();
         
@@ -629,6 +638,16 @@ class ForEx extends Table
         self::setGameStateValue('spot_request', 0);
         $this->gamestate->changeActivePlayer( $next_player );
         $this->gamestate->nextState();
+    }
+
+    function stNextPlayer() {
+        self::setGameStateValue('spot_trade_done', 0);
+
+        $player_id = self::activeNextPlayer();
+        self::giveExtraTime( $player_id );
+
+        $this->gamestate->nextState( 'nextPlayer' );        
+
     }
 
 //////////////////////////////////////////////////////////////////////////////
