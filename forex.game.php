@@ -23,6 +23,7 @@ define('DIVIDENDS', 'Dividends');
 define('AVAILABLE', 'available');
 define('DISCARD', 'discard');
 
+
 class ForEx extends Table
 {
 	function __construct( )
@@ -37,11 +38,14 @@ class ForEx extends Table
         
         self::initGameStateLabels( array( 
                "dividend_count" => 10,
-            //    "my_second_global_variable" => 11,
-            //      ...
-            //    "my_first_game_variant" => 100,
-            //    "my_second_game_variant" => 101,
-            //      ...
+               "spot_player_from" => 20,
+               "spot_player_to" => 21,
+               "spot_offer" => 22,
+               "spot_request" => 23,
+
+                //    "my_first_game_variant" => 100,
+                //    "my_second_game_variant" => 101,
+                //      ...
         ) );
 
         $this->certificates = self::getNew("module.common.deck");
@@ -88,6 +92,12 @@ class ForEx extends Table
 
         // Init global values with their initial values
         self::setGameStateInitialValue( 'dividend_count', 5 );
+        // player making a Spot Trade offer
+        self::setGameStateInitialValue( 'spot_player_from', 0 );
+        // player being offered Spot Trade
+        self::setGameStateInitialValue( 'spot_player_to', 0 );
+        self::setGameStateInitialValue( 'spot_offer', 0 );
+        self::setGameStateInitialValue( 'spot_request', 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -353,24 +363,21 @@ class ForEx extends Table
     /**
      * Assumes all checks have already been done and trade is valid.
      */
-    function spotTrade($player1, $curr1, $offer, $player2, $curr2, $payment) {
-        $players = self::loadPlayersBasicInfos();
-        $this->adjustMonies($player1, $curr1, -$offer);
-        $this->adjustMonies($player2, $curr1, $offer);
-        $this->adjustMonies($player1, $curr2, $receive);
-        $this->adjustMonies($player2, $curr2, -$receive);
-        self::notifyAllPlayers("spotTradeCompleted", clienttranslate("${player1_name} gives ${player2_name} ${offer} ${curr1} for ${payment} ${curr2} in a Spot Trade"), array(
-            'player1' => $player1,
-            'player2' => $player2,
-            'player1_name' => $players[$player1]['player_name'],
-            'player2_name' => $players[$player2]['player_name'],
-            'offer' => $offer,
-            'payment' => $payment,
-            'curr1' => $curr1,
-            'curr2' => $curr2,
-        ));
+    function spotTrade() {
+        $from_player = self::getGameStateValue('spot_player_from');
+        $to_player = self::getGameStateValue('spot_player_to');
+        $offer = self::getGameStateValue('spot_offer');
+        $off_curr = $this->currencies[$offer];
+        $request = self::getGameStateValue('spot_request');
+        $req_curr = $this->currencies[$request];
+        $spot = $this->getSpotValues($off_curr, $req_curr);
+        $off_amt = $spot[0];
+        $req_amt = $spot[1];
+        $this->adjustMonies($from_player, $off_curr, -$off_amt);
+        $this->adjustMonies($to_player, $off_curr, $off_amt);
+        $this->adjustMonies($from_player, $req_curr, $req_amt);
+        $this->adjustMonies($to_player, $req_curr, -$req_amt);
     }
-    
 
     /**
      * How much does this player have of this currency?
@@ -384,8 +391,8 @@ class ForEx extends Table
      */
     function adjustMonies($player_id, $curr, $amt) {
         $players = self::loadPlayersBasicInfos();
-        self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = $curr");
-        self::notifyAllPlayers('moniesChanged', clienttranslate("${player_name} ${adj} ${chg} ${curr}"), array(
+        self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = \"$curr\"");
+        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${chg} ${curr}'), array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
             'adj' => $amt < 0 ? self::_("loses") : self::_("adds"),
@@ -393,7 +400,6 @@ class ForEx extends Table
             'amt' => $amt,
             'curr' => $curr
         ));
-
     }
 
     /**
@@ -408,7 +414,7 @@ class ForEx extends Table
      * Checks the player has this many certs, then subtracts them (but does NOT add )
      */
     function divestCertificates($player_id, $curr, $amt) {
-        $mycerts = $self->getCertificates($player_id, $curr);
+        $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
             throw new BGAUserException(self::_("You only have ${count} ${curr} Certificates"));
@@ -425,7 +431,18 @@ class ForEx extends Table
     function pushContractQueue() {
         self::DBQuery("UPDATE CONTRACTS SET location = location+1 WHERE location IS NOT NULL");
     }
-        
+
+    /**
+     * For setting state - turn a currency into its corresponding int
+     */
+    function currencyToIndex($curr) {
+        foreach($this->currencies as $c => $currency) {
+            if ($curr == $currency) {
+                return $c;
+            }
+        }
+        return 0;
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
@@ -436,16 +453,17 @@ class ForEx extends Table
         (note: each method below must match an input method in forex.action.php)
     */
 
-
     /**
      * When player submits a Spot Trade. Checks whether both parties have required bucks,
      * then sends offer.
      */
-    function offerSpotTrade($player, $offer, $request) {
-        self::checkAction( 'offerSpot' ); 
+    function offerSpotTrade($to_player, $offer, $request) {
+        self::checkAction( 'offerSpotTrade' ); 
 
         $player_id = self::getActivePlayerId();
         
+        $players = self::loadPlayersBasicInfos();
+        $theirname = $players[$to_player]['player_name'];
         $spot = $this->getSpotValues($offer, $request);
         $off_amt = $spot[0];
         $req_amt = $spot[1];
@@ -453,13 +471,53 @@ class ForEx extends Table
         if ($off_amt > $mybucks) {
             throw new BgaUserException(self::_("You do not have ${off_amt} ${offer}"));
         }
-        $theirbucks = $this->getMonies($player, $request);
+        $theirbucks = $this->getMonies($to_player, $request);
         if ($req_amt > $theirbucks) {
-            $players = self::loadPlayersBasicInfos();
-            $player_name = $players[$player]['player_name'];
-            throw new BgaUserException(self::_("${player_name} does not have ${req_amt} ${request}"));
+            throw new BgaUserException(self::_("${theirname} does not have ${req_amt} ${request}"));
         }
-        // sendOffer($offer, $off_amt, $request, $req_amt, $player);
+
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${off_amt} ${off_curr} for ${req_amt} ${req_curr}'), array(
+            'i18n' => array ('off_curr', 'req_curr'),
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'to_player_id' => $to_player,
+            'to_player_name' => $theirname,
+            'off_curr' => $offer,
+            'off_amt' => $off_amt,
+            'req_curr' => $request,
+            'req_amt' => $req_amt
+            ));
+        self::setGameStateValue('spot_player_from', $player_id);
+        self::setGameStateValue('spot_player_to', $to_player);
+        self::setGameStateValue('spot_offer', $this->currencyToIndex($offer));
+        self::setGameStateValue('spot_request', $this->currencyToIndex($request));
+
+        // go to manager to get response
+        $this->gamestate->nextState("spotOffer");
+    }
+
+    /**
+     * Player responded to a Spot Trade offer
+     */
+    function respondSpotTrade($accept) {
+        self::checkAction( 'respondSpotTrade' ); 
+
+        if ($accept) {
+            self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${player_name} accepts trade'), array(
+                'i18n' => array ('player_name'),
+                'player_name' => self::getActivePlayerName(),
+            ));
+            $this->spotTrade();
+        } else {
+            // rejected
+            self::notifyAllPlayers('spotTradeRejected', clienttranslate('${player_name} rejected trade'), array(
+                'i18n' => array ('player_name'),
+                'player_name' => self::getActivePlayerName(),
+            ));
+        }
+
+        // return action to the player who made the offer
+        $this->gamestate->nextState();
     }
 
     /**
@@ -481,7 +539,7 @@ class ForEx extends Table
         self::DbQuery("UPDATE BANK SET amt = ".($mybucks-2)." WHERE player = $player_id AND curr = $curr");
 
         // movedeck for certificates
-        self::notifyAllPlayers('currencyInvested', clienttranslate("${player_name} invested in ${curr}"), array (
+        self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${curr} Certificate'), array (
             'i18n' => array ('curr'),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
@@ -495,10 +553,10 @@ class ForEx extends Table
      */
     function divest($curr, $amt) {
         $player_id = self::getActivePlayerId();
-        $divested_certs = $self->divestCertificates($player_id, $curr, $amt);
+        $divested_certs = $this->divestCertificates($player_id, $curr, $amt);
         $cash = $amt*2;
-        $self->adjustMonies($player_id, $curr, $cash);
-        $self::notifyAllPlayers('certificatesSold', clienttranslate("${player_name} sold ${amt} ${curr} Certificates for ${cash} ${curr}"), array(
+        $this->adjustMonies($player_id, $curr, $cash);
+        $self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${amt} ${curr} Certificates for ${cash} ${curr}'), array(
             'i18n' => array ('amt', 'curr', 'cash'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -507,7 +565,7 @@ class ForEx extends Table
             'cash' => $cash,
             'divested' => $divested_certs,
         ));
-        $self->weakenCurrency($curr, $amt);
+        $this->weakenCurrency($curr, $amt);
     }
     
 
@@ -515,28 +573,30 @@ class ForEx extends Table
 //////////// Game state arguments
 ////////////
 
-    /*
-        Here, you can create methods defined as "game state arguments" (see "args" property in states.inc.php).
-        These methods function is to return some additional information that is specific to the current
-        game state.
-    */
+    /**
+     * Arguments sent for a Spot Trade Offer
+     */
+    function argSpotOffer() {
+        $from_player = self::getGameStateValue('spot_player_from');
+        $to_player = self::getGameStateValue('spot_player_to');
+        $offer = self::getGameStateValue('spot_offer');
+        $offer_curr = $this->currencies[$offer];
+        $request = self::getGameStateValue('spot_request');
+        $request_curr = $this->currencies[$request];
+        $xchg = $this->getSpotValues($offer_curr, $request_curr);
 
-    /*
-    
-    Example for game state "MyGameState":
-    
-    function argMyGameState()
-    {
-        // Get some values from the current game situation in database...
-    
-        // return values:
+        $players = self::loadPlayersBasicInfos();
+
         return array(
-            'variable1' => $value1,
-            'variable2' => $value2,
-            ...
+            "i18n" => array('offer_curr', 'request_curr'),
+            'from_player' => $players[$from_player]['player_name'],
+            'to_player' => $players[$to_player]['player_name'],
+            'offer_curr' => $offer_curr,
+            'request_curr' => $request_curr,
+            'offer_amt' => $xchg[0],
+            'request_amt' => $xchg[1]
         );
-    }    
-    */
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
@@ -546,19 +606,30 @@ class ForEx extends Table
         Here, you can create methods defined as "game state actions" (see "action" property in states.inc.php).
         The action method of state X is called everytime the current game state is set to X.
     */
-    
-    /*
-    
-    Example for game state "MyGameState":
 
-    function stMyGameState()
-    {
-        // Do some stuff ...
-        
-        // (very often) go to another gamestate
-        $this->gamestate->nextState( 'some_gamestate_transition' );
-    }    
-    */
+    /**
+     * This is the handler to send an offer to the recipient
+     */
+    function stSpotOffer() {
+        $to_player = self::getGameStateValue('spot_player_to');
+        $this->gamestate->changeActivePlayer( $to_player );
+        $this->gamestate->nextState("getResponse");
+    }
+
+    /**
+     * The player offered a trade has accepted it and the monies transferred, or rejected it.
+     * Hand play back to original player.
+     */
+    function stSpotResponse() {
+        $next_player = self::getGameStateValue('spot_player_from');
+        // clear info
+        self::setGameStateValue('spot_player_from', 0);
+        self::setGameStateValue('spot_player_to', 0);
+        self::setGameStateValue('spot_offer', 0);
+        self::setGameStateValue('spot_request', 0);
+        $this->gamestate->changeActivePlayer( $next_player );
+        $this->gamestate->nextState();
+    }
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Zombie

@@ -38,21 +38,29 @@
             self::trace( "Complete reinitialization of board game" );
       }
   	} 
-  	
-  	// TODO: defines your action entry points there
+    
     /**
-     * Either lead or follow
+     * Player offers a Spot Trade
      */
     public function offerSpotTrade() {
       self::setAjaxMode();     
-      $player_id = self::getArg( "to_player", AT_posint, true );
+      $to_player = self::getArg( "to_player", AT_posint, true );
       $offer = self::getArg( "off_curr", AT_alphanum, true );
       $request = self::getArg( "req_curr", AT_alphanum, true );
 
-      $this->game->offerSpotTrade( $player_id, $offer, $request );
+      $this->game->offerSpotTrade( $to_player, $offer, $request );
       self::ajaxResponse( );
     }
 
-  }
-  
+    /**
+     * Player responds to a Spot Trade
+     */
+    public function respondSpotTrade() {
+      self::setAjaxMode();     
+      $accept = self::getArg( "accept", AT_bool, true );
 
+      $this->game->respondSpotTrade( $accept );
+      self::ajaxResponse( );
+    }
+
+}

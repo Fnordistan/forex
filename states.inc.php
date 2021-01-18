@@ -18,7 +18,8 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("SETUP", 1);
     define("CHOOSE_ACTION", 2);
     define("SPOT_OFFER", 20);
-    define("OFFER_RESPONSE", 21);
+    define("HANDLE_OFFER", 21); // game manager between traders
+    define("HANDLE_RESPONSE", 22);
     define("CONTRACT", 30);
     define("INVEST", 40);
     define("DIVEST", 50);
@@ -46,26 +47,33 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} must choose an action' ),
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "offerSpot", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
-        "transitions" => array( "spotOffer" => SPOT_OFFER, "contract" => CONTRACT, "invest" => INVEST, "divest" => DIVEST, "resolve" => RESOLVE  )
+        "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
+        "transitions" => array( "spotOffer" => HANDLE_OFFER, "contract" => CONTRACT, "invest" => INVEST, "divest" => DIVEST, "resolve" => RESOLVE  )
+    ),
+
+    HANDLE_OFFER => array(
+        "name" => "spotTrade",
+        "description" => "",
+        "type" => "manager",
+        "action" => "stSpotOffer",
+        "transitions" => array( "getResponse" => SPOT_OFFER )
     ),
 
     SPOT_OFFER => array(
-        "name" => "spotOffer",
-        "description" => clienttranslate( '${actplayer} may offer a Spot Trade' ),
-        "descriptionmyturn" => clienttranslate( '${you} may offer a Spot Trade' ),
+        "name" => "offerResponse",
+        "description" => clienttranslate( '${from_player} offered ${to_player} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
+        "descriptionmyturn" => clienttranslate( '${from_player} offered ${you} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "offerSpot", "cancelAction" ),
-        "transitions" => array( "spotOfferMade" => OFFER_RESPONSE, "canceled" => CHOOSE_ACTION  )
+        "possibleactions" => array( "respondSpotTrade" ),
+        "args" => "argSpotOffer",
+        "transitions" => array( "" => HANDLE_RESPONSE )
     ),
 
-    OFFER_RESPONSE => array(
-        "name" => "respondSpotOffer",
-        "description" => clienttranslate( '${actplayer} offered ${targetplayer} a Spot Trade of ${offer_num} ${offer_curr} for ${request_num} ${request_curr}' ),
-        "descriptionmyturn" => clienttranslate( '${actplayer} offered ${you} a Spot Trade of ${offer_num} ${offer_curr} for ${request_num} ${request_curr}' ),
-        "type" => "activeplayer",
-        "possibleactions" => array( "acceptOffer", "rejectOffer" ),
-        "args" => "argSpotTrade",
+    HANDLE_RESPONSE => array(
+        "name" => "spotResponse",
+        "description" => "",
+        "type" => "manager",
+        "action" => "stSpotResponse",
         "transitions" => array( "" => CHOOSE_ACTION )
     ),
 

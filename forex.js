@@ -56,6 +56,8 @@ const ACTIONS = {
     RESOLVE: 'resolveContract',
     CONFIRM: 'confirmAction',
     CANCEL: 'cancelAction',
+    ACCEPT: 'acceptTrade',
+    REJECT: 'rejectTrade',
 }
 const BTN = '_btn';
 
@@ -467,6 +469,9 @@ function (dojo, declare) {
                  case 'playerAction':
                      this.addPlayerActionButtons();
                     break;
+                case 'offerResponse':
+                    this.addSpotTradeButtons();
+                    break;
                 }
             }
         },        
@@ -646,6 +651,18 @@ function (dojo, declare) {
             this.addActionButton( ACTIONS.CONFIRM+BTN, _('Confirm'), () => {
                 this.confirmAction(action);
             });
+        },
+
+        /**
+         * Add Accept/Reject for Spot Trade Offers
+         */
+        addSpotTradeButtons: function() {
+            this.addActionButton( ACTIONS.ACCEPT+BTN, _('Accept'), () => {
+                this.confirmAction(ACTIONS.ACCEPT);
+            }, null, false, 'green');
+            this.addActionButton( ACTIONS.REJECT+BTN, _('Reject'), () => {
+                this.confirmAction(ACTIONS.REJECT);
+            }, null, false, 'red');
         },
 
         ///////////////////////// SPOT TRADE /////////////////////////
@@ -832,7 +849,7 @@ function (dojo, declare) {
          * @param {*} evt 
          */
         spotTrade: function(evt) {
-            if (this.checkAction('offerSpot', true)) {
+            if (this.checkAction('offerSpotTrade', true)) {
                 this.removeActionButtons();
                 // initialize the currencies for trading: to-from
                 this.tempStateArgs[SPOT_OFFER] = null;
@@ -853,7 +870,7 @@ function (dojo, declare) {
          * Actual Ajax call to submit offer.
          */
         submitSpotTrade: function() {
-            if (this.checkAction('offerSpot', true)) {
+            if (this.checkAction('offerSpotTrade', true)) {
                 // have all the parameters been filled?
                 var player = this.tempStateArgs[SPOT_TRADE_PLAYER];
                 var offer = this.tempStateArgs[SPOT_OFFER];
@@ -868,6 +885,20 @@ function (dojo, declare) {
                 } else {
                     this.showMessage(_("You must select player to offer trade to, offered currency, and requested currency"), 'info');
                 }
+            }
+        },
+
+        /**
+         * Accept or reject an offer
+         * @param {boolean} is_accept 
+         */
+        respondSpotTrade: function(is_accept) {
+            if (this.checkAction('respondSpotTrade', true)) {
+                this.ajaxcall( "/forex/forex/respondSpotTrade.html", { 
+                    accept: is_accept,
+                    lock: true 
+                }, this, function( result ) {  }, function( is_error) { } );                        
+
             }
         },
 
@@ -948,6 +979,12 @@ function (dojo, declare) {
                     break;
                 case ACTIONS.RESOLVE:
                     break;
+                case ACTIONS.ACCEPT:
+                    this.respondSpotTrade(true);
+                    break;
+                case ACTIONS.REJECT:
+                    this.respondSpotTrade(false);
+                    break;
             }
         },
 
@@ -1002,34 +1039,57 @@ function (dojo, declare) {
         {
             console.log( 'notifications subscriptions setup' );
             
-            // TODO: here, associate your game notifications with local methods
-            
-            // Example 1: standard notification handling
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            
-            // Example 2: standard notification handling + tell the user interface to wait
-            //            during 3 seconds after calling the method in order to let the players
-            //            see what is happening in the game.
-            // dojo.subscribe( 'cardPlayed', this, "notif_cardPlayed" );
-            // this.notifqueue.setSynchronous( 'cardPlayed', 3000 );
-            // 
+            dojo.subscribe( 'currencyStrengthened', this, "notif_currencyStrengthened" );
+            dojo.subscribe( 'currencyWeakened', this, "notif_currencyWeakened" );
+            dojo.subscribe( 'moniesChanged', this, "notif_moniesChanged" );
+            dojo.subscribe( 'spotTradeOffered', this, "notif_spotTradeOffered" );
+            dojo.subscribe( 'spotTradeAccepted', this, "notif_spotTradeAccepted" );
+            dojo.subscribe( 'spotTradeRejected', this, "notif_spotTradeRejected" );
+            dojo.subscribe( 'certificatesBought', this, "notif_certificatesBought" );
+            dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
         },  
         
         // TODO: from this point and below, you can write your game notifications handling methods
-        
-        /*
-        Example:
-        
-        notif_cardPlayed: function( notif )
-        {
-            console.log( 'notif_cardPlayed' );
+        // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
+        notif_moniesChanged: function( notif ) {
+            console.log( 'notif_moniesChanged' );
             console.log( notif );
-            
-            // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
-            
-            // TODO: play the card in the user interface.
+        },
+
+        notif_currencyStrengthened: function( notif ) {
+            console.log( 'notif_currencyStrengthened' );
+            console.log( notif );
+        },
+
+        notif_currencyWeakened: function( notif ) {
+            console.log( 'notif_currencyWeakened' );
+            console.log( notif );
         },    
-        
-        */
-   });             
+
+        notif_spotTradeOffered: function( notif ) {
+            console.log( 'notif_spotTradeOffered' );
+            console.log( notif );
+        },    
+
+        notif_spotTradeAccepted: function( notif ) {
+            console.log( 'notif_spotTradeAccepted' );
+            console.log( notif );
+        },    
+
+        notif_spotTradeRejected: function( notif ) {
+            console.log( 'notif_spotTradeRejected' );
+            console.log( notif );
+        },    
+
+
+        notif_certificatesBought: function( notif ) {
+            console.log( 'notif_certificatesBought' );
+            console.log( notif );
+        },    
+
+        notif_certificatesSold: function( notif ) {
+            console.log( 'notif_certificatesSold' );
+            console.log( notif );
+        },    
+    });             
 });
