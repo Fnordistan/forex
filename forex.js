@@ -157,12 +157,18 @@ function (dojo, declare) {
                         "id": player_id
                     }), container);
 
+                    // create player Note counters
                     var note_counter = new forex.fcounter();
                     note_counter.create(curr+'_note_counter_'+player_id);
+                    // initialize to 0
+                    note_counter.setValue(0);
                     this.noteCounters[player_id].push(note_counter);
 
+                    // create player Cert counters
                     var cert_counter = new ebg.counter();
                     cert_counter.create(curr+'_cert_counter_'+player_id);
+                    // initialize to 0
+                    cert_counter.setValue(0);
                     this.certCounters[player_id].push(cert_counter);
                 });
             }
@@ -174,9 +180,10 @@ function (dojo, declare) {
             this.payoutStacks = [];
             this.promiseCounters = [];
             this.payoutCounters = [];
+
             this.addMonies();
             this.createCurrencyPairTokens();
-            this.placeCurrencyCounters();
+            this.placeCurrencyPairs();
             this.createAvailableCertificates();
             this.placeCertificates();
             this.createContractDisplay();
@@ -289,7 +296,7 @@ function (dojo, declare) {
         /**
          * Set initial locations.
          */
-        placeCurrencyCounters: function() {
+        placeCurrencyPairs: function() {
             var currency_pairs = this.gamedatas.currency_pairs;
             for (const c in currency_pairs) {
                 let curr1 = currency_pairs[c]['stronger'];
@@ -313,8 +320,9 @@ function (dojo, declare) {
                 var cert = certificates[c];
                 if (cert.loc == 'available') {
                     this.placeAvailableCertificate(cert);
+                } else if (cert.loc != 'discard') {
+                    this.certCounters[cert.loc][CURRENCY[cert.curr]-1].incValue(1);
                 }
-                // console.log(certificates[c]);
             }
         },
 
