@@ -77,7 +77,8 @@ const X_MONIES = "x_monies_icon"; // indicates an array of MONIES #_CURR_note|ce
 // constants used for tempStateArgs
 const SPOT_OFFER = 'spot_offer';
 const SPOT_REQUEST = 'spot_request';
-const SPOT_TRADE_PLAYER = 'spot_trade_player';
+const SPOT_TRADE_TO = 'spot_trade_to';
+const SPOT_TRADE_FROM = 'spot_trade_from';
 const SPOT_TRADE_OPT = true;
 
 
@@ -124,7 +125,7 @@ function (dojo, declare) {
         */
         setup: function( gamedatas )
         {
-            dojo.destroy('debug_output');
+            // dojo.destroy('debug_output');
             console.log( "Starting game setup" );
             
             this.certCounters = [];
@@ -192,6 +193,8 @@ function (dojo, declare) {
             // these are read by UI buttons while players are choosing actions
             this.tempStateArgs = {};
             this.tempStateArgs[SPOT_TRADE_OPT] = this.gamedatas.spot_trade_opt;
+            this.tempStateArgs[SPOT_TRADE_TO] = this.gamedatas.spot_trade_to;
+            this.tempStateArgs[SPOT_TRADE_FROM] = this.gamedatas.spot_trade_from;
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -461,7 +464,15 @@ function (dojo, declare) {
                     this.addPlayerActionButtons();
                     break;
                 case 'offerResponse':
-                    this.addSpotTradeButtons();
+                    console.log("this player: "+this.player_id);
+                    console.log("to player: "+this.tempStateArgs[SPOT_TRADE_TO]);
+                    console.log("from player: "+this.tempStateArgs[SPOT_TRADE_FROM]);
+                    // we might get the to/from players either from refreshing or from tempStateArgs
+                    if (this.player_id == this.tempStateArgs[SPOT_TRADE_TO]) {
+                        this.addSpotTradeButtons();
+                    } else if (this.player_id == this.tempStateArgs[SPOT_TRADE_FROM]) {
+                        this.addCancelSpotTrade();
+                    }
                     break;
                 }
             }
@@ -712,6 +723,13 @@ function (dojo, declare) {
             }, null, false, 'red');
         },
 
+        /**
+         * This is a Spot Trade Cancel button, not the same as the regular Cancel Action button
+         */
+        addCancelSpotTrade: function() {
+            this.addActionButton( 'cancelSpotTrade'+BTN, _('Cancel Offer'), 'cancelSpotTrade', null, false, 'red');
+        },
+
         ///////////////////////// SPOT TRADE /////////////////////////
 
         /**
@@ -757,11 +775,11 @@ function (dojo, declare) {
 
             // are we clicking or unclicking it?
             var disable = false;
-            if (this.tempStateArgs[SPOT_TRADE_PLAYER] == player) {
+            if (this.tempStateArgs[SPOT_TRADE_TO] == player) {
                 // clear all
-                this.tempStateArgs = [];
+                this.tempStateArgs = {};
             } else {
-                this.tempStateArgs[SPOT_TRADE_PLAYER] = player;
+                this.tempStateArgs[SPOT_TRADE_TO] = player;
                 disable = true;
             }
 
@@ -805,7 +823,7 @@ function (dojo, declare) {
          * @param {string} btn_id 
          */
         spotTradeAction: function(curr, btn_id) {
-            if (this.tempStateArgs[SPOT_TRADE_PLAYER] == null) {
+            if (this.tempStateArgs[SPOT_TRADE_TO] == null) {
                 return;
             }
             if (this.tempStateArgs[SPOT_OFFER] == null) {
@@ -834,8 +852,8 @@ function (dojo, declare) {
          */
         setSpotTradeMessage: function() {
             var text = "";
-            if (this.tempStateArgs[SPOT_TRADE_PLAYER]) {
-                text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_PLAYER]);
+            if (this.tempStateArgs[SPOT_TRADE_TO]) {
+                text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_TO]);
                 if (this.tempStateArgs[SPOT_OFFER]) {
                     var offer_txt = " ";
                     if (this.tempStateArgs[SPOT_REQUEST]) {
@@ -923,7 +941,8 @@ function (dojo, declare) {
         submitSpotTrade: function() {
             if (this.checkAction('offerSpotTrade', true)) {
                 // have all the parameters been filled?
-                var player = this.tempStateArgs[SPOT_TRADE_PLAYER];
+                var player = this.tempStateArgs[SPOT_TRADE_TO];
+                this.tempStateArgs[SPOT_TRADE_FROM] = this.player_id;
                 var offer = this.tempStateArgs[SPOT_OFFER];
                 var request = this.tempStateArgs[SPOT_REQUEST];
                 if (player && offer && request) {
@@ -947,6 +966,18 @@ function (dojo, declare) {
             if (this.checkAction('respondSpotTrade', true)) {
                 this.ajaxcall( "/forex/forex/respondSpotTrade.html", { 
                     accept: is_accept,
+                    lock: true 
+                }, this, function( result ) {  }, function( is_error) { } );                        
+
+            }
+        },
+
+        /**
+         * To cancel a Spot Trade offer.
+         */
+        cancelSpotTrade: function() {
+            if (this.checkAction('cancelSpotTrade', true)) {
+                this.ajaxcall( "/forex/forex/cancelSpotTrade.html", { 
                     lock: true 
                 }, this, function( result ) {  }, function( is_error) { } );                        
 
@@ -1099,6 +1130,7 @@ function (dojo, declare) {
             dojo.subscribe( 'spotTradeOffered', this, "notif_spotTradeOffered" );
             dojo.subscribe( 'spotTradeAccepted', this, "notif_spotTradeAccepted" );
             dojo.subscribe( 'spotTradeRejected', this, "notif_spotTradeRejected" );
+            dojo.subscribe( 'spotTradeCanceled', this, "notif_spotTradeCanceled" );
             dojo.subscribe( 'certificatesBought', this, "notif_certificatesBought" );
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
         },
@@ -1125,6 +1157,13 @@ function (dojo, declare) {
 
         notif_spotTradeOffered: function( notif ) {
             console.log( 'notif_spotTradeOffered' );
+            this.tempStateArgs[SPOT_TRADE_TO] = notif.args.to_player_id;
+            this.tempStateArgs[SPOT_TRADE_FROM] = notif.args.from_player_id;
+            console.log( notif );
+        },    
+
+        notif_spotTradeCanceled: function( notif ) {
+            console.log( 'notif_spotTradeCanceled' );
             console.log( notif );
         },    
 

@@ -21,6 +21,7 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("SPOT_OFFER", 20);
     define("HANDLE_OFFER", 21); // game manager between traders
     define("HANDLE_RESPONSE", 22);
+    define("CANCEL_OFFER", 23);
     define("CONTRACT", 30);
     define("INVEST", 40);
     define("DIVEST", 50);
@@ -70,10 +71,10 @@ $machinestates = array(
 
     SPOT_OFFER => array(
         "name" => "offerResponse",
-        "description" => clienttranslate( '${from_player} offered ${to_player} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
-        "descriptionmyturn" => clienttranslate( '${from_player} offered ${you} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
-        "type" => "activeplayer",
-        "possibleactions" => array( "respondSpotTrade" ),
+        "description" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
+        "descriptionmyturn" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
+        "type" => "multipleactiveplayer",
+        "possibleactions" => array( "respondSpotTrade", "cancelSpotTrade" ),
         "args" => "argSpotOffer",
         "transitions" => array( "" => HANDLE_RESPONSE )
     ),

@@ -53,6 +53,15 @@
     }
 
     /**
+     * Original offerer canceled offer.
+     */
+    public function cancelSpotTrade() {
+      self::setAjaxMode();
+      $this->game->cancelSpotTrade();
+      self::ajaxResponse( );
+    }
+
+    /**
      * Player responds to a Spot Trade
      */
     public function respondSpotTrade() {

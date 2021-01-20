@@ -220,6 +220,8 @@ class ForEx extends Table
         $result['contracts'] = $contracts;
         // can we do a spot trade?
         $result['spot_trade_opt'] = (self::getGameStateValue('spot_trade_done') == 0);
+        $result['spot_trade_to'] = self::getGameStateValue('spot_player_to');
+        $result['spot_trade_from'] = self::getGameStateValue('spot_player_from');
 
         return $result;
     }
@@ -540,6 +542,19 @@ class ForEx extends Table
     }
 
     /**
+     * Spot Trade player cancels his offer before acceptance/rejection
+     */
+    function cancelSpotTrade() {
+        self::checkAction( 'cancelSpotTrade' ); 
+        self::notifyAllPlayers('spotTradeCanceled', clienttranslate('${player_name} canceled trade offer'), array(
+            'i18n' => array ('player_name'),
+            'player_name' => self::getActivePlayerName(),
+        ));
+        // return action to the player who made the offer
+        $this->gamestate->nextState();
+    }
+
+    /**
      * Buy a certificate.
      */
     function invest($curr) {
@@ -608,8 +623,10 @@ class ForEx extends Table
 
         return array(
             "i18n" => array('offer_curr', 'request_curr'),
-            'from_player' => $players[$from_player]['player_name'],
-            'to_player' => $players[$to_player]['player_name'],
+            'from_player' => $players[$from_player],
+            'to_player' => $players[$to_player],
+            'from_player_name' => $players[$from_player]['player_name'],
+            'to_player_name' => $players[$to_player]['player_name'],
             'offer_curr' => $offer_curr,
             'request_curr' => $request_curr,
             'offer_amt' => $xchg[0],
@@ -630,13 +647,15 @@ class ForEx extends Table
      * This is the handler to send an offer to the recipient
      */
     function stSpotOffer() {
+        $from_player = self::getGameStateValue('spot_player_from');
         $to_player = self::getGameStateValue('spot_player_to');
-        $this->gamestate->changeActivePlayer( $to_player );
+        $this->gamestate->setPlayersMultiactive( array($from_player, $to_player), "getResponse", true );
         $this->gamestate->nextState("getResponse");
     }
 
     /**
      * The player offered a trade has accepted it and the monies transferred, or rejected it.
+     * Or the offerer canceled it.
      * Hand play back to original player.
      */
     function stSpotResponse() {
