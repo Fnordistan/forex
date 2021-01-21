@@ -22,6 +22,10 @@ require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 define('DIVIDENDS', 'Dividends');
 define('AVAILABLE', 'available');
 define('DISCARD', 'discard');
+define('SPOT_FROM', 'spot_trade_from');
+define('SPOT_TO', 'spot_trade_to');
+define('SPOT_OFFER', 'spot_offer');
+define('SPOT_REQUEST', 'spot_request');
 
 
 class ForEx extends Table
@@ -38,15 +42,10 @@ class ForEx extends Table
         
         self::initGameStateLabels( array( 
                "dividend_count" => 10,
-               "spot_player_from" => 20,
-               "spot_player_to" => 21,
-               "spot_offer" => 22,
-               "spot_request" => 23,
-               "spot_trade_done" => 24, // this player has already done a spot trade
-
-                //    "my_first_game_variant" => 100,
-                //    "my_second_game_variant" => 101,
-                //      ...
+               SPOT_FROM => 21,
+               SPOT_TO => 22,
+               SPOT_OFFER => 23,
+               SPOT_REQUEST => 24,
         ) );
 
         $this->certificates = self::getNew("module.common.deck");
@@ -94,12 +93,11 @@ class ForEx extends Table
         // Init global values with their initial values
         self::setGameStateInitialValue( 'dividend_count', 5 );
         // player making a Spot Trade offer
-        self::setGameStateInitialValue( 'spot_player_from', 0 );
+        self::setGameStateInitialValue( SPOT_FROM, 0 );
         // player being offered Spot Trade
-        self::setGameStateInitialValue( 'spot_player_to', 0 );
-        self::setGameStateInitialValue( 'spot_offer', 0 );
-        self::setGameStateInitialValue( 'spot_request', 0 );
-        self::setGameStateInitialValue( 'spot_trade_done', 0 );
+        self::setGameStateInitialValue( SPOT_TO, 0 );
+        self::setGameStateInitialValue( SPOT_OFFER, 0 );
+        self::setGameStateInitialValue( SPOT_REQUEST, 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -218,10 +216,8 @@ class ForEx extends Table
             WHERE location IS NOT NULL 
         ");
         $result['contracts'] = $contracts;
-        // can we do a spot trade?
-        $result['spot_trade_opt'] = (self::getGameStateValue('spot_trade_done') == 0);
-        $result['spot_trade_to'] = self::getGameStateValue('spot_player_to');
-        $result['spot_trade_from'] = self::getGameStateValue('spot_player_from');
+        // spot trade - may be null
+        $result['spot_transaction'] = $this->getSpotTrade();
 
         return $result;
     }
@@ -263,6 +259,58 @@ class ForEx extends Table
             $pairs[] = $pair;
         }
         return $pairs;
+    }
+
+    /**
+     * Create a SpotTrade associative array from the currency values, packed for the getAllDatas result
+     */
+    function getSpotTrade() {
+        $to = self::getGameStateValue( SPOT_TO );
+        $from = self::getGameStateValue( SPOT_FROM );
+        $offer = self::getGameStateValue( SPOT_OFFER );
+        $request = self::getGameStateValue( SPOT_REQUEST );
+        $spot_trade = null;
+        if ($to != 0 && $from != 0 && $offer != 0 && $request != 0) {
+            $spot_trade = array(
+                SPOT_TO => $to,
+                SPOT_FROM => $from,
+                SPOT_OFFER => $offer,
+                SPOT_REQUEST => $request
+            );
+        }
+        return $spot_trade;
+    }
+
+    /**
+     * Set all the game state values for a Spot Trade
+     */
+    function setSpotTradeValues($from, $to, $offer, $request) {
+        self::setGameStateValue( SPOT_FROM, $from );
+        self::setGameStateValue( SPOT_TO, $to );
+        self::setGameStateValue( SPOT_OFFER, $offer );
+        self::setGameStateValue( SPOT_REQUEST, $request );
+    }
+
+    /**
+     * Set all the SpotTrade values to 0.
+     */
+    function clearSpotTrade() {
+        foreach(array( SPOT_FROM, SPOT_TO, SPOT_OFFER, SPOT_REQUEST ) as $spot ) {
+            self::setGameStateValue( $spot, 0 );
+        }
+    }
+
+    /**
+     * Check that all SpotTrade values are zeroed.
+     * True if so, false if not.
+     */
+    function isSpotTradeClear() {
+        foreach(array( SPOT_FROM, SPOT_TO, SPOT_OFFER, SPOT_REQUEST ) as $spot ) {
+            if (self::getGameStateValue( $spot ) != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -370,13 +418,15 @@ class ForEx extends Table
      * Assumes all checks have already been done and trade is valid.
      */
     function spotTrade() {
-        $from_player = self::getGameStateValue('spot_player_from');
-        $to_player = self::getGameStateValue('spot_player_to');
-        $offer = self::getGameStateValue('spot_offer');
-        $off_curr = $this->currencies[$offer];
-        $request = self::getGameStateValue('spot_request');
-        $req_curr = $this->currencies[$request];
-        $spot = $this->getSpotValues($off_curr, $req_curr);
+        // should have been set in OfferSpottrade
+        $spot_trade = $this->getSpotTrade();
+
+        $to_player = $spot_trade[SPOT_TO];
+        $from_player = $spot_trade[SPOT_FROM];
+        $off_curr = $spot_trade[SPOT_OFFER];
+        $req_curr = $spot_trade[SPOT_REQUEST];
+
+        $spot = $this->getSpotValues($spot_trade[SPOT_OFFER], $spot_trade[SPOT_REQUEST]);
         $off_amt = $spot[0];
         $req_amt = $spot[1];
 
@@ -396,9 +446,6 @@ class ForEx extends Table
         $this->adjustMonies($to_player, $off_curr, $off_amt);
         $this->adjustMonies($from_player, $req_curr, $req_amt);
         $this->adjustMonies($to_player, $req_curr, -$req_amt);
-
-        // flag spot trade done, can't do another
-        self::setGameStateValue('spot_trade_done', 1);
     }
 
     /**
@@ -481,7 +528,7 @@ class ForEx extends Table
      */
     function offerSpotTrade($to_player, $offer, $request) {
         self::checkAction( 'offerSpotTrade' );
-        if (self::getGameStatevalue('spot_trade_done') != 0) {
+        if (!$this->isSpotTradeClear()) {
             throw new BgaVisibleSystemException("Spot Trade already performed; should not allow action again");
         }
 
@@ -512,10 +559,7 @@ class ForEx extends Table
             'req_curr' => $request,
             'req_amt' => $req_amt
             ));
-        self::setGameStateValue('spot_player_from', $player_id);
-        self::setGameStateValue('spot_player_to', $to_player);
-        self::setGameStateValue('spot_offer', $this->currencyToIndex($offer));
-        self::setGameStateValue('spot_request', $this->currencyToIndex($request));
+        $this->setSpotTradeValues($player_id, $to_player, $offer, $request);
 
         // go to manager to get response
         $this->gamestate->nextState("spotOffer");
@@ -535,6 +579,7 @@ class ForEx extends Table
                 'i18n' => array ('player_name'),
                 'player_name' => self::getActivePlayerName(),
             ));
+            $this->clearSpotTrade();
         }
 
         // return action to the player who made the offer
@@ -550,6 +595,7 @@ class ForEx extends Table
             'i18n' => array ('player_name'),
             'player_name' => self::getActivePlayerName(),
         ));
+        $this->clearSpotTrade();
         // return action to the player who made the offer
         $this->gamestate->nextState();
     }
@@ -572,6 +618,9 @@ class ForEx extends Table
 
         self::DbQuery("UPDATE BANK SET amt = ".($mybucks-2)." WHERE player = $player_id AND curr = $curr");
 
+        // clear any previous spot trade just prior to executing our action
+        $this->clearSpotTrade();
+
         // movedeck for certificates
         self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${curr} Certificate'), array (
             'i18n' => array ('curr'),
@@ -587,6 +636,10 @@ class ForEx extends Table
      */
     function divest($curr, $amt) {
         $player_id = self::getActivePlayerId();
+
+        // clear any previous spot trade just prior to executing our action
+        $this->clearSpotTrade();
+
         $divested_certs = $this->divestCertificates($player_id, $curr, $amt);
         $cash = $amt*2;
         $this->adjustMonies($player_id, $curr, $cash);

@@ -74,13 +74,28 @@ const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
 const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
 const X_MONIES = "x_monies_icon"; // indicates an array of MONIES #_CURR_note|cert
 
-// constants used for tempStateArgs
-const SPOT_OFFER = 'spot_offer';
-const SPOT_REQUEST = 'spot_request';
-const SPOT_TRADE_TO = 'spot_trade_to';
-const SPOT_TRADE_FROM = 'spot_trade_from';
-const SPOT_TRADE_OPT = true;
+/**
+ * Struct for a Currency Pair (stronger, weaker, and weaker = EXCHANGE* stronger)
+ */
+const PAIR = {
+    STRONGER: "stronger",
+    WEAKER: "weaker",
+    EXCHANGE: "currency_xch_rate"
+}
 
+// constants used for SpotTrade construct
+const SPOT = {
+    OFFER: "spot_offer",
+    REQUEST: "spot_request",
+    OFF_AMT: "spot_offer_amt",
+    REQ_AMT: "spot_request_amt",
+    FROM: "spot_trade_from",
+    TO: "spot_trade_to",
+    PAIR: "spot_pair",
+}
+
+// label for an already executed Spot trade
+const SPOT_TRANSACTION = "spot_transaction";
 
 const CURRENCY_TYPE = {
     NOTE: "note",
@@ -190,14 +205,14 @@ function (dojo, declare) {
             this.createContractDisplay();
             this.createContractQueue();
 
-            // these are read by UI buttons while players are choosing actions
-            this.tempStateArgs = {};
-            this.tempStateArgs[SPOT_TRADE_OPT] = this.gamedatas.spot_trade_opt;
-            this.tempStateArgs[SPOT_TRADE_TO] = this.gamedatas.spot_trade_to;
-            this.tempStateArgs[SPOT_TRADE_FROM] = this.gamedatas.spot_trade_from;
-
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
+            // may be null
+            if (gamedatas.spot_transaction) {
+                this.SPOT_TRANSACTION = this.createSpotTransactionFromDatas();
+           } else {
+                this.SPOT_TRANSACTION = null;
+            }
 
             console.log( "Ending game setup" );
         },
@@ -465,12 +480,11 @@ function (dojo, declare) {
                     break;
                 case 'offerResponse':
                     console.log("this player: "+this.player_id);
-                    console.log("to player: "+this.tempStateArgs[SPOT_TRADE_TO]);
-                    console.log("from player: "+this.tempStateArgs[SPOT_TRADE_FROM]);
-                    // we might get the to/from players either from refreshing or from tempStateArgs
-                    if (this.player_id == this.tempStateArgs[SPOT_TRADE_TO]) {
+                    var spot = this.SPOT_TRANSACTION;
+                    console.log("spot: "+spot);
+                    if (this.player_id == spot[SPOT.TO]) {
                         this.addSpotTradeButtons();
-                    } else if (this.player_id == this.tempStateArgs[SPOT_TRADE_FROM]) {
+                    } else if (this.player_id == spot[SPOT.FROM]) {
                         this.addCancelSpotTrade();
                     }
                     break;
@@ -588,11 +602,11 @@ function (dojo, declare) {
         },
 
         /**
-         * Get pair corresponding to curr1 and curr2.
+         * Get pair corresponding to curr1 and curr2 from the gamedatas sent by server.
          * @param {*} curr1 
          * @param {*} curr2 
          */
-        getCurrencyPair: function(curr1, curr2) {
+        findCurrencyPair: function(curr1, curr2) {
             var currency_pairs = this.gamedatas.currency_pairs;
             for (const c in currency_pairs) {
                 var pair = currency_pairs[c];
@@ -604,18 +618,51 @@ function (dojo, declare) {
         },
 
         /**
-         * For curr1 and curr2, returns two-element array: {strongercurrency: value}
+         * For curr1 and curr2, create a Struct with info about a currency pair
          * @param {*} curr1 
          * @param {*} curr2 
          */
-        getExchangeRate: function(curr1, curr2) {
-            var exch = [];
-            var pair = this.getCurrencyPair(curr1, curr2);
-            if (pair != null) {
-                exch.push(pair['stronger']);
-                exch.push(EXCHANGE_RATE[pair['position']-1]);
+        createCurrencyPair: function(curr1, curr2) {
+            var pair = {};
+            var pr = this.findCurrencyPair(curr1, curr2);
+            if (pr != null) {
+                pair[PAIR.STRONGER] = pr['stronger'];
+                pair[PAIR.WEAKER] = (pr['stronger'] == curr1) ? curr2 : curr1;
+                pair[PAIR.EXCHANGE] = EXCHANGE_RATE[pr['position']-1];
             }
-            return exch;
+            return pair;
+        },
+
+
+        /**
+         * This assumes this.gamedatas has a spot_transation
+         */
+        createSpotTransactionFromDatas() {
+            var spot = this.gamedatas.SPOT_TRANSACTION;
+            var spot_transaction = this.createSpotTransaction(spot['spot_trade_from'], spot['spot_trade_to'], spot['spot_offer'], spot['spot_to']);
+            return spot_transaction;
+        },
+
+        /**
+         * Create a SpotTransaction "obj"
+         * @param {string} from 
+         * @param {string} to 
+         * @param {string} offer 
+         * @param {string} req 
+         */
+        createSpotTransaction: function(from, to, offer, req) {
+            var pair = this.createCurrencyPair(offer, req);
+            var offer_amt = (pair[PAIR.STRONGER] == offer) ? 1 : pair[PAIR.EXCHANGE];
+            var req_amt = (pair[PAIR.STRONGER] == req) ? 1 : pair[PAIR.EXCHANGE];
+            var spot = {};
+            spot[SPOT.FROM] = from;
+            spot[SPOT.TO] = to;
+            spot[SPOT.OFFER] = offer;
+            spot[SPOT.REQUEST] = req;
+            spot[SPOT.OFF_AMT] = offer_amt;
+            spot[SPOT.REQ_AMT] = req_amt;
+            spot[SPOT.PAIR] = pair;
+            return spot;
         },
 
         /**
@@ -680,7 +727,7 @@ function (dojo, declare) {
          * Add the Action buttons in the menu bar while we are choosing another action.
          */
         addPlayerActionButtons: function() {
-            if (this.tempStateArgs[SPOT_TRADE_OPT]) {
+            if (this.SPOT_TRANSACTION == null) {
                 this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
             }
             this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
@@ -775,11 +822,11 @@ function (dojo, declare) {
 
             // are we clicking or unclicking it?
             var disable = false;
-            if (this.tempStateArgs[SPOT_TRADE_TO] == player) {
+            if (this.SPOT_TRANSACTION[SPOT.TO] == player) {
                 // clear all
-                this.tempStateArgs = {};
+                this.SPOT_TRANSACTION = {};
             } else {
-                this.tempStateArgs[SPOT_TRADE_TO] = player;
+                this.SPOT_TRANSACTION[SPOT.TO] = player;
                 disable = true;
             }
 
@@ -823,25 +870,26 @@ function (dojo, declare) {
          * @param {string} btn_id 
          */
         spotTradeAction: function(curr, btn_id) {
-            if (this.tempStateArgs[SPOT_TRADE_TO] == null) {
+            if (this.SPOT_TRANSACTION[SPOT.TO] == null) {
+                // need a player chosen first
                 return;
             }
-            if (this.tempStateArgs[SPOT_OFFER] == null) {
+            if (this.SPOT_TRANSACTION[SPOT.OFFER] == null) {
                 // there should be no currencies clicked, so this is the offer
-                this.tempStateArgs[SPOT_OFFER] = curr;
-                this.tempStateArgs[SPOT_REQUEST] = null;
-            } else if (this.tempStateArgs[SPOT_OFFER] == curr) {
+                this.SPOT_TRANSACTION[SPOT.OFFER] = curr;
+                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
+            } else if (this.SPOT_TRANSACTION[SPOT.OFFER] == curr) {
                 // clicked on the previously offered currency, so clear both
-                this.tempStateArgs[SPOT_OFFER] = null;
-                this.tempStateArgs[SPOT_REQUEST] = null;
-            } else if (this.tempStateArgs[SPOT_REQUEST] == null) {
+                this.SPOT_TRANSACTION[SPOT.OFFER] = null;
+                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
+            } else if (this.SPOT_TRANSACTION[SPOT.REQUEST] == null) {
                 // this is the request
-                this.tempStateArgs[SPOT_REQUEST] = curr;
-            } else if (this.tempStateArgs[SPOT_REQUEST] == curr) {
+                this.SPOT_TRANSACTION[SPOT.REQUEST] = curr;
+            } else if (this.SPOT_TRANSACTION[SPOT.REQUEST] == curr) {
                 // clicked on previous request currency, so clear it
-                this.tempStateArgs[SPOT_REQUEST] = null;
+                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
             } else {
-                this.tempStateArgs[SPOT_REQUEST] = curr;
+                this.SPOT_TRANSACTION[SPOT.REQUEST] = curr;
             }
             this.setSpotTradeMessage();
         },
@@ -852,29 +900,22 @@ function (dojo, declare) {
          */
         setSpotTradeMessage: function() {
             var text = "";
-            if (this.tempStateArgs[SPOT_TRADE_TO]) {
-                text = _("Offer ")+this.spanPlayerName(this.tempStateArgs[SPOT_TRADE_TO]);
-                if (this.tempStateArgs[SPOT_OFFER]) {
+            if (this.SPOT_TRANSACTION[SPOT.TO]) {
+                text = _("Offer ")+this.spanPlayerName(this.SPOT_TRANSACTION[SPOT.TO]);
+                if (this.SPOT_TRANSACTION[SPOT.OFFER]) {
                     var offer_txt = " ";
-                    if (this.tempStateArgs[SPOT_REQUEST]) {
+                    if (this.SPOT_TRANSACTION[SPOT.REQUEST]) {
                         // construct a complete message
                         var offer_val = "";
                         var req_val = "";
-                        var xchg = this.getExchangeRate(this.tempStateArgs[SPOT_OFFER], this.tempStateArgs[SPOT_REQUEST]);
-                        if (this.tempStateArgs[SPOT_OFFER] == xchg[0]) {
-                            // the offer is the stronger currency, worth n request bucks
-                            offer_val = 1;
-                            req_val = xchg[1];
-                        } else {
-                            // the offer is the weaker currency, the request is worth n offer bucks
-                            offer_val = xchg[1];
-                            req_val = 1;
-                        }
-                        offer_txt += this.createMoniesXstr(offer_val, this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
-                        offer_txt += _(" for ")+this.createMoniesXstr(req_val, this.tempStateArgs[SPOT_REQUEST], CURRENCY_TYPE.NOTE);
+                        var transaction = this.createSpotTransaction(this.SPOT_TRANSACTION[SPOT.TO], this.SPOT_TRANSACTION[SPOT.FROM], this.SPOT_TRANSACTION[SPOT.OFFER], this.SPOT_TRANSACTION[SPOT.REQUEST]);
+                        var offer_val = transaction[SPOT.OFF_AMT];
+                        var req_val = transaction[SPOT.REQ_AMT];
+                        offer_txt += this.createMoniesXstr(offer_val, this.SPOT_TRANSACTION[SPOT.OFFER], CURRENCY_TYPE.NOTE);
+                        offer_txt += _(" for ")+this.createMoniesXstr(req_val, this.SPOT_TRANSACTION[SPOT.REQUEST], CURRENCY_TYPE.NOTE);
                     } else {
                         // only have offer
-                        offer_txt += this.createMoniesXstr('', this.tempStateArgs[SPOT_OFFER], CURRENCY_TYPE.NOTE);
+                        offer_txt += this.createMoniesXstr('', this.SPOT_TRANSACTION[SPOT.OFFER], CURRENCY_TYPE.NOTE);
                     }
                     text += offer_txt;
                 }
@@ -911,16 +952,15 @@ function (dojo, declare) {
 
         /**
          * Sets up the Spot Trade Panel.
+         * The SPOT_TRANSACTION is initialized, but cleared when canceled.
          * @param {*} evt 
          */
         spotTrade: function(evt) {
             if (this.checkAction('offerSpotTrade', true)) {
-                if (this.tempStateArgs[SPOT_TRADE_OPT]) {
+                if (this.SPOT_TRANSACTION == null) {
                     this.removeActionButtons();
-                    // initialize the currencies for trading: to-from
-                    this.tempStateArgs[SPOT_OFFER] = null;
-                    this.tempStateArgs[SPOT_REQUEST] = null;
     
+                    this.SPOT_TRANSACTION = {};
                     // this adds the buttons
                     var otherPlayers = this.getOtherPlayers();
                     this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'spot_trade_txt'});
@@ -939,19 +979,17 @@ function (dojo, declare) {
          * Actual Ajax call to submit offer.
          */
         submitSpotTrade: function() {
-            if (this.checkAction('offerSpotTrade', true)) {
-                // have all the parameters been filled?
-                var player = this.tempStateArgs[SPOT_TRADE_TO];
-                this.tempStateArgs[SPOT_TRADE_FROM] = this.player_id;
-                var offer = this.tempStateArgs[SPOT_OFFER];
-                var request = this.tempStateArgs[SPOT_REQUEST];
-                if (player && offer && request) {
+            if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION != null) {
+                var to = parseInt(this.SPOT_TRANSACTION[SPOT.TO]);
+                var offer = this.SPOT_TRANSACTION[SPOT.OFFER];
+                var request = this.SPOT_TRANSACTION[SPOT.REQUEST];
+                if (to && offer && request) {
                     this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
-                        to_player: player['id'],
+                        to_player: to,
                         off_curr: offer,
                         req_curr: request,
                         lock: true 
-                    }, this, function( result ) {  }, function( is_error) { } );                        
+                    }, this, function( result ) {  }, function( is_error) { } );
                 } else {
                     this.showMessage(_("You must select player to offer trade to, offered currency, and requested currency"), 'info');
                 }
@@ -968,7 +1006,6 @@ function (dojo, declare) {
                     accept: is_accept,
                     lock: true 
                 }, this, function( result ) {  }, function( is_error) { } );                        
-
             }
         },
 
@@ -980,7 +1017,7 @@ function (dojo, declare) {
                 this.ajaxcall( "/forex/forex/cancelSpotTrade.html", { 
                     lock: true 
                 }, this, function( result ) {  }, function( is_error) { } );                        
-
+                this.SPOT_TRANSACTION = null;
             }
         },
 
@@ -1037,10 +1074,8 @@ function (dojo, declare) {
          * @param {*} evt 
          */
         cancelAction: function(evt) {
-            var can_spot_trade = this.tempStateArgs[SPOT_TRADE_OPT];
             // refresh everything else
-            this.tempStateArgs = {};
-            this.tempStateArgs[SPOT_TRADE_OPT] = can_spot_trade;
+            this.SPOT_TRANSACTION = null;
             this.removeActionButtons();
             this.addPlayerActionButtons();
             this.setDescriptionOnMyTurn(_("You must choose an action"));
@@ -1157,13 +1192,14 @@ function (dojo, declare) {
 
         notif_spotTradeOffered: function( notif ) {
             console.log( 'notif_spotTradeOffered' );
-            this.tempStateArgs[SPOT_TRADE_TO] = notif.args.to_player_id;
-            this.tempStateArgs[SPOT_TRADE_FROM] = notif.args.from_player_id;
-            console.log( notif );
+            var spot_trade = this.createSpotTransaction(notif.args.from_player_id, notif.args.to_player_id, notif.args.off_curr, notif.args.req_curr);
+            console.log( spot_trade );
+            this.SPOT_TRANSACTION = spot_trade;
         },    
 
         notif_spotTradeCanceled: function( notif ) {
             console.log( 'notif_spotTradeCanceled' );
+            this.SPOT_TRANSACTION = null;
             console.log( notif );
         },    
 
@@ -1178,13 +1214,12 @@ function (dojo, declare) {
             var off_amt = parseFloat(notif.args.off_amt);
             var req_amt = parseFloat(notif.args.req_amt);
             this.tradeBankeNotes(from_player, to_player, offer, request, off_amt, req_amt);
-            // flag no more spot trades
-            this.tempStateArgs[SPOT_TRADE_OPT] = false;
+            // SPOT_TRANSACTION should remain non-null
         },
 
         notif_spotTradeRejected: function( notif ) {
             console.log( 'notif_spotTradeRejected' );
-            console.log( notif );
+            this.SPOT_TRANSACTION = null;
         },    
 
 
