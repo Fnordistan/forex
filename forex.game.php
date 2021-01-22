@@ -287,8 +287,8 @@ class ForEx extends Table
     function setSpotTradeValues($from, $to, $offer, $request) {
         self::setGameStateValue( SPOT_FROM, $from );
         self::setGameStateValue( SPOT_TO, $to );
-        self::setGameStateValue( SPOT_OFFER, $offer );
-        self::setGameStateValue( SPOT_REQUEST, $request );
+        self::setGameStateValue( SPOT_OFFER, $this->currencyToIndex($offer) );
+        self::setGameStateValue( SPOT_REQUEST, $this->currencyToIndex($request) );
     }
 
     /**
@@ -423,23 +423,23 @@ class ForEx extends Table
 
         $to_player = $spot_trade[SPOT_TO];
         $from_player = $spot_trade[SPOT_FROM];
-        $off_curr = $spot_trade[SPOT_OFFER];
-        $req_curr = $spot_trade[SPOT_REQUEST];
+        $off_curr = $this->currencies[$spot_trade[SPOT_OFFER]];
+        $req_curr = $this->currencies[$spot_trade[SPOT_REQUEST]];
 
-        $spot = $this->getSpotValues($spot_trade[SPOT_OFFER], $spot_trade[SPOT_REQUEST]);
+        $spot = $this->getSpotValues($off_curr, $req_curr);
         $off_amt = $spot[0];
         $req_amt = $spot[1];
 
         $players = self::loadPlayersBasicInfos();
-        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${off_amt} ${off_curr} for ${req_amt} ${req_curr}'), array(
+        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${off_amt} ${spot_offer} for ${req_amt} ${spot_request}'), array(
             'i18n' => array ('from_player_name', 'to_player_name', 'off_curr', 'req_curr'),
-            'to_player' => $to_player,
+            SPOT_TO => $to_player,
             'to_player_name' => self::getActivePlayerName(),
-            'from_player' => $from_player,
+            SPOT_FROM => $from_player,
             'from_player_name' => $players[$from_player]['player_name'],
-            'off_curr' => $off_curr,
+            SPOT_OFFER => $off_curr,
             'off_amt' => $off_amt,
-            'req_curr' => $req_curr,
+            SPOT_REQUEST => $req_curr,
             'req_amt' => $req_amt,
         ));
         $this->adjustMonies($from_player, $off_curr, -$off_amt);
@@ -548,15 +548,15 @@ class ForEx extends Table
             throw new BgaUserException(self::_("${theirname} does not have ${req_amt} ${request}"));
         }
 
-        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${off_amt} ${off_curr} for ${req_amt} ${req_curr}'), array(
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${off_amt} ${spot_offer} for ${req_amt} ${spot_request}'), array(
             'i18n' => array ('off_curr', 'req_curr'),
-            'player_id' => $player_id,
+            SPOT_FROM => $player_id,
             'player_name' => self::getActivePlayerName(),
-            'to_player_id' => $to_player,
+            SPOT_TO => $to_player,
             'to_player_name' => $theirname,
-            'off_curr' => $offer,
+            SPOT_OFFER => $offer,
             'off_amt' => $off_amt,
-            'req_curr' => $request,
+            SPOT_REQUEST => $request,
             'req_amt' => $req_amt
             ));
         $this->setSpotTradeValues($player_id, $to_player, $offer, $request);
@@ -579,7 +579,6 @@ class ForEx extends Table
                 'i18n' => array ('player_name'),
                 'player_name' => self::getActivePlayerName(),
             ));
-            $this->clearSpotTrade();
         }
 
         // return action to the player who made the offer
@@ -595,7 +594,6 @@ class ForEx extends Table
             'i18n' => array ('player_name'),
             'player_name' => self::getActivePlayerName(),
         ));
-        $this->clearSpotTrade();
         // return action to the player who made the offer
         $this->gamestate->nextState();
     }
@@ -664,11 +662,11 @@ class ForEx extends Table
      * Arguments sent for a Spot Trade Offer
      */
     function argSpotOffer() {
-        $from_player = self::getGameStateValue('spot_player_from');
-        $to_player = self::getGameStateValue('spot_player_to');
-        $offer = self::getGameStateValue('spot_offer');
+        $from_player = self::getGameStateValue(SPOT_FROM);
+        $to_player = self::getGameStateValue(SPOT_TO);
+        $offer = self::getGameStateValue(SPOT_OFFER);
         $offer_curr = $this->currencies[$offer];
-        $request = self::getGameStateValue('spot_request');
+        $request = self::getGameStateValue(SPOT_REQUEST);
         $request_curr = $this->currencies[$request];
         $xchg = $this->getSpotValues($offer_curr, $request_curr);
 
@@ -700,8 +698,8 @@ class ForEx extends Table
      * This is the handler to send an offer to the recipient
      */
     function stSpotOffer() {
-        $from_player = self::getGameStateValue('spot_player_from');
-        $to_player = self::getGameStateValue('spot_player_to');
+        $from_player = self::getGameStateValue(SPOT_FROM);
+        $to_player = self::getGameStateValue(SPOT_TO);
         $this->gamestate->setPlayersMultiactive( array($from_player, $to_player), "getResponse", true );
         $this->gamestate->nextState("getResponse");
     }
@@ -712,12 +710,9 @@ class ForEx extends Table
      * Hand play back to original player.
      */
     function stSpotResponse() {
-        $next_player = self::getGameStateValue('spot_player_from');
+        $next_player = self::getGameStateValue(SPOT_FROM);
         // clear info
-        self::setGameStateValue('spot_player_from', 0);
-        self::setGameStateValue('spot_player_to', 0);
-        self::setGameStateValue('spot_offer', 0);
-        self::setGameStateValue('spot_request', 0);
+        $this->clearSpotTrade();
         $this->gamestate->changeActivePlayer( $next_player );
         $this->gamestate->nextState();
     }

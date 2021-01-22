@@ -25,6 +25,9 @@ const CURRENCY = {
     "CNY" : 7
 }
 
+// 0-indexed array of currencies
+const CURRENCIES = ["GBP", "EUR", "USD", "CHF", "JPY", "CAD", "CNY"];
+
 const COLORS = {
     "GBP" : '#EC1C26',
     "EUR" : '#5156A5',
@@ -140,7 +143,7 @@ function (dojo, declare) {
         */
         setup: function( gamedatas )
         {
-            // dojo.destroy('debug_output');
+            dojo.destroy('debug_output');
             console.log( "Starting game setup" );
             
             this.certCounters = [];
@@ -208,7 +211,7 @@ function (dojo, declare) {
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
             // may be null
-            if (gamedatas.spot_transaction) {
+            if (this.gamedatas[SPOT_TRANSACTION]) {
                 this.SPOT_TRANSACTION = this.createSpotTransactionFromDatas();
            } else {
                 this.SPOT_TRANSACTION = null;
@@ -481,7 +484,6 @@ function (dojo, declare) {
                 case 'offerResponse':
                     console.log("this player: "+this.player_id);
                     var spot = this.SPOT_TRANSACTION;
-                    console.log("spot: "+spot);
                     if (this.player_id == spot[SPOT.TO]) {
                         this.addSpotTradeButtons();
                     } else if (this.player_id == spot[SPOT.FROM]) {
@@ -508,9 +510,9 @@ function (dojo, declare) {
          * Create span with Player's name in color.
          * @param {*} player 
          */
-        spanPlayerName: function(player) {
-            var player_id = player['id'];
-            var player_name = player['name'];
+        spanPlayerName: function(player_id) {
+            var player = this.gamedatas.players[player_id];
+            var player_name = player.name;
             var color = player.color;
             var color_bg = "";
             if (player.color_back) {
@@ -633,13 +635,17 @@ function (dojo, declare) {
             return pair;
         },
 
-
         /**
          * This assumes this.gamedatas has a spot_transation
          */
         createSpotTransactionFromDatas() {
-            var spot = this.gamedatas.SPOT_TRANSACTION;
-            var spot_transaction = this.createSpotTransaction(spot['spot_trade_from'], spot['spot_trade_to'], spot['spot_offer'], spot['spot_to']);
+            var spot = this.gamedatas[SPOT_TRANSACTION];
+            var player_from = spot[SPOT.FROM];
+            var player_to = spot[SPOT.TO];
+            // these are sent as ints
+            var offer = CURRENCIES[spot[SPOT.OFFER]-1];
+            var request = CURRENCIES[spot[SPOT.REQUEST]-1];
+            var spot_transaction = this.createSpotTransaction(player_from, player_to, offer, request);
             return spot_transaction;
         },
 
@@ -822,11 +828,11 @@ function (dojo, declare) {
 
             // are we clicking or unclicking it?
             var disable = false;
-            if (this.SPOT_TRANSACTION[SPOT.TO] == player) {
+            if (this.SPOT_TRANSACTION[SPOT.TO] == player['id']) {
                 // clear all
                 this.SPOT_TRANSACTION = {};
             } else {
-                this.SPOT_TRANSACTION[SPOT.TO] = player;
+                this.SPOT_TRANSACTION[SPOT.TO] = player['id'];
                 disable = true;
             }
 
@@ -908,7 +914,7 @@ function (dojo, declare) {
                         // construct a complete message
                         var offer_val = "";
                         var req_val = "";
-                        var transaction = this.createSpotTransaction(this.SPOT_TRANSACTION[SPOT.TO], this.SPOT_TRANSACTION[SPOT.FROM], this.SPOT_TRANSACTION[SPOT.OFFER], this.SPOT_TRANSACTION[SPOT.REQUEST]);
+                        var transaction = this.createSpotTransaction(this.SPOT_TRANSACTION[SPOT.FROM], this.SPOT_TRANSACTION[SPOT.TO], this.SPOT_TRANSACTION[SPOT.OFFER], this.SPOT_TRANSACTION[SPOT.REQUEST]);
                         var offer_val = transaction[SPOT.OFF_AMT];
                         var req_val = transaction[SPOT.REQ_AMT];
                         offer_txt += this.createMoniesXstr(offer_val, this.SPOT_TRANSACTION[SPOT.OFFER], CURRENCY_TYPE.NOTE);
@@ -979,11 +985,11 @@ function (dojo, declare) {
          * Actual Ajax call to submit offer.
          */
         submitSpotTrade: function() {
-            if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION != null) {
-                var to = parseInt(this.SPOT_TRANSACTION[SPOT.TO]);
-                var offer = this.SPOT_TRANSACTION[SPOT.OFFER];
-                var request = this.SPOT_TRANSACTION[SPOT.REQUEST];
-                if (to && offer && request) {
+            if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION) {
+                if (this.SPOT_TRANSACTION[SPOT.TO] && this.SPOT_TRANSACTION[SPOT.OFFER] && this.SPOT_TRANSACTION[SPOT.REQUEST]) {
+                    var to = parseInt(this.SPOT_TRANSACTION[SPOT.TO]);
+                    var offer = this.SPOT_TRANSACTION[SPOT.OFFER];
+                    var request = this.SPOT_TRANSACTION[SPOT.REQUEST];
                     this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                         to_player: to,
                         off_curr: offer,
@@ -1192,7 +1198,7 @@ function (dojo, declare) {
 
         notif_spotTradeOffered: function( notif ) {
             console.log( 'notif_spotTradeOffered' );
-            var spot_trade = this.createSpotTransaction(notif.args.from_player_id, notif.args.to_player_id, notif.args.off_curr, notif.args.req_curr);
+            var spot_trade = this.createSpotTransaction(notif.args[SPOT.FROM], notif.args[SPOT.TO], notif.args[SPOT.OFFER], notif.args[SPOT.REQUEST]);
             console.log( spot_trade );
             this.SPOT_TRANSACTION = spot_trade;
         },    
@@ -1207,10 +1213,10 @@ function (dojo, declare) {
          * If I am the offerer, remove my Spot Trade button
          */
         notif_spotTradeAccepted: function( notif ) {
-            var to_player = notif.args.to_player;
-            var from_player = notif.args.from_player;
-            var offer = notif.args.off_curr;
-            var request = notif.args.req_curr;
+            var to_player = notif.args[SPOT.TO];
+            var from_player = notif.args[SPOT.FROM];
+            var offer = notif.args[SPOT.OFFER];
+            var request = notif.args[SPOT.REQUEST];
             var off_amt = parseFloat(notif.args.off_amt);
             var req_amt = parseFloat(notif.args.req_amt);
             this.tradeBankeNotes(from_player, to_player, offer, request, off_amt, req_amt);
