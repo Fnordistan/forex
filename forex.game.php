@@ -671,6 +671,7 @@ class ForEx extends Table
         $xchg = $this->getSpotValues($offer_curr, $request_curr);
 
         $players = self::loadPlayersBasicInfos();
+        $player_id = self::getCurrentPlayerId();
 
         return array(
             "i18n" => array('offer_curr', 'request_curr'),
@@ -678,6 +679,8 @@ class ForEx extends Table
             'to_player' => $players[$to_player],
             'from_player_name' => $players[$from_player]['player_name'],
             'to_player_name' => $players[$to_player]['player_name'],
+            'from_player_who' => ($player_id == $from_player) ? "You" : $players[$from_player]['player_name'],
+            'to_player_who' => ($player_id == $to_player) ? "you" : $players[$to_player]['player_name'],
             'offer_curr' => $offer_curr,
             'request_curr' => $request_curr,
             'offer_amt' => $xchg[0],
