@@ -27,7 +27,7 @@ define('SPOT_TO', 'spot_trade_to');
 define('SPOT_OFFER', 'spot_offer');
 define('SPOT_REQUEST', 'spot_request');
 define('SPOT_DONE', 'spot_trade_done');
-
+define('X_MONIES', 'arg_monies_string'); // matches js
 
 class ForEx extends Table
 {
@@ -453,13 +453,17 @@ class ForEx extends Table
     function adjustMonies($player_id, $curr, $amt) {
         $players = self::loadPlayersBasicInfos();
         self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = \"$curr\"");
-        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${chg} ${curr}'), array(
+
+        $x_monies = $this->create_X_monies_arg(abs($amt), $curr, "note");
+
+        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_changed}'), array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
             'adj' => $amt < 0 ? self::_("subtracts") : self::_("adds"),
-            'chg' => abs($amt),
             'amt' => $amt,
-            'curr' => $curr
+            'curr' => $curr,
+            'x_changed' => $x_monies,
+            X_MONIES => array('x_changed' => $x_monies)
         ));
     }
 
@@ -505,6 +509,13 @@ class ForEx extends Table
         return 0;
     }
 
+    /**
+     * Create the special underscored string used in the client log parsing to turn into a currency+icon
+     */
+    function create_X_monies_arg($amt, $curr, $type) {
+        return $amt."_".$curr."_".$type;
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 //////////// 
@@ -540,7 +551,10 @@ class ForEx extends Table
             throw new BgaUserException(self::_("${theirname} does not have ${req_amt} ${request}"));
         }
 
-        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${off_amt} ${spot_offer} for ${req_amt} ${spot_request}'), array(
+        $x_offer = $this->create_X_monies_arg($off_amt, $offer, "note");
+        $x_request = $this->create_X_monies_arg($req_amt, $request, "note");
+
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${x_monies_offer} for ${x_monies_request}'), array(
             'i18n' => array ('off_curr', 'req_curr'),
             SPOT_FROM => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -549,7 +563,10 @@ class ForEx extends Table
             SPOT_OFFER => $offer,
             'off_amt' => $off_amt,
             SPOT_REQUEST => $request,
-            'req_amt' => $req_amt
+            'req_amt' => $req_amt,
+            'x_monies_offer' => $x_offer,
+            'x_monies_request' => $x_request,
+            X_MONIES => array('x_monies_offer' => $x_offer, 'x_monies_request' => $x_request)
             ));
         $this->setSpotTradeValues($player_id, $to_player, $offer, $request);
 
@@ -669,16 +686,19 @@ class ForEx extends Table
 
         $players = self::loadPlayersBasicInfos();
 
+        $x_offer = $this->create_X_monies_arg($xchg[0], $offer_curr, "note");
+        $x_request = $this->create_X_monies_arg($xchg[1], $request_curr, "note");
+
         return array(
             "i18n" => array('offer_curr', 'request_curr'),
             SPOT_FROM => $from_player,
             SPOT_TO => $to_player,
             'from_player_name' => $players[$from_player]['player_name'],
             'to_player_name' => $players[$to_player]['player_name'],
-            'offer_curr' => $offer_curr,
-            'request_curr' => $request_curr,
-            'offer_amt' => $xchg[0],
-            'request_amt' => $xchg[1]
+            'x_monies_offer' => $x_offer,
+            'x_monies_request' => $x_request,
+            // this substitutes both of the above with some format_string_recursive trickery
+            X_MONIES => array('x_monies_offer' => $x_offer, 'x_monies_request' => $x_request)
         );
     }
 

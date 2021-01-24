@@ -70,8 +70,8 @@ $machinestates = array(
 
     SPOT_RESPONSE => array(
         "name" => "offerResponse",
-        "description" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
-        "descriptionmyturn" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${offer_amt} ${offer_curr} for ${request_amt} ${request_curr}' ),
+        "description" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${x_monies_offer} for ${x_monies_request}' ),
+        "descriptionmyturn" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${x_monies_offer} for ${x_monies_request}' ),
         "type" => "multipleactiveplayer",
         "possibleactions" => array( "respondSpotTrade", "cancelSpotTrade" ),
         "args" => "argSpotOffer",

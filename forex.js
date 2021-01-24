@@ -75,10 +75,10 @@ const DIVIDEND_BASE_W = 97.8;
 const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
 const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
 const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
-const X_MONIES = "x_monies_icon"; // indicates an array of MONIES #_CURR_note|cert
 // matching args from forex.game.php
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
+const X_MONIES = "arg_monies_string";
 
 /**
  * Struct for a Currency Pair (stronger, weaker, and weaker = EXCHANGE* stronger)
@@ -253,11 +253,11 @@ function (dojo, declare) {
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
-                    if (args.X_MONIES) {
-                        for (const m in args.X_MONIES) {
-                            var mstr = args.X_MONIES[m];
-                            var monies = mstr.split('_');
-                            var num = parseInt(monies[0]);
+                    if (args[X_MONIES]) {
+                        for (const argm in args[X_MONIES]) {
+                            var mon_str = args[X_MONIES][argm];
+                            var monies = mon_str.split('_');
+                            var num = parseFloat(monies[0]);
                             var curr = monies[1];
                             var type = monies[2];
                             var monies_span = this.format_block('jstpl_monies', {
@@ -265,7 +265,7 @@ function (dojo, declare) {
                                 "type": type,
                                 "curr": curr,
                             });
-                            log = log.replace(mstr, monies_span);
+                            args[argm] = monies_span;
                         }
                     }
                 }
@@ -1038,9 +1038,9 @@ function (dojo, declare) {
                     var transaction = this.createSpotTransaction(this.player_id, to, offer, request);
                     // do a pre-check - do both players have enough money?
                     if (this.getMonies(this.player_id, offer, CURRENCY_TYPE.NOTE) < transaction[SPOT.OFF_AMT]) {
-                        this.showMessage(_(this.spanYou()+" do not have "+transaction[SPOT.OFF_AMT]+" "+offer), 'info');
+                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(transaction[SPOT.OFF_AMT], offer, 'note'), 'info'));
                     } else if (this.getMonies(to, request, CURRENCY_TYPE.NOTE) < transaction[SPOT.REQ_AMT]) {
-                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+transaction[SPOT.REQ_AMT]+" "+request), 'info');
+                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(transaction[SPOT.REQ_AMT], request, 'note'), 'info'));
                     } else {
                         this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                             to_player: to,
