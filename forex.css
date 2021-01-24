@@ -166,6 +166,8 @@
     font-size: 24px;
     font-weight: bold;
     vertical-align: 5px; /**calc(var(--scale)*var(--currency_h) * 0.5);*/
+    display: inline-block;
+    width: 55px;
     text-shadow:
         1px 1px 0 lightgray,
         -1px -1px 0 lightgray,  
@@ -237,6 +239,7 @@
 .frx_mon_container {
     display: inline-block;
     width: 100%;
+    padding: 5px;
 }
 
 .frx_ctr_container {
@@ -259,11 +262,11 @@
     font-weight: 700;
     vertical-align: 5px;
     text-shadow:
-        1px 1px 0 white,
-        -1px -1px 0 white,  
-        1px -1px 0 white,
-        -1px 1px 0 white,
-        1px 1px 0 white;
+        1px 1px 0 lightgray,
+        -1px -1px 0 lightgray,  
+        1px -1px 0 lightgray,
+        -1px 1px 0 lightgray,
+        1px 1px 0 lightgray;
 }
 
 .frx_curr_pr_zone {
