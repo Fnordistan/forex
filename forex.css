@@ -236,6 +236,7 @@
     width: calc(var(--scale) * var(--contract_w));
     height: calc(var(--scale) * var(--contract_h));
 }
+
 .frx_mon_container {
     display: inline-block;
     width: 100%;
@@ -334,13 +335,30 @@
 }
 
 .frx_curr_btn {
+    vertical-align: middle;
     box-shadow: 1px 1px 3px black;
     cursor: grab;
 }
 
-.frx_curr_btn:active {
-    border: red;
+.frx_curr_btn:hover {
+    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
 }
+
+.frx_curr_btn:focus {
+    outline: 3px solid lightgreen;
+}
+
+.frx_curr_btn:disabled {
+    cursor: not-allowed;
+    box-shadow: none;
+    outline: 3px solid gray;
+    opacity: 0.7;
+}
+
+.frx_curr_btn_selected {
+    outline: 3px solid green;
+}
+
 
 #table_area {
     display: flex;

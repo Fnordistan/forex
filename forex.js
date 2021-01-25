@@ -918,7 +918,7 @@ function (dojo, declare) {
         },
 
         /**
-         * Add the actions to Spot Trading buttons
+         * Add actions to Spot Trading currency buttons
          */
         addSpotTradeActions: function() {
             Object.keys(CURRENCY).forEach(curr => {
@@ -986,6 +986,84 @@ function (dojo, declare) {
                 }
             }
             dojo.byId('spot_trade_txt').innerHTML = text;
+        },
+
+        ///////////////////////// INVEST /////////////////////////
+
+        /**
+         * Add actions to Invest currency buttons
+         */
+        addInvestActions: function() {
+            Object.keys(CURRENCY).forEach(curr => {
+                let btn_id = curr+'_cert_btn';
+                if (this.checkCanInvest(curr)) {
+                    dojo.connect( $(btn_id), 'onclick', this, function(){
+                        this.investAction(curr, btn_id);
+                    });
+                } else {
+                    dojo.attr(btn_id, 'disabled', true);
+                }
+            });
+        },
+
+        /**
+         * Check whether we can buy a certificate of this currency.
+         * Returns true if we can
+         * @param {string} curr 
+         */
+        checkCanInvest: function(curr) {
+            // do I have the money?
+            var notes = this.getMonies(this.player_id, curr, CURRENCY_TYPE.NOTE);
+            if (notes < 2) {
+                // this.showMessage(this.spanYou() + _(" do not have ")+this.createMoniesXstr(2, curr, CURRENCY_TYPE.NOTE));
+                return false;
+            }
+            // do I already have 4 certs of this currency?
+            var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
+            if (certs >= 4) {
+                // this.showMessage(this.spanYou() + _(" may not hold more than ")+this.createMoniesXstr(4, curr, CURRENCY_TYPE.CERTIFICATE));
+                return false;
+            }
+            // are there any left?
+            var avail = this.availableCertCounters[CURRENCY[curr]-1].getValue();
+            if (avail == 0) {
+                // this.showMessage(_("There are no ${curr} Certificates available for purchase"));
+                return false;
+            }
+            return true;
+        },
+
+        /**
+         * Action that happens when clicked on a note to invest.
+         * @param {string} curr
+         * @param {string} btn_id 
+         */
+        investAction: function(curr, btn_id) {
+            // are we deselecting it?
+            if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
+                dojo.toggleClass(btn_id, 'frx_curr_btn_selected');
+            } else {
+                // we selected it. How many are already selected?
+                var sel = dojo.query('.frx_curr_btn_selected');
+                if (sel.length == 2) {
+                    this.showMessage(_("You may only buy 1 or 2 Certificates"), "info");
+                } else {
+                    dojo.toggleClass(btn_id, 'frx_curr_btn_selected');
+                }
+            }
+            // now construct message
+            var text = "";
+            dojo.query('.frx_curr_btn_selected').forEach(btn => {
+                var id = btn.id;
+                let selcurr = id.substring(0, 3);
+                if (text == "") {
+                    text = _("Buy ")+this.createMoniesXstr(1, selcurr, CURRENCY_TYPE.CERTIFICATE)
+                } else {
+                    text += _(" and ")+this.createMoniesXstr(1, selcurr, CURRENCY_TYPE.CERTIFICATE)
+                }
+            });
+
+            dojo.byId('invest_txt').innerHTML = text;
         },
 
         ///////////////////////////////////////////////////
@@ -1087,8 +1165,37 @@ function (dojo, declare) {
         investCurrency: function(evt) {
             if (this.checkAction('investCurrency', true)) {
                 this.removeActionButtons();
+                this.setDescriptionOnMyTurn(_("You may invest in 1 or 2 Currencies"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
+                this.addInvestActions();
                 this.addConfirmButton(ACTIONS.INVEST);
                 this.addCancelButton();
+            }
+        },
+
+        /**
+         * Actual AJAX call to buy
+         */
+        buyCertificates: function() {
+            if (this.checkAction('investCurrency', true)) {
+
+                var buys = [];
+                dojo.query('.frx_curr_btn_selected').forEach(btn => {
+                    var id = btn.id;
+                    let curr = id.substring(0, 3);
+                    buys.push(curr);
+                });
+                if (buys.length == 0) {
+                    this.showMessage(_("No Currencies selected!"), "info");
+                } else {
+                    buys.forEach(curr => {
+                        console.log("BUY " + curr);
+                        this.ajaxcall( "/forex/forex/invest.html", { 
+                            curr: curr,
+                            lock: true 
+                        }, this, function( result ) {  }, function( is_error) { } );                        
+                    });
+
+                }
             }
         },
 
@@ -1150,6 +1257,7 @@ function (dojo, declare) {
                     this.submitSpotTrade();
                     break;
                 case ACTIONS.INVEST:
+                    this.buyCertificates();
                     break;
                 case ACTIONS.DIVEST:
                     break;

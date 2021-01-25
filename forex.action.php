@@ -72,4 +72,14 @@
       self::ajaxResponse( );
     }
 
+    /**
+     * Buy certificates one at a time
+     */
+    public function invest() {
+      self::setAjaxMode();     
+      $curr = self::getArg( "curr", AT_alphanum, true );
+      $this->game->invest( $curr );
+      self::ajaxResponse( );
+    }
+
 }

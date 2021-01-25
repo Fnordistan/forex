@@ -91,8 +91,8 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} may make a Contract' ),
         "descriptionmyturn" => clienttranslate( '${you} may make a Contract' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "makeContract", "cancelAction" ),
-        "transitions" => array( "" => CHOOSE_ACTION )
+        "possibleactions" => array( "makeContract" ),
+        "transitions" => array( "" => NEXT_PLAYER )
     ),
 
     INVEST => array(
@@ -100,8 +100,8 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} may Invest in 1 or 2 Currencies' ),
         "descriptionmyturn" => clienttranslate( '${you} may may Invest in 1 or 2 Currencies' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "investCurrency", "cancelAction" ),
-        "transitions" => array( "" => CHOOSE_ACTION )
+        "possibleactions" => array( "investCurrency" ),
+        "transitions" => array( "" => NEXT_PLAYER )
     ),
 
     DIVEST => array(
@@ -109,8 +109,8 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} may Divest in 1 Currency' ),
         "descriptionmyturn" => clienttranslate( '${you} may may Divest in 1 Currency' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "divestCurrency", "cancelAction" ),
-        "transitions" => array( "" => CHOOSE_ACTION )
+        "possibleactions" => array( "divestCurrency" ),
+        "transitions" => array( "" => NEXT_PLAYER_DIVEST )
     ),
 
     NEXT_PLAYER_DIVEST => array(
@@ -120,7 +120,7 @@ $machinestates = array(
         "type" => "activeplayer",
         "args" => "argSellCertificates",
         "possibleactions" => array( "sellCertificates" ),
-        "transitions" => array( "nextDivest" => NEXT_PLAYER_DIVEST, "nextPlayer" => CHOOSE_ACTION )
+        "transitions" => array( "nextDivest" => NEXT_PLAYER_DIVEST, "nextPlayer" => NEXT_PLAYER )
     ),
 
     RESOLVE => array(

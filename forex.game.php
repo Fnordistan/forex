@@ -256,7 +256,7 @@ class ForEx extends Table
      * pair => other currency
      */
     function getCurrencyPairs($curr) {
-        $stored_pairs = self::getObjectListFromDB("SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS WHERE curr1 = $curr OR curr2 = $curr");
+        $stored_pairs = self::getObjectListFromDB("SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS WHERE curr1 = \"$curr\" OR curr2 = \"$curr\"");
         $pairs = array();
         foreach ($stored_pairs as $stored_pr) {
             $pair = array("curr" => $curr, "stronger" => $stored_pr['stronger'], "pos" => $stored_pr['position'], "pair" => $stored_pr['curr1'] == $curr ? $stored_pr['curr2'] : $stored_pr['curr1']);
@@ -375,7 +375,7 @@ class ForEx extends Table
      */
     function updateCurrencyPair($curr1, $curr2, $stronger, $pos) {
         self::DbQuery("
-            UPDATE CURRENCY_PAIRS SET stronger = $stronger, position = $pos
+            UPDATE CURRENCY_PAIRS SET stronger = \"$stronger\", position = $pos
             WHERE (curr1 = \"$curr1\" AND curr2 = \"$curr2\") OR (curr1 = \"$curr2\" AND curr2 = \"$curr1\")
         ");
     }
@@ -471,7 +471,15 @@ class ForEx extends Table
      * Return an array of card ids of the certificates a player has of the currency.
      */
     function getCertificates($player_id, $curr) {
-        $certs = self::getCollectionFromDB("SELECT card_id from CERTIFICATES WHERE card_type = $curr AND card_location = $player_id");
+        $certs = self::getObjectListFromDB("SELECT card_id from CERTIFICATES WHERE card_type = \"$curr\" AND card_location = $player_id", true);
+        return $certs;
+    }
+
+    /**
+     * Return an array of card ids of available certificates for a currency
+     */
+    function getAvailableCertificates($curr) {
+        $certs = self::getObjectListFromDB("SELECT card_id from CERTIFICATES WHERE card_type = \"$curr\" AND card_location = \"".AVAILABLE."\"", true);
         return $certs;
     }
 
@@ -486,7 +494,7 @@ class ForEx extends Table
         }
         // only choose n certs
         $certs_to_divest = array_keys(array_slice($mycerts, 0, $amt));
-        $self::DBQuery("UPDATE CERTIFICATES SET card_location = ".AVAILABLE." WHERE card_id IN $certs_to_divest");
+        $self::DBQuery("UPDATE CERTIFICATES SET card_location = \"".AVAILABLE."\" WHERE card_id IN $certs_to_divest");
         return $certs_to_divest;
     }
 
@@ -627,8 +635,15 @@ class ForEx extends Table
         if (count($mycerts) >= 4) {
             throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
         }
+        $availablecerts = $this->getAvailableCertificates($curr);
+        if (count($availablecerts) == 0) {
+            throw new BgaUserException(self::_("No ${curr} Certificates available for purchase"));
+        }
 
-        self::DbQuery("UPDATE BANK SET amt = ".($mybucks-2)." WHERE player = $player_id AND curr = $curr");
+        // take the first cert
+        $cert = array_pop($availablecerts);
+        self::DBQuery("UPDATE CERTIFICATES SET card_location = $player_id WHERE card_id = $cert");
+        $this->adjustMonies($player_id, $curr, -2);
 
         // clear any previous spot trade just prior to executing our action
         $this->clearSpotTrade();
@@ -641,6 +656,7 @@ class ForEx extends Table
             'curr' => $curr));
 
         $this->strengthen($curr);
+        $this->gamestate->nextState();
     }
 
     /**
