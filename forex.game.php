@@ -315,7 +315,7 @@ class ForEx extends Table
         foreach ($pairs as $pair) {
             $this->increase($curr, $pair);
         }
-        self::notifyAllPlayers('currencyStrengthened', '${player_name} strengthened ${currency}', array (
+        self::notifyAllPlayers('currencyStrengthened', clienttranslate('${currency} is strengthened'), array (
             'i18n' => array ('curr' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
@@ -331,7 +331,7 @@ class ForEx extends Table
         foreach ($pairs as $pair) {
             $this->decrease($curr, $pair);
         }
-        self::notifyAllPlayers('currencyWeakened', '${player_name} weakened ${currency}', array (
+        self::notifyAllPlayers('currencyWeakened', clienttranslate('${currency} is weakened'), array (
             'i18n' => array ('curr' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
@@ -464,7 +464,7 @@ class ForEx extends Table
         self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_changed}'), array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'adj' => $amt < 0 ? self::_("subtracts") : self::_("adds"),
+            'adj' => $amt < 0 ? self::_("spends") : self::_("gains"),
             'amt' => $amt,
             'curr' => $curr,
             'x_changed' => $x_monies,
@@ -677,7 +677,7 @@ class ForEx extends Table
             $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
 
             // movedeck for certificates
-            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${x_certs_bought}'), array (
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_certs_bought}'), array (
                 'i18n' => array ('curr'),
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),

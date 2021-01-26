@@ -246,7 +246,7 @@ function (dojo, declare) {
                     }
                     if (args.currency) {
                         // only for curr quantities without a number
-                        args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE);
+                        args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE, true);
                     }
                     if (args.X_SPOT_TRADE) {
                         log = log + this.insertTradeButtons(args.X_SPOT_TRADE) + '<br/>';
@@ -754,6 +754,26 @@ function (dojo, declare) {
             for (var j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
                 this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 500 ).play();
             }
+        },
+
+        /**
+         * Move a currency when it has been sttengthened or weakened
+         * @param {*} curr 
+         * @param {*} val 
+         */
+        moveCurrencyPairMarkers: function(curr, val) {
+            // var currency_pairs = this.gamedatas.currency_pairs;
+            // for (const c in currency_pairs) {
+            //     let curr1 = currency_pairs[c]['stronger'];
+            //     let curr2 = currency_pairs[c]['curr1'] == curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
+            //     var curr_pr = this.format_block('jstpl_curr_pair', {
+            //         "curr1": curr1,
+            //         "curr2": curr2
+            //     });
+            //     var currdiv = dojo.place(curr_pr, 'currency_board');
+            //     this.currencyPairZones[CURRENCY[curr1]-1][currency_pairs[c]['position']-1].placeInZone(currdiv.id);
+            // }
+
         },
 
         /**
@@ -1350,11 +1370,15 @@ function (dojo, declare) {
         notif_currencyStrengthened: function( notif ) {
             console.log( 'notif_currencyStrengthened' );
             console.log( notif );
+            var curr = notif.args.curr;
+            this.moveCurrencyPairMarkers(curr, 1);
         },
 
         notif_currencyWeakened: function( notif ) {
             console.log( 'notif_currencyWeakened' );
             console.log( notif );
+            var curr = notif.args.curr;
+            this.moveCurrencyPairMarkers(curr, -1);
         },    
 
         notif_spotTradeOffered: function( notif ) {
