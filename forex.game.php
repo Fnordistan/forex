@@ -28,6 +28,9 @@ define('SPOT_OFFER', 'spot_offer');
 define('SPOT_REQUEST', 'spot_request');
 define('SPOT_DONE', 'spot_trade_done');
 define('X_MONIES', 'arg_monies_string'); // matches js
+// match js and css vars
+define('NOTE', 'note');
+define('CERTIFICATE', 'cert');
 
 class ForEx extends Table
 {
@@ -312,10 +315,11 @@ class ForEx extends Table
         foreach ($pairs as $pair) {
             $this->increase($curr, $pair);
         }
-        self::notifyAllPlayers('currencyStrengthened', '${player_name} strengthened {$curr}', array (
+        self::notifyAllPlayers('currencyStrengthened', '${player_name} strengthened ${currency}', array (
             'i18n' => array ('curr' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
+            'currency' => $curr,
             'curr' => $curr));
     }
 
@@ -327,10 +331,11 @@ class ForEx extends Table
         foreach ($pairs as $pair) {
             $this->decrease($curr, $pair);
         }
-        self::notifyAllPlayers('currencyWeakened', '${player_name} weakened {$curr}', array (
+        self::notifyAllPlayers('currencyWeakened', '${player_name} weakened ${currency}', array (
             'i18n' => array ('curr' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
+            'currency' => $curr,
             'curr' => $curr));
     }
 
@@ -454,7 +459,7 @@ class ForEx extends Table
         $players = self::loadPlayersBasicInfos();
         self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = \"$curr\"");
 
-        $x_monies = $this->create_X_monies_arg(abs($amt), $curr, "note");
+        $x_monies = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
         self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_changed}'), array(
             'player_id' => $player_id,
@@ -535,7 +540,7 @@ class ForEx extends Table
      * Checks whether this player can purchase a Certificate of this currency.
      * Throws a user exception if not, otherwise returns an array of the available Certificates of this currency.
      */
-     function getAvailableCerts($player_id, $curr) {
+     function checkAvailableCerts($player_id, $curr) {
         $mybucks = $this->getMonies($player_id, $curr);
         if ($mybucks < 2) {
             throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
@@ -586,8 +591,8 @@ class ForEx extends Table
             throw new BgaUserException(self::_("${theirname} does not have ${req_amt} ${request}"));
         }
 
-        $x_offer = $this->create_X_monies_arg($off_amt, $offer, "note");
-        $x_request = $this->create_X_monies_arg($req_amt, $request, "note");
+        $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
+        $x_request = $this->create_X_monies_arg($req_amt, $request, NOTE);
 
         self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${x_monies_offer} for ${x_monies_request}'), array(
             'i18n' => array ('off_curr', 'req_curr'),
@@ -659,7 +664,7 @@ class ForEx extends Table
         // first check valid purchases
         $availablecerts = array();
         foreach($currencies as $curr) {
-            $availablecerts[$curr] = $this->getAvailableCerts($player_id, $curr);
+            $availablecerts[$curr] = $this->checkAvailableCerts($player_id, $curr);
         }
 
         // now do each purchase
@@ -669,12 +674,18 @@ class ForEx extends Table
             self::DBQuery("UPDATE CERTIFICATES SET card_location = $player_id WHERE card_id = $cert");
             $this->adjustMonies($player_id, $curr, -2);
 
+            $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
+
             // movedeck for certificates
-            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${curr} Certificate'), array (
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${x_certs_bought}'), array (
                 'i18n' => array ('curr'),
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
-                'curr' => $curr));
+                'curr' => $curr,
+                'cert_id' => $cert,
+                'x_certs_bought' => $x_certs,
+                X_MONIES => array('x_certs_bought' => $x_certs),
+            ));
 
             $this->strengthen($curr);
         }
@@ -722,8 +733,8 @@ class ForEx extends Table
 
         $players = self::loadPlayersBasicInfos();
 
-        $x_offer = $this->create_X_monies_arg($xchg[0], $offer_curr, "note");
-        $x_request = $this->create_X_monies_arg($xchg[1], $request_curr, "note");
+        $x_offer = $this->create_X_monies_arg($xchg[0], $offer_curr, NOTE);
+        $x_request = $this->create_X_monies_arg($xchg[1], $request_curr, NOTE);
 
         return array(
             "i18n" => array('offer_curr', 'request_curr'),

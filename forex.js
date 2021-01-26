@@ -171,12 +171,12 @@ function (dojo, declare) {
                     }), container);
                     dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
-                        "type": 'note',
+                        "type": CURRENCY_TYPE.NOTE,
                         "id": player_id
                     }), container);
                     dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
-                        "type": 'cert',
+                        "type": CURRENCY_TYPE.CERTIFICATE,
                         "id": player_id
                     }), container);
 
@@ -244,6 +244,10 @@ function (dojo, declare) {
                     if (args.you) {
                         log = log.replace("You", args.you);
                     }
+                    if (args.currency) {
+                        // only for curr quantities without a number
+                        args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE);
+                    }
                     if (args.X_SPOT_TRADE) {
                         log = log + this.insertTradeButtons(args.X_SPOT_TRADE) + '<br/>';
                     }
@@ -260,11 +264,7 @@ function (dojo, declare) {
                             var num = parseFloat(monies[0]);
                             var curr = monies[1];
                             var type = monies[2];
-                            var monies_span = this.format_block('jstpl_monies', {
-                                "num": num,
-                                "type": type,
-                                "curr": curr,
-                            });
+                            var monies_span = this.createMoniesXstr(num, curr, type);
                             args[argm] = monies_span;
                         }
                     }
@@ -1120,9 +1120,9 @@ function (dojo, declare) {
                     var transaction = this.createSpotTransaction(this.player_id, to, offer, request);
                     // do a pre-check - do both players have enough money?
                     if (this.getMonies(this.player_id, offer, CURRENCY_TYPE.NOTE) < transaction[SPOT.OFF_AMT]) {
-                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(transaction[SPOT.OFF_AMT], offer, 'note'), 'info'));
+                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(transaction[SPOT.OFF_AMT], offer, CURRENCY_TYPE.NOTE), 'info'));
                     } else if (this.getMonies(to, request, CURRENCY_TYPE.NOTE) < transaction[SPOT.REQ_AMT]) {
-                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(transaction[SPOT.REQ_AMT], request, 'note'), 'info'));
+                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(transaction[SPOT.REQ_AMT], request, CURRENCY_TYPE.NOTE), 'info'));
                     } else {
                         this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                             to_player: to,
@@ -1335,9 +1335,10 @@ function (dojo, declare) {
             dojo.subscribe( 'certificatesBought', this, "notif_certificatesBought" );
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
         },
-        
-        // TODO: from this point and below, you can write your game notifications handling methods
-        // Note: notif.args contains the arguments specified during you "notifyAllPlayers" / "notifyPlayer" PHP call
+
+        /**
+         * Adjusts counters. Does not do animation (that is handled by individual methods)
+         */
         notif_moniesChanged: function( notif ) {
             console.log( 'notif_moniesChanged' );
             var player_id = notif.args.player_id;
@@ -1394,10 +1395,24 @@ function (dojo, declare) {
         },    
 
 
+        /**
+         * When a player buys a Certificate. Take it out of available pile, move it to player's pile.
+         * @param {Object} notif 
+         */
         notif_certificatesBought: function( notif ) {
             console.log( 'notif_certificatesBought' );
-            console.log( notif );
-        },    
+            var player_id = notif.args.player_id;
+            var curr = notif.args.curr;
+            var id = parseInt(notif.args.cert_id);
+            
+            // show money being spent (note counter was already ticked by adjustmonies)
+            this.moveBankNotes(player_id, curr, -2);
+            // gain certificate and tick counter
+            this.availableCertCounters[CURRENCY[curr]-1].incValue(-1);
+            // show it moving to player's pile
+            this.availableCertificates[CURRENCY[curr]-1].removeFromStockById( id, curr+'_cert_counter_icon_'+player_id);
+            this.certCounters[player_id][CURRENCY[curr]-1].incValue(1);
+        },
 
         notif_certificatesSold: function( notif ) {
             console.log( 'notif_certificatesSold' );
