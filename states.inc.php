@@ -22,7 +22,6 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("HANDLE_OFFER", 21); // game manager between traders
     define("HANDLE_RESPONSE", 22);
     define("CONTRACT", 30);
-    define("INVEST", 40);
     define("DIVEST", 50);
     define("NEXT_PLAYER_DIVEST", 51);
     define("RESOLVE", 60);
@@ -49,7 +48,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
         "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
-        "transitions" => array( "spotOffer" => HANDLE_OFFER, "contract" => CONTRACT, "invest" => INVEST, "divest" => DIVEST, "resolve" => RESOLVE  )
+        "transitions" => array( "spotOffer" => HANDLE_OFFER, "contract" => CONTRACT, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST, "resolve" => RESOLVE  )
     ),
 
     NEXT_PLAYER => array(
@@ -92,15 +91,6 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${you} may make a Contract' ),
         "type" => "activeplayer",
         "possibleactions" => array( "makeContract" ),
-        "transitions" => array( "" => NEXT_PLAYER )
-    ),
-
-    INVEST => array(
-        "name" => "invest",
-        "description" => clienttranslate( '${actplayer} may Invest in 1 or 2 Currencies' ),
-        "descriptionmyturn" => clienttranslate( '${you} may may Invest in 1 or 2 Currencies' ),
-        "type" => "activeplayer",
-        "possibleactions" => array( "investCurrency" ),
         "transitions" => array( "" => NEXT_PLAYER )
     ),
 

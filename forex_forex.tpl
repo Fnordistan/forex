@@ -72,6 +72,9 @@ var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
 
+// displays just the "number+currency" string
+var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span>';
+
 // displays "<n> <curr> <icon>"
 var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}" title="${curr} ${type}"></span>';
 

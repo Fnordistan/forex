@@ -75,10 +75,10 @@
     /**
      * Buy certificates one at a time
      */
-    public function invest() {
-      self::setAjaxMode();     
-      $curr = self::getArg( "curr", AT_alphanum, true );
-      $this->game->invest( $curr );
+    public function investCurrency() {
+      self::setAjaxMode();
+      $curr_to_buy = self::getArg( "buys", AT_alphanum, true );
+      $this->game->investCurrency( $curr_to_buy );
       self::ajaxResponse( );
     }
 

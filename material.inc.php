@@ -13,7 +13,9 @@
  * For-Ex game material description
  */
 
-$this->contracts = array('A','B','C','D','E','F');
+$this->contracts = ['A','B','C','D','E','F'];
+
+// $this->currency_enum = ['GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY'];
 
 $this->currencies = array(
   1 => 'GBP',

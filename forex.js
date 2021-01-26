@@ -758,12 +758,17 @@ function (dojo, declare) {
 
         /**
          * Create a string for the X_MONIES arg in logs
-         * @param {*} num 
-         * @param {*} curr 
-         * @param {*} type 
+         * @param {int} num 
+         * @param {string} curr 
+         * @param {enum} type 
+         * @param {bool} no_icon (optional) if true, displays only # curr, not icon
          */
-        createMoniesXstr: function(num, curr, type) {
-            return this.format_block('jstpl_monies', {
+        createMoniesXstr: function(num, curr, type, no_icon) {
+            var jstpl = 'jstpl_monies';
+            if (no_icon) {
+                jstpl = 'jstpl_curr_ct';
+            }
+            return this.format_block(jstpl, {
                 "num": num,
                 "curr": curr,
                 "type": type
@@ -996,41 +1001,40 @@ function (dojo, declare) {
         addInvestActions: function() {
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_cert_btn';
-                if (this.checkCanInvest(curr)) {
+                var warn_msg = this.checkCanInvest(curr);
+                if (warn_msg == null) {
                     dojo.connect( $(btn_id), 'onclick', this, function(){
                         this.investAction(curr, btn_id);
                     });
                 } else {
-                    dojo.attr(btn_id, 'disabled', true);
+                    dojo.addClass(btn_id, 'frx_curr_btn_deactivate');
+                    this.addTooltip(btn_id, warn_msg, 0);
                 }
             });
         },
 
         /**
          * Check whether we can buy a certificate of this currency.
-         * Returns true if we can
+         * Returns null if we can, else returns a warn message
          * @param {string} curr 
          */
         checkCanInvest: function(curr) {
             // do I have the money?
             var notes = this.getMonies(this.player_id, curr, CURRENCY_TYPE.NOTE);
             if (notes < 2) {
-                // this.showMessage(this.spanYou() + _(" do not have ")+this.createMoniesXstr(2, curr, CURRENCY_TYPE.NOTE));
-                return false;
+                return this.spanYou() + _(" do not have ")+this.createMoniesXstr(2, curr, CURRENCY_TYPE.NOTE, true);
             }
             // do I already have 4 certs of this currency?
             var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
             if (certs >= 4) {
-                // this.showMessage(this.spanYou() + _(" may not hold more than ")+this.createMoniesXstr(4, curr, CURRENCY_TYPE.CERTIFICATE));
-                return false;
+                return this.spanYou() + _(" may not hold more than ")+this.createMoniesXstr(4, curr, CURRENCY_TYPE.CERTIFICATE, true);
             }
             // are there any left?
             var avail = this.availableCertCounters[CURRENCY[curr]-1].getValue();
             if (avail == 0) {
-                // this.showMessage(_("There are no ${curr} Certificates available for purchase"));
-                return false;
+                return _("There are no ${curr} Certificates available for purchase");
             }
-            return true;
+            return null;
         },
 
         /**
@@ -1187,14 +1191,10 @@ function (dojo, declare) {
                 if (buys.length == 0) {
                     this.showMessage(_("No Currencies selected!"), "info");
                 } else {
-                    buys.forEach(curr => {
-                        console.log("BUY " + curr);
-                        this.ajaxcall( "/forex/forex/invest.html", { 
-                            curr: curr,
-                            lock: true 
-                        }, this, function( result ) {  }, function( is_error) { } );                        
-                    });
-
+                    this.ajaxcall( "/forex/forex/investCurrency.html", { 
+                        buys: buys.join(' '),
+                        lock: true 
+                    }, this, function( result ) {  }, function( is_error) { } );                        
                 }
             }
         },

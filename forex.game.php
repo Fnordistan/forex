@@ -524,6 +524,33 @@ class ForEx extends Table
         return $amt."_".$curr."_".$type;
     }
 
+    /**
+     * Wrapper that puts the endarg in final ${} at end of notif message.
+     */
+    function create_log_arg($notif_str, $endarg) {
+        return $notif_str.'${'.$endarg.'}';
+    }
+
+    /**
+     * Checks whether this player can purchase a Certificate of this currency.
+     * Throws a user exception if not, otherwise returns an array of the available Certificates of this currency.
+     */
+     function getAvailableCerts($player_id, $curr) {
+        $mybucks = $this->getMonies($player_id, $curr);
+        if ($mybucks < 2) {
+            throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
+        }
+        $mycerts = $this->getCertificates($player_id, $curr);
+        if (count($mycerts) >= 4) {
+            throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
+        }
+        $availablecerts = $this->getAvailableCertificates($curr);
+        if (count($availablecerts) == 0) {
+            throw new BgaUserException(self::_("No ${curr} Certificates available for purchase"));
+        }
+        return $availablecerts;
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Player actions
 //////////// 
@@ -621,42 +648,38 @@ class ForEx extends Table
     }
 
     /**
-     * Buy a certificate.
+     * Buy 1 or 2 certificates.
+     * Received from client as a space-separated string
      */
-    function invest($curr) {
-        self::checkAction( 'investCurrency' ); 
+    function investCurrency($curr_to_buy) {
+        self::checkAction( 'investCurrency' );
+        $currencies = explode(" ", $curr_to_buy);
 
         $player_id = self::getActivePlayerId();
-        $mybucks = $this->getMonies($player_id, $curr);
-        if ($mybucks < 2) {
-            throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
-        }
-        $mycerts = $this->getCertificates($player_id, $curr);
-        if (count($mycerts) >= 4) {
-            throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
-        }
-        $availablecerts = $this->getAvailableCertificates($curr);
-        if (count($availablecerts) == 0) {
-            throw new BgaUserException(self::_("No ${curr} Certificates available for purchase"));
+        // first check valid purchases
+        $availablecerts = array();
+        foreach($currencies as $curr) {
+            $availablecerts[$curr] = $this->getAvailableCerts($player_id, $curr);
         }
 
-        // take the first cert
-        $cert = array_pop($availablecerts);
-        self::DBQuery("UPDATE CERTIFICATES SET card_location = $player_id WHERE card_id = $cert");
-        $this->adjustMonies($player_id, $curr, -2);
+        // now do each purchase
+        foreach($currencies as $curr) {
+            // take the first cert
+            $cert = array_pop($availablecerts[$curr]);
+            self::DBQuery("UPDATE CERTIFICATES SET card_location = $player_id WHERE card_id = $cert");
+            $this->adjustMonies($player_id, $curr, -2);
 
-        // clear any previous spot trade just prior to executing our action
-        $this->clearSpotTrade();
+            // movedeck for certificates
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${curr} Certificate'), array (
+                'i18n' => array ('curr'),
+                'player_id' => self::getActivePlayerId(),
+                'player_name' => self::getActivePlayerName(),
+                'curr' => $curr));
 
-        // movedeck for certificates
-        self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} bought ${curr} Certificate'), array (
-            'i18n' => array ('curr'),
-            'player_id' => self::getActivePlayerId(),
-            'player_name' => self::getActivePlayerName(),
-            'curr' => $curr));
+            $this->strengthen($curr);
+        }
 
-        $this->strengthen($curr);
-        $this->gamestate->nextState();
+        $this->gamestate->nextState("nextPlayer");
     }
 
     /**
@@ -664,9 +687,6 @@ class ForEx extends Table
      */
     function divest($curr, $amt) {
         $player_id = self::getActivePlayerId();
-
-        // clear any previous spot trade just prior to executing our action
-        $this->clearSpotTrade();
 
         $divested_certs = $this->divestCertificates($player_id, $curr, $amt);
         $cash = $amt*2;
@@ -749,14 +769,16 @@ class ForEx extends Table
         $this->gamestate->nextState();
     }
 
+    /**
+     * End of player turn.
+     */
     function stNextPlayer() {
-        self::setGameStateValue('spot_trade_done', 0);
+        $this->clearSpotTrade();
 
         $player_id = self::activeNextPlayer();
         self::giveExtraTime( $player_id );
 
-        $this->gamestate->nextState( 'nextPlayer' );        
-
+        $this->gamestate->nextState();        
     }
 
 //////////////////////////////////////////////////////////////////////////////
