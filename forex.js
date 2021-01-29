@@ -437,7 +437,6 @@ function (dojo, declare) {
             this.dividendCounter.incValue(dividends);
         },
 
-
         /**
          * Adds tooltip to a Certificate
          * @param {string} card_div 
@@ -797,140 +796,156 @@ function (dojo, declare) {
          * @param {*} val 
          */
         moveCurrencyPairMarkers: function(curr, val) {
-            val currencypairs = this.gamedatas.currency_pairs;
+            var currencypairs = this.gamedatas.currency_pairs;
             // collect pairs this currency is weaker or stronger
             var weaker = [];
             var stronger = [];
             for (const cp in currencypairs) {
                 pair = currencypairs[cp];
-                if (cp['curr1'] == curr || cp['curr2'] == curr) {
-                    if (curr == cp['stronger']) {
-                        stronger.push(curr);
+                if (pair['curr1'] == curr || pair['curr2'] == curr) {
+                    if (curr == pair['stronger']) {
+                        stronger.push(pair);
                     } else {
-                        weaker.push(curr);
+                        weaker.push(pair);
                     }
                 }
             }
             for (let i = 0; i < Math.abs(val); i++) {
                 if (val < 0) {
-                    this.weakenCurrency(curr, stronger, weaker);
+                    this.weakenCurrency(stronger, weaker);
                 } else {
-                    this.strengthenCurrency(curr, stronger, weaker);
+                    this.strengthenCurrency(stronger, weaker);
                 }
             }
         },
 
         /**
          * We're strengthening the currency.
-         * @param {*} curr 
-         * @param {*} stronger 
-         * @param {*} weaker 
+         * @param {array} stronger 
+         * @param {array} weaker 
          */
-        strengthenCurrency: function(curr, stronger, weaker) {
+        strengthenCurrency: function(stronger, weaker) {
             for( s in stronger ) {
-                this.moveCounterRight(curr, stronger[s]);
+                this.moveCounterRight(stronger[s]);
             }
             for( w in weaker ) {
-                this.moveCounterLeft(curr, weaker[w]);
+                this.moveCounterLeft(weaker[w]);
             }
         },
 
         /**
          * We're weakening the currency.
-         * @param {*} curr 
-         * @param {*} stronger 
-         * @param {*} weaker 
+         * @param {array} stronger 
+         * @param {array} weaker 
          */
-        weakenCurrency: function(curr, stronger, weaker) {
+        weakenCurrency: function(stronger, weaker) {
             for( s in stronger ) {
-                this.moveCounterLeft(curr, stronger[s]);
+                this.moveCounterLeft(stronger[s]);
             }
             for( w in weaker ) {
-                this.moveCounterRight(curr, weaker[w]);
+                this.moveCounterRight(weaker[w]);
             }
         },
 
         /**
          * Either this currency is being weakened or the stronger currency whose board it's on is being strengthened.
-         * @param {*} curr 
          * @param {*} pair 
          */
-        moveCounterRight: function(curr, pair) {
+        moveCounterRight: function(pair) {
             if (pair['position'] == 10) {
                 // can't be weakened further
                 return;
             }
-            this.shiftCounter(curr, pair, 1);
+            this.shiftCounter(pair, 1);
         },
 
         /**
          * Either this currency is being strengthened or the stronger currency whose board it's on is being weakened.
-         * @param {*} curr 
          * @param {*} pair 
          */
-        moveCounterLeft: function(curr, pair) {
+        moveCounterLeft: function(pair) {
             if (pair.position == 1) {
-                // flip to new board
+                this.flipPair(pair);
             } else {
-                this.shiftCounter(curr, pair, -1);
+                this.shiftCounter(pair, -1);
             }
         },
 
         /**
          * Move the counter 1 along its track.
-         * @param {*} curr 
          * @param {*} pair 
          * @param {*} dir 
          */
-        shiftCounter: function(curr, pair, dir) {
+        shiftCounter: function(pair, dir) {
             var zone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1];
             var destZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1+dir];
-            this.moveCounter(zone, destZone);
-            pair['position'] = pair['position']+dir;
+            this.moveCounter(pair, zone, destZone);
+            pair['position'] = parseInt(pair['position'])+dir;
         },
 
         /**
-         * Eemove counter from one zone, add to another, animate its movement
-         * @param {*} startZone 
-         * @param {*} endZone 
+         * Remove counter from one zone, add to another, animate its movement.
+         * We have prechecked that the pair is staying on its current track.
+         * @param {Object} pair
+         * @param {*} startZone
+         * @param {*} endZone
          */
-        moveCounter: function(startZone, endZone) {
-            var ctrs = startZone.getAllItems();
-            {get the counter corresponding to curr}
-            startZone.removeItem(id);
-            {slide animation - counter to destiny}
-            endZone.addItem(id);
-            return id;
+        moveCounter: function(pair, startZone, endZone) {
+            // currency to be moved is the weaker of the pair
+            var curr = (pair['stronger'] == pair['curr1']) ? pair['curr2'] : pair['curr1'];
+            var pair_id = 'pair_'+pair['stronger']+'_'+curr;
+            startZone.removeFromZone(pair_id, false, endZone.id);
+            endZone.placeInZone(pair_id);
+            return pair_id;
         },
 
         /**
          * Stronger has been weakened, or weaker has been strengthened
          * either way, this curr gets taken off stronger's board, and the prev stronger now
          * appears on this curr's board.
-         * @param {*} curr 
-         * @param {*} pair 
+         * @param {Object} pair 
          */
-        flipPair: function(curr, pair) {
-            var zone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][0];
+        flipPair: function(pair) {
+            var curr = (pair['stronger'] == pair['curr1']) ? pair['curr2'] : pair['curr1'];
+            var startZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][0];
             var destZone = this.currencyPairZones[CURRENCY[curr]-1][0];
-            var id = this.moveCounter(zone, destZone);
-            // now we have to destroy final counter and replace with new one, flipped
-            destZone.removeFromZone(id, true, );
-            var flipping_ctr = this.format_block('jstpl_flip_counter', {
-                curr1: curr,
-                curr2: pair.stronger
+            var old_ctr_id = this.moveCounter(pair, startZone, destZone);
+            // now we have to destroy counter that was moved to new track
+            destZone.removeFromZone(old_ctr_id, true, destZone.id);
+            // debugger;
+            // do the flipping animation
+            this.flip_counter(pair['stronger'], curr);
+            // now put the new counter in place
+            var new_ctr = this.format_block('jstpl_curr_pair', {
+                "curr1": curr,
+                "curr2": pair['stronger']
             });
-            dojo.place(flipping_ctr, destZone);
+            var new_div = dojo.place(new_ctr, 'currency_board');
 
-            var ctr_id = 'flip_'+curr+'_'+pair.stronger;
-            dojo.addClass(ctr_id, 'frx_flipped');
-            or
-            dojo.query(".frx_flip_inner").style("transform", "rotateX(180deg)");
-            dojo.query(".frx_flip_ctr").style("transform", "rotateX(180deg)");
-            pair.stronger = curr;
-            pair.position = 1;
+            destZone.placeInZone(new_div.id, destZone.getItemNumber());
+            // adjust original pair
+            pair['stronger'] = curr;
+            pair['position'] = 1;
         },
 
+        /**
+         * Animation for flipping, then removing the flip classes
+         * @param {string} old_stronger
+         * @param {string} new_stronger
+         */
+        flip_counter: function(old_stronger, new_stronger) {
+            var flipping_ctr = this.format_block('jstpl_flip_counter', {
+                curr1: new_stronger,
+                curr2: old_stronger
+            });
+            dojo.place(flipping_ctr, new_stronger+'_1');
+
+            var ctr_id = 'flip_'+new_stronger+'_'+old_stronger+'_container';
+            // dojo.addClass(ctr_id, 'frx_flipped');
+            dojo.query(".frx_flipper").style("transform", "rotateX(180deg)");
+            dojo.query(".frx_flip_container").style("transform", "rotateX(180deg)");
+            dojo.destroy(ctr_id);
+        },
 
         ///////////////////////////////////////////////////
         //// Client "State" Functions

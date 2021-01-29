@@ -313,6 +313,33 @@
     background-position: -150px 0px;
 }
 
+.frx_flip_container {
+    background-color: transparent;
+    width: 25px;
+    height: 25px;
+    perspective: 1000px;
+}
+
+.frx_flipper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+}
+
+.frx_ctr_front, .frx_ctr_back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+.frx_ctr_back {
+    transform: rotateX(180deg);
+}
+
 .frx_player_btn {
     display: inline-block;
     color: var(--color);
