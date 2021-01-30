@@ -340,7 +340,7 @@ class ForEx extends Table
     }
 
     /**
-     * Increase a $curr relative to the other currency in the par. Update in Db.
+     * Increase a $curr relative to the other currency in the pair. Update in Db.
      */
     protected function increase($curr, $pair) {
         $pos = $pair['pos'];

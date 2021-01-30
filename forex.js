@@ -313,15 +313,17 @@ function (dojo, declare) {
                 avail.extraClasses='frx_card_shadow';
                 avail.setSelectionMode(0);
                 avail.setOverlap(10, 0);
-                avail.onItemCreate = dojo.hitch(this, this.setupCertificate);
+                avail.onItemCreate = (card_div, card_type, cert_item) => {
+                    this.setupCertificate(card_div, card_type, cert_item);
+                };
                 avail.addItemType( curr, 0, g_gamethemeurl+CERT_SPRITES, CURRENCY[curr]-1 );
                 avail.autowidth = true;
                 this.availableCertificates.push(avail);
                 // and create a matching counter
                 var counter = new ebg.counter();
                 counter.create('avail_certs_'+curr+'_ctr');
-                dojo.addClass('avail_certs_'+curr+'_ctr', 'frx_ctr');
-                dojo.style('avail_certs_'+curr+'_ctr', {
+                $('avail_certs_'+curr+'_ctr').classList.add('frx_ctr');
+                Object.assign($('avail_certs_'+curr+'_ctr').style, {
                     'color': COLORS[curr],
                     'vertical-align': 'top'
                 });
@@ -427,7 +429,7 @@ function (dojo, declare) {
                 });
                 divdiv = dojo.place(dividend, 'contract_queue_container');
                 var off_x = -div_num * this.dvdwidth;
-                dojo.style(divdiv, "background-position", off_x+"px 0px");
+                divdiv.style["background-position"] = off_x+"px 0px";
                 this.divstack.placeInZone(divdiv.id);
             }
             // we put the counter on top of the last Dividend
@@ -596,7 +598,7 @@ function (dojo, declare) {
          */
         setDescriptionOnMyTurn : function(text, moreargs) {
             this.gamedatas.gamestate.descriptionmyturn = text;
-            var tpl = dojo.clone(this.gamedatas.gamestate.args);
+            var tpl = Object.assign({}, this.gamedatas.gamestate.args);
 
             if (!tpl) {
                 tpl = {};
@@ -628,7 +630,7 @@ function (dojo, declare) {
          * Assumes a current player_id
          */
         getOtherPlayers: function() {
-            var player_cpy = dojo.clone(this.gamedatas.players);
+            var player_cpy = Object.assign({}, this.gamedatas.players);
             delete player_cpy[this.player_id];
             return player_cpy;
         },
@@ -759,10 +761,10 @@ function (dojo, declare) {
          * Create a string for the X_MONIES arg in logs
          * @param {int} num 
          * @param {string} curr 
-         * @param {enum} type 
+         * @param {enum} type defaults to note
          * @param {bool} no_icon (optional) if true, displays only # curr, not icon
          */
-        createMoniesXstr: function(num, curr, type, no_icon) {
+        createMoniesXstr: function(num, curr, type = 'note', no_icon) {
             var jstpl = 'jstpl_monies';
             if (no_icon) {
                 jstpl = 'jstpl_curr_ct';
@@ -912,17 +914,19 @@ function (dojo, declare) {
             var old_ctr_id = this.moveCounter(pair, startZone, destZone);
             // now we have to destroy counter that was moved to new track
             destZone.removeFromZone(old_ctr_id, true, destZone.id);
-            // debugger;
             // do the flipping animation
-            this.flip_counter(pair['stronger'], curr);
+            this.flipCounter(pair['stronger'], curr);
+            // this.flipCounter(pair['stronger'], curr);
             // now put the new counter in place
             var new_ctr = this.format_block('jstpl_curr_pair', {
                 "curr1": curr,
                 "curr2": pair['stronger']
             });
-            var new_div = dojo.place(new_ctr, 'currency_board');
-
+            var new_div = dojo.place(new_ctr, curr+'_1');
+            // temporarily hide it to avoid annoying motion from off-board
+            // new_div.style.display = 'none';
             destZone.placeInZone(new_div.id, destZone.getItemNumber());
+            // new_div.style.display = 'block';
             // adjust original pair
             pair['stronger'] = curr;
             pair['position'] = 1;
@@ -933,18 +937,14 @@ function (dojo, declare) {
          * @param {string} old_stronger
          * @param {string} new_stronger
          */
-        flip_counter: function(old_stronger, new_stronger) {
+        flipCounter: function(old_stronger, new_stronger) {
             var flipping_ctr = this.format_block('jstpl_flip_counter', {
                 curr1: new_stronger,
                 curr2: old_stronger
             });
-            dojo.place(flipping_ctr, new_stronger+'_1');
-
-            var ctr_id = 'flip_'+new_stronger+'_'+old_stronger+'_container';
-            // dojo.addClass(ctr_id, 'frx_flipped');
-            dojo.query(".frx_flipper").style("transform", "rotateX(180deg)");
-            dojo.query(".frx_flip_container").style("transform", "rotateX(180deg)");
-            dojo.destroy(ctr_id);
+            var flipped = dojo.place(flipping_ctr, new_stronger+'_1');
+            flipped.classList.toggle("flip");
+            dojo.destroy(flipped);
         },
 
         ///////////////////////////////////////////////////
@@ -964,6 +964,9 @@ function (dojo, declare) {
             this.addActionButton( ACTIONS.RESOLVE+BTN, _('Resolve Contract'), ACTIONS.RESOLVE);
         },
 
+        /**
+         * Remove all the action buttons after canceling out.
+         */
         removeActionButtons: function() {
             for (const A in ACTIONS) {
                 dojo.destroy(ACTIONS[A]+BTN);
@@ -1165,7 +1168,7 @@ function (dojo, declare) {
                         this.investAction(curr, btn_id);
                     });
                 } else {
-                    dojo.addClass(btn_id, 'frx_curr_btn_deactivate');
+                    $(btn_id).classList.add('frx_curr_btn_deactivate');
                     this.addTooltip(btn_id, warn_msg, 0);
                 }
             });
@@ -1484,7 +1487,9 @@ function (dojo, declare) {
             console.log( 'notifications subscriptions setup' );
             
             dojo.subscribe( 'currencyStrengthened', this, "notif_currencyStrengthened" );
+            this.notifqueue.setSynchronous( 'notif_currencyStrengthened', 500 );
             dojo.subscribe( 'currencyWeakened', this, "notif_currencyWeakened" );
+            this.notifqueue.setSynchronous( 'notif_currencyWeakened', 500 );
             dojo.subscribe( 'moniesChanged', this, "notif_moniesChanged" );
             dojo.subscribe( 'spotTradeOffered', this, "notif_spotTradeOffered" );
             dojo.subscribe( 'spotTradeAccepted', this, "notif_spotTradeAccepted" );

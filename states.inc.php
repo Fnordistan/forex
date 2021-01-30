@@ -41,7 +41,7 @@ $machinestates = array(
         "action" => "stGameSetup",
         "transitions" => array( "" => CHOOSE_ACTION )
     ),
-    
+
     CHOOSE_ACTION => array(
         "name" => "playerAction",
         "description" => clienttranslate( '${actplayer} must choose an action' ),

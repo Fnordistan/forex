@@ -89,13 +89,11 @@ var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ct
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 
-var jstpl_flip_counter = '<div id="flip_${curr1}_${curr2}_container" class="frx_flip_container">\
-                            <div id="flip_${curr1}_${curr2}" class="frx_flipper">\
-                                <div id="old_ctr_${curr1}" class="frx_ctr_front">\
-                                    <span id="pair_${curr2}_${curr1}" class="frx_curr_pr frx_pr_${curr1}"></span>\
+var jstpl_flip_counter = '<div id="flip_container_${curr1}_${curr2}" class="frx_flip_container">\
+                            <div id="flipper_${curr1}_${curr2}" class="frx_flipper">\
+                                <div id="flip_front_${curr1}" class="frx_ctr_front frx_curr_pr frx_pr_${curr1}">\
                                 </div>\
-                                <div id="new_ctr_${curr2}" class="frx_ctr_back">\
-                                    <span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>\
+                                <div id="flip_back_${curr2}" class="frx_ctr_back frx_curr_pr frx_pr_${curr2}">\
                                 </div>\
                             </div>\
                         </div>';
