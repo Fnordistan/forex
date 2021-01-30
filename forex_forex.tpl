@@ -56,9 +56,6 @@
 
 // Javascript HTML templates
 
-// the actual counter shown is always curr2 (the weaker currency)
-var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
-
 var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span>';
 
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
@@ -89,12 +86,14 @@ var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ct
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 
-var jstpl_flip_counter = '<div id="flip_container_${curr1}_${curr2}" class="frx_flip_container">\
+// the actual counter shown is always curr2 (the weaker currency)
+var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
+
+// note that it is given the same id as a regular jstpl_curr_pair
+var jstpl_flip_counter = '<div id="pair_${curr1}_${curr2}" class="frx_flip_container">\
                             <div id="flipper_${curr1}_${curr2}" class="frx_flipper">\
-                                <div id="flip_front_${curr1}" class="frx_ctr_front frx_curr_pr frx_pr_${curr1}">\
-                                </div>\
-                                <div id="flip_back_${curr2}" class="frx_ctr_back frx_curr_pr frx_pr_${curr2}">\
-                                </div>\
+                                <div id="flip_front_${curr1}" class="frx_ctr_front frx_curr_pr frx_pr_${curr1}"></div>\
+                                <div id="flip_back_${curr2}" class="frx_ctr_back frx_curr_pr frx_pr_${curr2}"></div>\
                             </div>\
                         </div>';
 

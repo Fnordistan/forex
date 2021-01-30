@@ -915,19 +915,8 @@ function (dojo, declare) {
             // now we have to destroy counter that was moved to new track
             destZone.removeFromZone(old_ctr_id, true, destZone.id);
             // do the flipping animation
-            this.flipCounter(pair['stronger'], curr);
-            // this.flipCounter(pair['stronger'], curr);
-            // now put the new counter in place
-            var new_ctr = this.format_block('jstpl_curr_pair', {
-                "curr1": curr,
-                "curr2": pair['stronger']
-            });
-            var new_div = dojo.place(new_ctr, curr+'_1');
-            // temporarily hide it to avoid annoying motion from off-board
-            // new_div.style.display = 'none';
-            destZone.placeInZone(new_div.id, destZone.getItemNumber());
-            // new_div.style.display = 'block';
-            // adjust original pair
+            flipped = this.flipCounter(pair['stronger'], curr);
+            destZone.placeInZone(flipped.id, destZone.getItemNumber());
             pair['stronger'] = curr;
             pair['position'] = 1;
         },
@@ -944,7 +933,8 @@ function (dojo, declare) {
             });
             var flipped = dojo.place(flipping_ctr, new_stronger+'_1');
             flipped.classList.toggle("flip");
-            dojo.destroy(flipped);
+            // dojo.destroy(flipped);
+            return flipped;
         },
 
         ///////////////////////////////////////////////////
