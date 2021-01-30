@@ -458,13 +458,6 @@ function (dojo, declare) {
         onEnteringState: function( stateName, args ) {
             console.log( 'Entering state: '+stateName );
 
-            // switch( stateName ) {
-            
-            // case 'playerAction':
-            //     break;
-            // case 'dummmy':
-            //     break;
-            // }
         },
 
         // onLeavingState: this method is called each time we are leaving a game state.
@@ -477,22 +470,6 @@ function (dojo, declare) {
             switch( stateName ) {
                 case 'playerAction':
                     this.removeActionButtons();
-                    break;
-                case 'invest':
-                    this.SPOT_TRANSACTION = null;
-                    this.SPOT_DONE = 0;
-                    break;
-                case 'divest':
-                    this.SPOT_TRANSACTION = null;
-                    this.SPOT_DONE = 0;
-                    break;
-                case 'contract':
-                    this.SPOT_TRANSACTION = null;
-                    this.SPOT_DONE = 0;
-                    break;
-                case 'resolve':
-                    this.SPOT_TRANSACTION = null;
-                    this.SPOT_DONE = 0;
                     break;
                 case 'dummmy':
                     break;
@@ -572,11 +549,11 @@ function (dojo, declare) {
          * @param {string} curr_type 
          */
         insertCurrencyButtons: function(curr_type) {
-            var note_buttons = "";
+            var curr_buttons = "";
             Object.keys(CURRENCY).forEach(curr => {
-                note_buttons += " "+this.createNoteButton(curr_type, curr);
+                curr_buttons += " "+this.createNoteButton(curr_type, curr);
             });
-            return note_buttons;
+            return curr_buttons;
         },
 
         /**
@@ -588,6 +565,21 @@ function (dojo, declare) {
             return this.format_block('jstpl_curr_btn', {
                 "type": curr_type,
                 "curr": curr, 
+            });
+       },
+
+       /**
+        * +/- button
+        * @param {*} curr 
+        * @param {*} type 
+        * @param {*} inc 
+        */
+       createIncButton: function(curr, type, inc) {
+            return this.format_block('jstpl_curr_inc_btn', {
+                "type": type,
+                "curr": curr,
+                "inc": inc == '+' ? 'plus': 'minus',
+                "x": inc
             });
        },
 
@@ -927,13 +919,14 @@ function (dojo, declare) {
          * @param {string} new_stronger
          */
         flipCounter: function(old_stronger, new_stronger) {
+            console.log("creating flip counter");
             var flipping_ctr = this.format_block('jstpl_flip_counter', {
                 curr1: new_stronger,
                 curr2: old_stronger
             });
+            // alert("flipping "+old_stronger+" to "+new_stronger);
             var flipped = dojo.place(flipping_ctr, new_stronger+'_1');
             flipped.classList.toggle("flip");
-            // dojo.destroy(flipped);
             return flipped;
         },
 
@@ -1221,6 +1214,76 @@ function (dojo, declare) {
             dojo.byId('invest_txt').innerHTML = text;
         },
 
+        ///////////////////////// DIVEST /////////////////////////
+
+        /**
+         * Add buttons to sell certificates
+         */
+        addDivestActions: function() {
+            Object.keys(CURRENCY).forEach(curr => {
+                let btn_id = curr+'_cert_btn';
+                var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
+                if (certs == 0) {
+                    $(btn_id).classList.add('frx_curr_btn_deactivate');
+                } else {
+                    dojo.connect( $(btn_id), 'onclick', this, function(){
+                        this.divestAction(curr, btn_id, certs);
+                    });
+                }
+            });
+        },
+
+        /**
+         * Action that happens when clicked on a Certificate to sell.
+         * Adds the cert button and +/- to increment them
+         * @param {string} curr
+         * @param {string} btn_id 
+         * @param {int} num_certs
+         */
+        divestAction: function(curr, btn_id, num_certs) {
+            // are we deselecting it?
+            if (!($(btn_id).classList.contains('frx_curr_btn_selected'))) {
+                // we selected it. Deselect any previous ones
+                var selected = dojo.query('.frx_curr_btn_selected');
+                if (selected.length != 0) {
+                    // should only ever be one!
+                    dojo.toggleClass(selected[0], btn_id, 'frx_curr_btn_selected');
+                }
+            }
+            // now toggle (either to deselect or select it)
+            dojo.toggleClass(btn_id, 'frx_curr_btn_selected');
+            // now construct message
+            if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
+                this.setDivestMessage(curr, 1);
+                document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
+                    this.addCertificatesSold(curr);
+                });
+                document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
+                    this.subtractCertificatesSold(curr);
+                });
+            }
+        },
+
+        addCertificatesSold: function(curr) {
+            console.log("add " + curr);
+        },
+
+        subtractCertificatesSold: function(curr) {
+            console.log("sub " + curr);
+
+        },
+
+
+        setDivestMessage: function(curr, val) {
+            var text = _("Sell ")+this.createMoniesXstr(val, curr, CURRENCY_TYPE.CERTIFICATE);
+            var inc_buttons = this.format_block('jstpl_plus_minus_btns', {
+                "curr": curr,
+                "type": CURRENCY_TYPE.CERTIFICATE
+            });
+            text += inc_buttons;
+            document.getElementById('divest_txt').innerHTML = text;
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         
@@ -1320,7 +1383,7 @@ function (dojo, declare) {
         investCurrency: function(evt) {
             if (this.checkAction('investCurrency', true)) {
                 this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may invest in 1 or 2 Currencies"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
+                this.setDescriptionOnMyTurn(_("You may buy 1 or 2 Certificates"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
                 this.addInvestActions();
                 this.addConfirmButton(ACTIONS.INVEST);
                 this.addCancelButton();
@@ -1357,6 +1420,8 @@ function (dojo, declare) {
         divestCurrency: function(evt) {
             if (this.checkAction('divestCurrency', true)) {
                 this.removeActionButtons();
+                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_txt'});
+                this.addDivestActions();
                 this.addConfirmButton(ACTIONS.DIVEST);
                 this.addCancelButton();
             }

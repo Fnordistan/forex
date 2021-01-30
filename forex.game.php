@@ -677,7 +677,7 @@ class ForEx extends Table
             $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
 
             // movedeck for certificates
-            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_certs_bought}'), array (
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_certs_bought} Certificate'), array (
                 'i18n' => array ('curr'),
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
