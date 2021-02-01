@@ -54,20 +54,24 @@
 
 <script type="text/javascript">
 
-// Javascript HTML templates
+/*** Javascript HTML templates ***/
 
+// show a Dividend card
 var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span>';
 
+// the number of Dividends left, put on top of stack
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
-var jstpl_certs_counter = 'avail_certs_${curr}_ctr';
-
+// buttons showing players available to offer Spot Trade
 var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class="frx_player_btn" style="--color: #${color}; --bg_color: #${bgcolor};">${player_name}</button>';
 
+// a currency icon used as a button, either note or cert
 var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_curr_btn frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.4;"></button>';
 
-// a currency icons used as a button
+// The +/- to change amounts to divest
 var jstpl_plus_minus_btns = '<div style="display: inline-block;">\
+                                <span id="alter_${curr}_${type}_counter" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
+                                <span id="alter_${curr}_${type}_counter_icon" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
                                 <button id="${curr}_plus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">+</button>\
                                 <button id="${curr}_minus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">-</button>\
                             </div>';
@@ -81,10 +85,11 @@ var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></d
 // displays just the "number+currency" string
 var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span>';
 
-// displays "<n> <curr> <icon>"
+// displays number + currency+ icon
 var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}" title="${curr} ${type}"></span>';
 
-var jspl_curr_tag = '<span class="frx_curr_lbl" style="color: var(--color_note_${curr}); --scale: 0.25;">${curr}</span>';
+// displays just the name of a currency, in appropriate color (note or cert)
+var jspl_curr_tag = '<span class="frx_curr_lbl" style="color: var(--color_${type}_${curr}); --scale: 0.25;">${curr}</span>';
 
 // holds each player's Note and Certificates (two jstpl_mon_counters)
 var jstpl_mon_container = '<div id="${curr}_${id}_monies" class="frx_mon_container" style="background-color: var(--color_cert_${curr});"></div>';
@@ -102,7 +107,6 @@ var jstpl_flip_counter = '<div id="pair_${curr1}_${curr2}" class="frx_flip_conta
                                 <div id="flip_back_${curr1}" class="frx_ctr_back frx_curr_pr frx_pr_${curr1}"></div>\
                             </div>\
                         </div>';
-
 
 </script>  
 

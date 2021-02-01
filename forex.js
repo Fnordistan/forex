@@ -172,7 +172,8 @@ function (dojo, declare) {
                         "id": player_id
                     }), player_board_div);
                     dojo.place( this.format_block('jspl_curr_tag', {
-                        "curr": curr
+                        "curr": curr,
+                        "type": CURRENCY_TYPE.NOTE
                     }), container);
                     dojo.place( this.format_block('jstpl_mon_counter', {
                         "curr": curr,
@@ -577,21 +578,6 @@ function (dojo, declare) {
             return this.format_block('jstpl_curr_btn', {
                 "type": curr_type,
                 "curr": curr, 
-            });
-       },
-
-       /**
-        * +/- button
-        * @param {*} curr 
-        * @param {*} type 
-        * @param {*} inc 
-        */
-       createIncButton: function(curr, type, inc) {
-            return this.format_block('jstpl_curr_inc_btn', {
-                "type": type,
-                "curr": curr,
-                "inc": inc == '+' ? 'plus': 'minus',
-                "x": inc
             });
        },
 
@@ -1035,13 +1021,7 @@ function (dojo, declare) {
                 type: CURRENCY_TYPE.CERTIFICATE
             }), {X_ACTION_TEXT: 'divest_txt'});
             this.CERTS_SOLD = 1;
-            this.setDivestMessage(curr);
-            document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
-                this.increaseCertificates(curr);
-            });
-            document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
-                this.decreaseCertificates(curr);
-            });
+            this.addDivestButtons(curr);
             this.addActionButton( ACTIONS.SELL+BTN, _('Sell'), () => {
                 this.confirmAction(ACTIONS.SELL);
             }, null, false, 'blue');
@@ -1305,7 +1285,7 @@ function (dojo, declare) {
             var deselect = $(btn_id).classList.contains('frx_curr_btn_selected');
             if (deselect) {
                 this.CERTS_SOLD = 0;
-                this.setDivestMessage(curr);
+                this.clearDivestButtons(curr);
             } else {
                 // we selected it. Deselect any previous ones
                 var selected = document.getElementsByClassName("frx_curr_btn_selected");
@@ -1322,14 +1302,9 @@ function (dojo, declare) {
             $(btn_id).classList.toggle("frx_curr_btn_selected");
             // now construct message
             if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
+                this.setDescriptionOnMyTurn("You may sell", {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_txt'});
                 this.CERTS_SOLD = 1;
-                this.setDivestMessage(curr);
-                document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
-                    this.increaseCertificates(curr);
-                });
-                document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
-                    this.decreaseCertificates(curr);
-                });
+                this.addDivestButtons(curr);
             }
         },
 
@@ -1338,11 +1313,10 @@ function (dojo, declare) {
          * @param {string} curr 
          */
         increaseCertificates: function(curr) {
-            console.log("clicked increase "+curr);
+            console.log("clicked increase "+curr+": "+this.CERTS_SOLD);
             var certs = this.certCounters[this.player_id][CURRENCY[curr]-1].getValue();
             if (this.CERTS_SOLD < certs) {
-                this.CERTS_SOLD += 1;
-                this.setDivestMessage(curr);
+                this.changeCertsSoldCount(curr, 1);
             }
         },
 
@@ -1351,18 +1325,28 @@ function (dojo, declare) {
          * @param {string} curr 
          */
         decreaseCertificates: function(curr) {
-            console.log("clicked decrease "+curr);
+            console.log("clicked decrease "+curr+": "+this.CERTS_SOLD);
             if (this.CERTS_SOLD > 1) {
-                this.CERTS_SOLD -= 1;
-                this.setDivestMessage(curr);
+                this.changeCertsSoldCount(curr, -1);
             }
+        },
+
+        /**
+         * Alter the CERTS_SOLD client-state var and the divest_txt message
+         * @param {string} curr 
+         * @param {int} amt 
+         */
+        changeCertsSoldCount: function(curr, amt) {
+            var old_ct = this.CERTS_SOLD;
+            this.CERTS_SOLD += amt;
+            this.DIVEST_COUNTER.setValue(this.CERTS_SOLD);
         },
 
         /**
          * Set the message block for selling certs.
          * @param {string} curr 
          */
-        setDivestMessage: function(curr) {
+        addDivestButtons: function(curr) {
             var text = "";
             if (this.CERTS_SOLD == 0) {
                 this.DIVEST_CURRENCY = null;
@@ -1376,7 +1360,39 @@ function (dojo, declare) {
                 text += inc_buttons;
             }
             document.getElementById('divest_txt').innerHTML = text;
+            if (this.CERTS_SOLD != 0) {
+                this.addDivestCounterEventListeners(curr);
+            }
         },
+
+        /**
+         * Remove the plus/minus buttons, clear the inner string
+         * @param {string} curr 
+         */
+        clearDivestButtons: function(curr) {
+            document.getElementById(curr+'_plus_btn').remove();
+            document.getElementById(curr+'_minus_btn').remove();
+            document.getElementById('divest_txt').remove();
+            this.DIVEST_COUNTER = null;
+        },
+
+        /**
+         * Put the inc/dec actions on +/- buttons
+         * @param {string} curr 
+         */
+        addDivestCounterEventListeners: function(curr) {
+            var cert_count = new ebg.counter();
+            cert_count.create('alter_'+curr+'_cert_counter');
+            cert_count.setValue(this.CERTS_SOLD);
+            this.DIVEST_COUNTER = cert_count;
+            document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
+                this.increaseCertificates(curr);
+            });
+            document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
+                this.decreaseCertificates(curr);
+            });
+        },
+
 
         ///////////////////////////////////////////////////
         //// Player's action
