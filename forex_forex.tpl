@@ -68,15 +68,9 @@ var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_
 
 // a currency icons used as a button
 var jstpl_plus_minus_btns = '<div style="display: inline-block;">\
-                                <div id="${curr}_plus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">\
-                                    <input type="radio" name="frx" id="plsbutton" checked>\
-                                    <label for="plsbutton" unselectable>+</label>\
-                                </div>\
-                                <div id="${curr}_minus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">\
-                                    <input type="radio" name="frx" id="minbutton">\
-                                    <label for="minbutton" unselectable>-</label>\
-                                </div>\
-                                </div>';
+                                <button id="${curr}_plus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">+</button>\
+                                <button id="${curr}_minus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">-</button>\
+                            </div>';
 
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';

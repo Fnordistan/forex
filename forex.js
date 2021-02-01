@@ -1338,6 +1338,7 @@ function (dojo, declare) {
          * @param {string} curr 
          */
         increaseCertificates: function(curr) {
+            console.log("clicked increase "+curr);
             var certs = this.certCounters[this.player_id][CURRENCY[curr]-1].getValue();
             if (this.CERTS_SOLD < certs) {
                 this.CERTS_SOLD += 1;
@@ -1350,6 +1351,7 @@ function (dojo, declare) {
          * @param {string} curr 
          */
         decreaseCertificates: function(curr) {
+            console.log("clicked decrease "+curr);
             if (this.CERTS_SOLD > 1) {
                 this.CERTS_SOLD -= 1;
                 this.setDivestMessage(curr);

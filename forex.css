@@ -420,6 +420,7 @@
     width: 25px;
     height: 25px;
     float: left;
+    margin: -3px 0px;
     text-shadow:
         1px 1px 0 lightgray,
         -1px -1px 0 lightgray,  
@@ -428,18 +429,11 @@
         1px 1px 0 lightgray;
 }
 
-.frx_inc_btn input {
-    display: none;
-}
-
-.frx_inc_btn label {
-    padding: 5px 5px;
-}
-.frx_inc_btn label:hover {
+.frx_inc_btn:hover {
     background-color: #ddd;
 }
-.frx_inc_btn label:active,
-.frx_inc_btn input:focus + label {
+.frx_inc_btn:active,
+.frx_inc_btn:focus {
     background-color: #aaa;
 }
 

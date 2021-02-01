@@ -517,9 +517,6 @@ class ForEx extends Table
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
         $sqlArray = "(" . implode(",", $certs_to_divest) . ")";
-        self::dump('mycerts', $mycerts);
-        self::dump('certs_to_divest', $certs_to_divest);
-        self::dump('sqlArray', $sqlArray);
         self::DBQuery("UPDATE CERTIFICATES SET card_location = \"".DISCARD."\" WHERE card_id IN $sqlArray");
         return $certs_to_divest;
     }
