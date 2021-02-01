@@ -1287,6 +1287,7 @@ function (dojo, declare) {
         divestAction: function(curr, btn_id, num_certs) {
             // are we deselecting it?
             var deselect = $(btn_id).classList.contains('frx_curr_btn_selected');
+            console.log('divestAction '+curr+' '+deselect);
             if (deselect) {
                 this.CERTS_SOLD = 0;
                 this.clearDivestButtons(curr);
