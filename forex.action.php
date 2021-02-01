@@ -49,7 +49,7 @@
       $request = self::getArg( "req_curr", AT_alphanum, true );
 
       $this->game->offerSpotTrade( $to_player, $offer, $request );
-      self::ajaxResponse( );
+      self::ajaxResponse();
     }
 
     /**
@@ -58,7 +58,7 @@
     public function cancelSpotTrade() {
       self::setAjaxMode();
       $this->game->cancelSpotTrade();
-      self::ajaxResponse( );
+      self::ajaxResponse();
     }
 
     /**
@@ -69,7 +69,7 @@
       $accept = self::getArg( "accept", AT_bool, true );
 
       $this->game->respondSpotTrade( $accept );
-      self::ajaxResponse( );
+      self::ajaxResponse();
     }
 
     /**
@@ -79,7 +79,29 @@
       self::setAjaxMode();
       $curr_to_buy = self::getArg( "buys", AT_alphanum, true );
       $this->game->investCurrency( $curr_to_buy );
-      self::ajaxResponse( );
+      self::ajaxResponse();
+    }
+
+    /**
+     * Sell certificates.
+     */
+     public function divestCurrency() {
+      self::setAjaxMode();
+      $curr = self::getArg( "curr", AT_alphanum, true );
+      $num = self::getArg( "amt", AT_posint, true );
+      $this->game->divestCurrency( $curr, $num );
+      self::ajaxResponse();
+    }
+
+    /**
+     * Additional players sell (or sell 0)
+     */
+    public function optDivestCurrency() {
+      self::setAjaxMode();
+      $curr = self::getArg( "curr", AT_alphanum, true );
+      $num = self::getArg( "amt", AT_posint, true );
+      $this->game->optDivestCurrency( $curr, $num );
+      self::ajaxResponse();
     }
 
 }

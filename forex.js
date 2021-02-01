@@ -61,6 +61,8 @@ const ACTIONS = {
     CANCEL: 'cancelAction',
     ACCEPT: 'acceptTrade',
     REJECT: 'rejectTrade',
+    SELL: 'sellCerts',
+    DECLINE: 'dontSellCerts',
 }
 const BTN = '_btn';
 
@@ -103,6 +105,9 @@ const SPOT = {
 // label for an already executed Spot trade
 const SPOT_TRANSACTION = "spot_transaction";
 const SPOT_DONE = "spot_trade_done";
+// label for number of certs currently being sold
+const CERTS_SOLD = "num_certs_to_sell";
+const DIVEST_CURRENCY = "divest_currency";
 
 const CURRENCY_TYPE = {
     NOTE: "note",
@@ -205,7 +210,7 @@ function (dojo, declare) {
             this.payoutCounters = [];
 
             this.addMonies();
-            this.createCurrencyPairTokens();
+            this.createCurrencyZones();
             this.placeCurrencyPairs();
             this.createAvailableCertificates();
             this.placeCertificates();
@@ -221,6 +226,7 @@ function (dojo, declare) {
                 this.SPOT_TRANSACTION = null;
             }
             this.SPOT_DONE = this.gamedatas[SPOT_DONE];
+            this.DIVEST_CURRENCY = this.gamedatas[DIVEST_CURRENCY];
 
             console.log( "Ending game setup" );
         },
@@ -288,7 +294,7 @@ function (dojo, declare) {
         /**
          * Create the zones to hold currency pairs.
          */
-        createCurrencyPairTokens: function() {
+        createCurrencyZones: function() {
             Object.keys(CURRENCY).forEach(curr => {
                 var pairs = [];
                 for (let i = 1; i <= 10; i++) {
@@ -337,9 +343,10 @@ function (dojo, declare) {
         placeCurrencyPairs: function() {
             var currency_pairs = this.gamedatas.currency_pairs;
             for (const c in currency_pairs) {
+                // putting the weaker curr on the stronger curr's board
                 let curr1 = currency_pairs[c]['stronger'];
                 let curr2 = currency_pairs[c]['curr1'] == curr1 ? currency_pairs[c]['curr2'] : currency_pairs[c]['curr1'];
-                var curr_pr = this.format_block('jstpl_curr_pair', {
+                var curr_pr = this.format_block('jstpl_flip_counter', {
                     "curr1": curr1,
                     "curr2": curr2
                 });
@@ -470,6 +477,9 @@ function (dojo, declare) {
             switch( stateName ) {
                 case 'playerAction':
                     this.removeActionButtons();
+                    this.SPOT_DONE = 0;
+                    this.CERTS_SOLD = 0;
+                    this.DIVEST_CURRENCY = null;
                     break;
                 case 'dummmy':
                     break;
@@ -483,21 +493,23 @@ function (dojo, declare) {
         {
             console.log( 'onUpdateActionButtons: '+stateName );
                       
-            if( this.isCurrentPlayerActive() )
-            {            
+            if( this.isCurrentPlayerActive() ) {
                 switch( stateName ) {
  
                  case 'playerAction':
                     this.addPlayerActionButtons();
                     break;
                 case 'offerResponse':
-                    console.log("this player: "+this.player_id);
                     var spot = this.SPOT_TRANSACTION;
                     if (this.player_id == spot[SPOT.TO]) {
                         this.addSpotTradeButtons();
                     } else if (this.player_id == spot[SPOT.FROM]) {
                         this.addCancelSpotTrade();
                     }
+                    break;
+                case 'nextDivest':
+                    this.DIVEST_CURRENCY = this.gamedatas[DIVEST_CURRENCY];
+                    this.addDivestOption();
                     break;
                 }
             }
@@ -720,6 +732,29 @@ function (dojo, declare) {
         },
 
         /**
+         * Show certificates moving from player's pile.
+         * @param {*} player_id 
+         * @param {*} curr 
+         * @param {*} amt 
+         */
+        moveCertificates: function(player_id, curr, amt) {
+            // first create the html image
+            var discard_pile = 'page-title';
+            var player_certs = curr+'_cert_counter_icon_'+player_id;
+            var from = player_certs;
+            var to = discard_pile;
+            var parent_id = curr+'_cert_'+player_id+'_container';
+            var cert_html = this.format_block('jstpl_certificate', {
+                "curr": curr
+            });
+            for (var i = 0; i < amt; i++) {
+                this.slideTemporaryObject( cert_html, parent_id, from, to, 500 ).play();
+            }
+
+        },
+
+
+        /**
          * Animates moving notes between players in spot trades
          * @param {*} off_player who made the offer 
          * @param {*} to_player accepted the offer
@@ -814,7 +849,7 @@ function (dojo, declare) {
         },
 
         /**
-         * We're strengthening the currency.
+         * Strengthen the currency.
          * @param {array} stronger 
          * @param {array} weaker 
          */
@@ -828,7 +863,7 @@ function (dojo, declare) {
         },
 
         /**
-         * We're weakening the currency.
+         * Weaken the currency.
          * @param {array} stronger 
          * @param {array} weaker 
          */
@@ -846,11 +881,9 @@ function (dojo, declare) {
          * @param {*} pair 
          */
         moveCounterRight: function(pair) {
-            if (pair['position'] == 10) {
-                // can't be weakened further
-                return;
+            if (pair['position'] < 10) {
+                this.shiftCounter(pair, 1);
             }
-            this.shiftCounter(pair, 1);
         },
 
         /**
@@ -866,31 +899,15 @@ function (dojo, declare) {
         },
 
         /**
-         * Move the counter 1 along its track.
-         * @param {*} pair 
-         * @param {*} dir 
+         * Move the weaker counter left or right along its track.
+         * @param {Object} pair 
+         * @param {int} dir 
          */
         shiftCounter: function(pair, dir) {
             var zone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1];
             var destZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1+dir];
             this.moveCounter(pair, zone, destZone);
             pair['position'] = parseInt(pair['position'])+dir;
-        },
-
-        /**
-         * Remove counter from one zone, add to another, animate its movement.
-         * We have prechecked that the pair is staying on its current track.
-         * @param {Object} pair
-         * @param {*} startZone
-         * @param {*} endZone
-         */
-        moveCounter: function(pair, startZone, endZone) {
-            // currency to be moved is the weaker of the pair
-            var curr = (pair['stronger'] == pair['curr1']) ? pair['curr2'] : pair['curr1'];
-            var pair_id = 'pair_'+pair['stronger']+'_'+curr;
-            startZone.removeFromZone(pair_id, false, endZone.id);
-            endZone.placeInZone(pair_id);
-            return pair_id;
         },
 
         /**
@@ -903,14 +920,30 @@ function (dojo, declare) {
             var curr = (pair['stronger'] == pair['curr1']) ? pair['curr2'] : pair['curr1'];
             var startZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][0];
             var destZone = this.currencyPairZones[CURRENCY[curr]-1][0];
-            var old_ctr_id = this.moveCounter(pair, startZone, destZone);
-            // now we have to destroy counter that was moved to new track
-            destZone.removeFromZone(old_ctr_id, true, destZone.id);
+            var pair_id = this.moveCounter(pair, startZone, destZone);
             // do the flipping animation
-            flipped = this.flipCounter(pair['stronger'], curr);
-            destZone.placeInZone(flipped.id, destZone.getItemNumber());
+            $(pair_id).classList.toggle("flip");
             pair['stronger'] = curr;
             pair['position'] = 1;
+        },
+
+        /**
+         * Remove counter from one zone, add to another, animate its movement.
+         * @param {Object} pair
+         * @param {*} startZone
+         * @param {*} endZone
+         */
+        moveCounter: function(pair, startZone, endZone) {
+            // pair ids are assigned initially in starting order,
+            // so we may or may not be on the same original track.
+            // eg the pair_GBP_USD that started on the GBP track may now be on the USD track
+            var pair_id = 'pair_'+pair['curr1']+'_'+pair['curr2'];
+            if (document.getElementById(pair_id) == null) {
+                pair_id = 'pair_'+pair['curr2']+'_'+pair['curr1'];
+            }
+            startZone.removeFromZone(pair_id, false, endZone.id);
+            endZone.placeInZone(pair_id);
+            return pair_id;
         },
 
         /**
@@ -978,7 +1011,7 @@ function (dojo, declare) {
         addSpotTradeButtons: function() {
             this.addActionButton( ACTIONS.ACCEPT+BTN, _('Accept'), () => {
                 this.confirmAction(ACTIONS.ACCEPT);
-            }, null, false, 'green');
+            }, null, false, 'blue');
             this.addActionButton( ACTIONS.REJECT+BTN, _('Reject'), () => {
                 this.confirmAction(ACTIONS.REJECT);
             }, null, false, 'red');
@@ -989,6 +1022,32 @@ function (dojo, declare) {
          */
         addCancelSpotTrade: function() {
             this.addActionButton( 'cancelSpotTrade'+BTN, _('Cancel Offer'), 'cancelSpotTrade', null, false, 'red');
+        },
+
+        /**
+         * When players have option to Divest after one player sold certs.
+         */
+        addDivestOption: function() {
+            var curr = this.DIVEST_CURRENCY;
+            this.setDescriptionOnMyTurn(_("You may sell ")+this.format_block('jstpl_monies', {
+                num: "",
+                curr: curr,
+                type: CURRENCY_TYPE.CERTIFICATE
+            }), {X_ACTION_TEXT: 'divest_txt'});
+            this.CERTS_SOLD = 1;
+            this.setDivestMessage(curr);
+            document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
+                this.increaseCertificates(curr);
+            });
+            document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
+                this.decreaseCertificates(curr);
+            });
+            this.addActionButton( ACTIONS.SELL+BTN, _('Sell'), () => {
+                this.confirmAction(ACTIONS.SELL);
+            }, null, false, 'blue');
+            this.addActionButton( ACTIONS.DECLINE+BTN, _('Don\'t sell'), () => {
+                this.confirmAction(ACTIONS.DECLINE);
+            }, null, false, 'red');
         },
 
         ///////////////////////// SPOT TRADE /////////////////////////
@@ -1225,8 +1284,9 @@ function (dojo, declare) {
                 var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
                 if (certs == 0) {
                     $(btn_id).classList.add('frx_curr_btn_deactivate');
+                    $(btn_id).setAttribute("disabled", true);
                 } else {
-                    dojo.connect( $(btn_id), 'onclick', this, function(){
+                    $(btn_id).addEventListener('click', () => {
                         this.divestAction(curr, btn_id, certs);
                     });
                 }
@@ -1242,45 +1302,78 @@ function (dojo, declare) {
          */
         divestAction: function(curr, btn_id, num_certs) {
             // are we deselecting it?
-            if (!($(btn_id).classList.contains('frx_curr_btn_selected'))) {
+            var deselect = $(btn_id).classList.contains('frx_curr_btn_selected');
+            if (deselect) {
+                this.CERTS_SOLD = 0;
+                this.setDivestMessage(curr);
+            } else {
                 // we selected it. Deselect any previous ones
-                var selected = dojo.query('.frx_curr_btn_selected');
+                var selected = document.getElementsByClassName("frx_curr_btn_selected");
                 if (selected.length != 0) {
+                    // sanity check
                     // should only ever be one!
-                    dojo.toggleClass(selected[0], btn_id, 'frx_curr_btn_selected');
+                    if (selected.length > 1) {
+                        throw "Error: clicked " + curr + " but more than 1 selected Currency found";
+                    }
+                    $(selected[0]).classList.toggle("frx_curr_btn_selected");
                 }
             }
             // now toggle (either to deselect or select it)
-            dojo.toggleClass(btn_id, 'frx_curr_btn_selected');
+            $(btn_id).classList.toggle("frx_curr_btn_selected");
             // now construct message
             if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
-                this.setDivestMessage(curr, 1);
+                this.CERTS_SOLD = 1;
+                this.setDivestMessage(curr);
+                debugger;
                 document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
-                    this.addCertificatesSold(curr);
+                    this.increaseCertificates(curr);
                 });
                 document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
-                    this.subtractCertificatesSold(curr);
+                    this.decreaseCertificates(curr);
                 });
             }
         },
 
-        addCertificatesSold: function(curr) {
-            console.log("add " + curr);
+        /**
+         * Increase number of certs to sell.
+         * @param {string} curr 
+         */
+        increaseCertificates: function(curr) {
+            var certs = this.certCounters[this.player_id][CURRENCY[curr]-1].getValue();
+            if (this.CERTS_SOLD < certs) {
+                this.CERTS_SOLD += 1;
+                this.setDivestMessage(curr);
+            }
         },
 
-        subtractCertificatesSold: function(curr) {
-            console.log("sub " + curr);
-
+        /**
+         * Decrease number of certs to sell.
+         * @param {string} curr 
+         */
+        decreaseCertificates: function(curr) {
+            if (this.CERTS_SOLD > 1) {
+                this.CERTS_SOLD -= 1;
+                this.setDivestMessage(curr);
+            }
         },
 
-
-        setDivestMessage: function(curr, val) {
-            var text = _("Sell ")+this.createMoniesXstr(val, curr, CURRENCY_TYPE.CERTIFICATE);
-            var inc_buttons = this.format_block('jstpl_plus_minus_btns', {
-                "curr": curr,
-                "type": CURRENCY_TYPE.CERTIFICATE
-            });
-            text += inc_buttons;
+        /**
+         * Set the message block for selling certs.
+         * @param {string} curr 
+         */
+        setDivestMessage: function(curr) {
+            var text = "";
+            if (this.CERTS_SOLD == 0) {
+                this.DIVEST_CURRENCY = null;
+            } else {
+                this.DIVEST_CURRENCY = curr;
+                text = _("Sell ")+this.createMoniesXstr(this.CERTS_SOLD, curr, CURRENCY_TYPE.CERTIFICATE);
+                var inc_buttons = this.format_block('jstpl_plus_minus_btns', {
+                    "curr": curr,
+                    "type": CURRENCY_TYPE.CERTIFICATE
+                });
+                text += inc_buttons;
+            }
             document.getElementById('divest_txt').innerHTML = text;
         },
 
@@ -1414,6 +1507,40 @@ function (dojo, declare) {
         },
 
         /**
+         * Actual AJAX call to sell certificates.
+         */
+        sellCertificates: function() {
+            if (this.checkAction('divestCurrency', true)) {
+                var certs = this.CERTS_SOLD;
+                var curr = this.DIVEST_CURRENCY;
+                if (certs == 0 || curr == null) {
+                    this.showMessage(_("No Certificates selected"), "info");
+                } else {
+                    this.ajaxcall( "/forex/forex/divestCurrency.html", { 
+                        curr: curr,
+                        amt: certs,
+                        lock: true
+                    }, this, function( result ) {  }, function( is_error) { } );
+                }
+            }
+        },
+
+        /**
+         * The same as sellCertificates, but triggered by subsequent players.
+         */
+        nextSeller: function() {
+            if (this.checkAction('optDivestCurrency', true)) {
+                var certs = this.CERTS_SOLD;
+                var curr = this.DIVEST_CURRENCY;
+                this.ajaxcall( "/forex/forex/optDivestCurrency.html", { 
+                    curr: curr,
+                    amt: certs,
+                    lock: true
+                }, this, function( result ) {  }, function( is_error) { } );
+            }
+        },
+
+        /**
          * Player clicked Divest.
          * @param {*} evt 
          */
@@ -1476,6 +1603,7 @@ function (dojo, declare) {
                     this.buyCertificates();
                     break;
                 case ACTIONS.DIVEST:
+                    this.sellCertificates();
                     break;
                 case ACTIONS.CONTRACT:
                     break;
@@ -1486,6 +1614,13 @@ function (dojo, declare) {
                     break;
                 case ACTIONS.REJECT:
                     this.respondSpotTrade(false);
+                    break;
+                case ACTIONS.SELL:
+                    this.nextSeller();
+                    break;
+                case ACTIONS.DECLINE:
+                    this.CERTS_SOLD = 0;
+                    this.nextSeller();
                     break;
             }
         },
@@ -1565,20 +1700,28 @@ function (dojo, declare) {
             this.noteCounters[player_id][CURRENCY[curr]-1].incValue(amt);
         },
 
+        /**
+         * Move currency markers up for this pair.
+         */
         notif_currencyStrengthened: function( notif ) {
-            console.log( 'notif_currencyStrengthened' );
-            console.log( notif );
             var curr = notif.args.curr;
             this.moveCurrencyPairMarkers(curr, 1);
         },
 
+        /**
+         * Move currency markers 1 or more spaces down for this pair.
+         */
         notif_currencyWeakened: function( notif ) {
-            console.log( 'notif_currencyWeakened' );
-            console.log( notif );
-            var curr = notif.args.curr;
-            this.moveCurrencyPairMarkers(curr, -1);
+           var curr = notif.args.curr;
+           var amt = parseInt(notif.args.amt);
+           for (let i = 0; i < amt; i++) {
+                this.moveCurrencyPairMarkers(curr, -1);
+           }
         },    
 
+        /**
+         * Show trade offer.
+         */
         notif_spotTradeOffered: function( notif ) {
             console.log( 'notif_spotTradeOffered' );
             var spot_trade = this.createSpotTransaction(notif.args[SPOT.FROM], notif.args[SPOT.TO], notif.args[SPOT.OFFER], notif.args[SPOT.REQUEST]);
@@ -1586,6 +1729,9 @@ function (dojo, declare) {
             this.SPOT_TRANSACTION = spot_trade;
         },    
 
+        /**
+         * Notify active player cancelled their offer.
+         */
         notif_spotTradeCanceled: function( notif ) {
             console.log( 'notif_spotTradeCanceled' );
             this.SPOT_TRANSACTION = null;
@@ -1611,22 +1757,24 @@ function (dojo, declare) {
             this.SPOT_DONE = 1;
         },
 
+        /**
+         * Player offered a trade rejected it.
+         * @param {Object} notif 
+         */
         notif_spotTradeRejected: function( notif ) {
             console.log( 'notif_spotTradeRejected' );
             this.SPOT_TRANSACTION = null;
         },    
-
 
         /**
          * When a player buys a Certificate. Take it out of available pile, move it to player's pile.
          * @param {Object} notif 
          */
         notif_certificatesBought: function( notif ) {
-            console.log( 'notif_certificatesBought' );
             var player_id = notif.args.player_id;
             var curr = notif.args.curr;
             var id = parseInt(notif.args.cert_id);
-            
+
             // show money being spent (note counter was already ticked by adjustmonies)
             this.moveBankNotes(player_id, curr, -2);
             // gain certificate and tick counter
@@ -1636,9 +1784,26 @@ function (dojo, declare) {
             this.certCounters[player_id][CURRENCY[curr]-1].incValue(1);
         },
 
+        /**
+         * When a player sells one or more Certificates. Take it out of player's pile, discard, add monies.
+         * @param {Object} notif 
+         */
         notif_certificatesSold: function( notif ) {
-            console.log( 'notif_certificatesSold' );
-            console.log( notif );
-        },    
-    });             
+            var certs = notif.args.certs;
+            var curr = notif.args.curr;
+            this.DIVEST_CURRENCY = curr;
+            // can be null when additional players declined to sell
+            if (certs != null) {
+                var player_id = notif.args.player_id;
+                var curr = notif.args.curr;
+                var amt = certs.length;
+                // show it leaving player's pile
+                this.moveCertificates(this.player_id, curr, amt);
+                // decrement player's certs counter
+                this.certCounters[player_id][CURRENCY[curr]-1].incValue(-amt);
+                // show notes being acquired
+                this.moveBankNotes(player_id, curr, amt*2);
+            }
+        },
+    });
 });

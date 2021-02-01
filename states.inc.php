@@ -21,10 +21,8 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("SPOT_RESPONSE", 20);
     define("HANDLE_OFFER", 21); // game manager between traders
     define("HANDLE_RESPONSE", 22);
-    define("CONTRACT", 30);
     define("DIVEST", 50);
     define("NEXT_PLAYER_DIVEST", 51);
-    define("RESOLVE", 60);
     define("LAST_RESOLVE", 70);
     define("CHOOSE_CURRENCY", 75);
     define("SCORING", 98);
@@ -48,7 +46,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
         "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
-        "transitions" => array( "spotOffer" => HANDLE_OFFER, "contract" => CONTRACT, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST, "resolve" => RESOLVE  )
+        "transitions" => array( "spotOffer" => HANDLE_OFFER, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST)
     ),
 
     NEXT_PLAYER => array(
@@ -85,22 +83,12 @@ $machinestates = array(
         "transitions" => array( "" => CHOOSE_ACTION )
     ),
 
-    CONTRACT => array(
-        "name" => "contract",
-        "description" => clienttranslate( '${actplayer} may make a Contract' ),
-        "descriptionmyturn" => clienttranslate( '${you} may make a Contract' ),
-        "type" => "activeplayer",
-        "possibleactions" => array( "makeContract" ),
-        "transitions" => array( "" => NEXT_PLAYER )
-    ),
-
     DIVEST => array(
         "name" => "divest",
-        "description" => clienttranslate( '${actplayer} may Divest in 1 Currency' ),
-        "descriptionmyturn" => clienttranslate( '${you} may may Divest in 1 Currency' ),
-        "type" => "activeplayer",
-        "possibleactions" => array( "divestCurrency" ),
-        "transitions" => array( "" => NEXT_PLAYER_DIVEST )
+        "description" => "",
+        "type" => "game",
+        "action" => "stDivest",
+        "transitions" => array( "divest" => DIVEST, "nextDivest" => NEXT_PLAYER_DIVEST, "lastDivest" => NEXT_PLAYER )
     ),
 
     NEXT_PLAYER_DIVEST => array(
@@ -108,19 +96,9 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} may sell ${currency} Certificates' ),
         "descriptionmyturn" => clienttranslate( '${you} may sell ${currency} Certificates' ),
         "type" => "activeplayer",
-        "args" => "argSellCertificates",
-        "possibleactions" => array( "sellCertificates" ),
-        "transitions" => array( "nextDivest" => NEXT_PLAYER_DIVEST, "nextPlayer" => NEXT_PLAYER )
-    ),
-
-    RESOLVE => array(
-        "name" => "resolve",
-        "description" => clienttranslate( '${actplayer} may Resolve Contract ${contract}' ),
-        "descriptionmyturn" => clienttranslate( '${you} may Resolve Contract ${contract}' ),
-        "type" => "activeplayer",
-        "args" => "argResolveContract",
-        "possibleactions" => array( "resolveContract", "cancelAction" ),
-        "transitions" => array( "resolved" => CHOOSE_ACTION, "canceled" => CHOOSE_ACTION, "endgame" => LAST_RESOLVE )
+        "args" => "argsSellCertificates",
+        "possibleactions" => array( "optDivestCurrency" ),
+        "transitions" => array( "divest" => DIVEST )
     ),
 
     LAST_RESOLVE => array(

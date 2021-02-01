@@ -81,6 +81,9 @@ var jstpl_plus_minus_btns = '<div style="display: inline-block;">\
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
 
+// an individual cert
+var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></div>';
+
 // displays just the "number+currency" string
 var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span>';
 
@@ -98,14 +101,11 @@ var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ct
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 
-// the actual counter shown is always curr2 (the weaker currency)
-var jstpl_curr_pair = '<span id="pair_${curr1}_${curr2}" class="frx_curr_pr frx_pr_${curr2}"></span>';
-
-// note that it is given the same id as a regular jstpl_curr_pair
+// curr1 is the board started on, curr2 (front) is the curr initially shown. Note that it is given the same id as a regular jstpl_curr_pair
 var jstpl_flip_counter = '<div id="pair_${curr1}_${curr2}" class="frx_flip_container">\
                             <div id="flipper_${curr1}_${curr2}" class="frx_flipper">\
-                                <div id="flip_front_${curr1}" class="frx_ctr_front frx_curr_pr frx_pr_${curr1}"></div>\
-                                <div id="flip_back_${curr2}" class="frx_ctr_back frx_curr_pr frx_pr_${curr2}"></div>\
+                                <div id="flip_front_${curr2}" class="frx_ctr_front frx_curr_pr frx_pr_${curr2}"></div>\
+                                <div id="flip_back_${curr1}" class="frx_ctr_back frx_curr_pr frx_pr_${curr1}"></div>\
                             </div>\
                         </div>';
 

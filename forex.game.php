@@ -20,6 +20,7 @@
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
 define('DIVIDENDS', 'Dividends');
+define('DIVIDEND_COUNT', 'dividend_count');
 define('AVAILABLE', 'available');
 define('DISCARD', 'discard');
 define('SPOT_FROM', 'spot_trade_from');
@@ -29,6 +30,8 @@ define('SPOT_REQUEST', 'spot_request');
 define('SPOT_DONE', 'spot_trade_done');
 define('X_MONIES', 'arg_monies_string'); // matches js
 // match js and css vars
+define('DIVEST_CURRENCY', 'divest_currency');
+define('DIVEST_PLAYER', 'divest_player');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
 
@@ -45,13 +48,15 @@ class ForEx extends Table
         parent::__construct();
         
         self::initGameStateLabels( array( 
-               "dividend_count" => 10,
-               SPOT_FROM => 21,
-               SPOT_TO => 22,
-               SPOT_OFFER => 23,
-               SPOT_REQUEST => 24,
-               SPOT_DONE => 25,
-        ) );
+            DIVIDEND_COUNT => 10,
+            SPOT_FROM => 21,
+            SPOT_TO => 22,
+            SPOT_OFFER => 23,
+            SPOT_REQUEST => 24,
+            SPOT_DONE => 25,
+            DIVEST_CURRENCY => 30,
+            DIVEST_PLAYER => 31
+        ));
 
         $this->certificates = self::getNew("module.common.deck");
         $this->certificates->init("CERTIFICATES");
@@ -96,7 +101,7 @@ class ForEx extends Table
         /************ Start the game initialization *****/
 
         // Init global values with their initial values
-        self::setGameStateInitialValue( 'dividend_count', 5 );
+        self::setGameStateInitialValue( DIVIDEND_COUNT, 5 );
         // player making a Spot Trade offer
         self::setGameStateInitialValue( SPOT_FROM, 0 );
         // player being offered Spot Trade
@@ -104,6 +109,8 @@ class ForEx extends Table
         self::setGameStateInitialValue( SPOT_OFFER, 0 );
         self::setGameStateInitialValue( SPOT_REQUEST, 0 );
         self::setGameStateInitialValue( SPOT_DONE, 0 );
+        self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
+        self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
         
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -216,7 +223,7 @@ class ForEx extends Table
         // all the money each player has
         $result['notes'] = self::getObjectListFromDB("SELECT * FROM BANK");
         // Dividends left
-        $result['dividends'] = self::getGameStateValue('dividend_count');
+        $result['dividends'] = self::getGameStateValue(DIVIDEND_COUNT);
         $contracts = self::getNonEmptyCollectionFromDB("
             SELECT contract, owner player_id, promise, promise_amt, payout, payout_amt, location FROM CONTRACTS
             WHERE location IS NOT NULL 
@@ -225,6 +232,9 @@ class ForEx extends Table
         // spot trade - may be null
         $result['spot_transaction'] = $this->getSpotTrade();
         $result[SPOT_DONE] = self::getGameStateValue(SPOT_DONE);
+        // divesting currency
+        $dcurr = self::getGameStateValue(DIVEST_CURRENCY);
+        $result[DIVEST_CURRENCY] = ($dcurr == 0) ? null : $this->currencies[$dcurr];
 
         return $result;
     }
@@ -299,11 +309,11 @@ class ForEx extends Table
     }
 
     /**
-     * Set all the SpotTrade values to 0.
+     * Set all the intra-player turn values to 0.
      */
-    function clearSpotTrade() {
-        foreach(array( SPOT_FROM, SPOT_TO, SPOT_OFFER, SPOT_REQUEST, SPOT_DONE ) as $spot ) {
-            self::setGameStateValue( $spot, 0 );
+    function clearForNextPlayer() {
+        foreach(array( SPOT_FROM, SPOT_TO, SPOT_OFFER, SPOT_REQUEST, SPOT_DONE, DIVEST_CURRENCY, DIVEST_PLAYER ) as $lbl ) {
+            self::setGameStateValue( $lbl, 0 );
         }
     }
 
@@ -320,23 +330,29 @@ class ForEx extends Table
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
-            'curr' => $curr));
+            'curr' => $curr)
+        );
     }
 
     /**
      * Weaken a currency, send notifications.
+     * Currencies can be decreased by more than 1 inc at a time.
      */
-    function weaken($curr) {
+    function weaken($curr, $amt) {
         $pairs = $this->getCurrencypairs($curr);
         foreach ($pairs as $pair) {
-            $this->decrease($curr, $pair);
+            for ($i = 0; $i < $amt; $i++) {
+                $this->decrease($curr, $pair);
+            }
         }
-        self::notifyAllPlayers('currencyWeakened', clienttranslate('${currency} is weakened'), array (
-            'i18n' => array ('curr' ),
+        self::notifyAllPlayers('currencyWeakened', clienttranslate('${currency} is weakened ${amt} times'), array (
+            'i18n' => array ('currency' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
-            'curr' => $curr));
+            'curr' => $curr,
+            'amt' => $amt)
+        );
     }
 
     /**
@@ -489,17 +505,22 @@ class ForEx extends Table
     }
 
     /**
-     * Checks the player has this many certs, then subtracts them (but does NOT add )
+     * Checks the player has this many certs, then subtracts them (but does NOT add monies yet).
+     * Returns the ids of the certificates to sell.
      */
-    function divestCertificates($player_id, $curr, $amt) {
+    function sellCertificates($player_id, $curr, $amt) {
         $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
             throw new BGAUserException(self::_("You only have ${count} ${curr} Certificates"));
         }
         // only choose n certs
-        $certs_to_divest = array_keys(array_slice($mycerts, 0, $amt));
-        $self::DBQuery("UPDATE CERTIFICATES SET card_location = \"".AVAILABLE."\" WHERE card_id IN $certs_to_divest");
+        $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
+        $sqlArray = "(" . implode(",", $certs_to_divest) . ")";
+        self::dump('mycerts', $mycerts);
+        self::dump('certs_to_divest', $certs_to_divest);
+        self::dump('sqlArray', $sqlArray);
+        self::DBQuery("UPDATE CERTIFICATES SET card_location = \"".DISCARD."\" WHERE card_id IN $sqlArray");
         return $certs_to_divest;
     }
 
@@ -696,24 +717,59 @@ class ForEx extends Table
     /**
      * Sell one or more certificates
      */
-    function divest($curr, $amt) {
+    function divestCurrency($curr, $amt) {
         $player_id = self::getActivePlayerId();
 
-        $divested_certs = $this->divestCertificates($player_id, $curr, $amt);
+        $this->divestAction($player_id, $curr, $amt);
+
+        self::setGameStateValue(DIVEST_PLAYER, $player_id);
+        self::setGameStateValue(DIVEST_CURRENCY, $this->currency_enum[$curr]);
+        $this->gamestate->nextState("divest");
+    }
+
+    /**
+     * When additional players have option to sell.
+     */
+    function optDivestCurrency($curr, $amt) {
+        $player_id = self::getActivePlayerId();
+        if ($amt == 0) {
+            // player declined to sell
+            self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} declined to sell ${currency}'), array(
+                'i18n' => array ('currency'),
+                'player_id' => $player_id,
+                'player_name' => self::getActivePlayerName(),
+                'curr' => $curr,
+                'currency' => $curr
+            ));
+        } else {
+            $this->divestAction($player_id, $curr, $amt);
+        }
+        $this->gamestate->nextState("divest");
+    }
+
+    /**
+     * Actual divestment action, by either initial or subsequent players.
+     */
+    function divestAction($player_id, $curr, $amt) {
+        $divested_certs = $this->sellCertificates($player_id, $curr, $amt);
         $cash = $amt*2;
         $this->adjustMonies($player_id, $curr, $cash);
-        $self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${amt} ${curr} Certificates for ${cash} ${curr}'), array(
-            'i18n' => array ('amt', 'curr', 'cash'),
+
+        $x_certs = $this->create_X_monies_arg($amt, $curr, CERTIFICATE);
+        $x_notes = $this->create_X_monies_arg($cash, $curr, NOTE);
+
+        self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${x_certs_sold} for ${x_notes_gained}'), array(
+            'i18n' => array (),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
             'curr' => $curr,
-            'amt' => $amt,
-            'cash' => $cash,
-            'divested' => $divested_certs,
+            'certs' => $divested_certs,
+            'x_certs_sold' => $x_certs,
+            'x_notes_gained' => $x_notes,
+            X_MONIES => array('x_certs_sold' => $x_certs, 'x_notes_gained' => $x_notes),
         ));
-        $this->weakenCurrency($curr, $amt);
+        $this->weaken($curr, $amt);
     }
-    
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
@@ -749,6 +805,19 @@ class ForEx extends Table
         );
     }
 
+    /**
+     * Arguments for optional divest.
+     */
+    function argsSellCertificates() {
+        $curr = self::getGameStateValue(DIVEST_CURRENCY);
+        $currency = $this->currencies[$curr];
+        return array(
+            "i18n" => array('currency'),
+            "curr" => $curr,
+            "currency" => $currency
+        );
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state actions
 ////////////
@@ -781,10 +850,35 @@ class ForEx extends Table
     }
 
     /**
+     * Check each player after someone sells certs, and let them sell or pass.
+     */
+     function stDivest() {
+        $player_id = self::activeNextPlayer();
+        $nextState = "";
+        if ($player_id == self::getGameStateValue(DIVEST_PLAYER)) {
+            // we're back to the original divester, so go to next player's turn
+            $nextState = "lastDivest";
+        } else {
+            // does this player have any of the divested currency?
+            $curr = $this->currencies[self::getGameStateValue(DIVEST_CURRENCY)];
+            $certs = $this->getCertificates($player_id, $curr);
+            if (count($certs) > 0) {
+                self::giveExtraTime( $player_id );
+                $nextState = "nextDivest";
+            } else {
+                // move on to next potential divester
+                $nextState = "divest";
+            }
+        }
+
+        $this->gamestate->nextState($nextState);
+    }
+
+    /**
      * End of player turn.
      */
     function stNextPlayer() {
-        $this->clearSpotTrade();
+        $this->clearForNextPlayer();
 
         $player_id = self::activeNextPlayer();
         self::giveExtraTime( $player_id );

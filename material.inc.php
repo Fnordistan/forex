@@ -15,7 +15,7 @@
 
 $this->contracts = ['A','B','C','D','E','F'];
 
-// $this->currency_enum = ['GBP', 'EUR', 'USD', 'CHF', 'JPY', 'CAD', 'CNY'];
+$this->currency_enum = array('GBP' => 1, 'EUR' => 2, 'USD' => 3, 'CHF' => 4, 'JPY' => 5, 'CAD' => 6, 'CNY' => 7);
 
 $this->currencies = array(
   1 => 'GBP',
