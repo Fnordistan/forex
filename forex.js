@@ -1324,7 +1324,6 @@ function (dojo, declare) {
             if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
                 this.CERTS_SOLD = 1;
                 this.setDivestMessage(curr);
-                debugger;
                 document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
                     this.increaseCertificates(curr);
                 });
