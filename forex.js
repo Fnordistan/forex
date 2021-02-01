@@ -465,7 +465,11 @@ function (dojo, declare) {
         //
         onEnteringState: function( stateName, args ) {
             console.log( 'Entering state: '+stateName );
-
+            switch( stateName ) {
+                case 'playerAction':
+                    this.DIVEST_CURRENCY = null;
+                    break;
+            }
         },
 
         // onLeavingState: this method is called each time we are leaving a game state.
@@ -480,7 +484,6 @@ function (dojo, declare) {
                     this.removeActionButtons();
                     this.SPOT_DONE = 0;
                     this.CERTS_SOLD = 0;
-                    this.DIVEST_CURRENCY = null;
                     break;
                 case 'dummmy':
                     break;
@@ -509,7 +512,8 @@ function (dojo, declare) {
                     }
                     break;
                 case 'nextDivest':
-                    this.DIVEST_CURRENCY = this.gamedatas[DIVEST_CURRENCY];
+                    console.log(this.DIVEST_CURRENCY +"/"+this.gamedatas[DIVEST_CURRENCY]);
+                    this.DIVEST_CURRENCY = this.DIVEST_CURRENCY ?? this.gamedatas[DIVEST_CURRENCY];
                     this.addDivestOption();
                     break;
                 }
@@ -1348,6 +1352,7 @@ function (dojo, declare) {
          */
         addDivestButtons: function(curr) {
             var text = "";
+            console.log('addDivestButtons '+curr+' '+this.CERTS_SOLD);
             if (this.CERTS_SOLD == 0) {
                 this.DIVEST_CURRENCY = null;
             } else {
@@ -1809,6 +1814,7 @@ function (dojo, declare) {
             var certs = notif.args.certs;
             var curr = notif.args.curr;
             this.DIVEST_CURRENCY = curr;
+            console.log('notif_certificatesSold ' + this.DIVEST_CURRENCY);
             // can be null when additional players declined to sell
             if (certs != null) {
                 var player_id = notif.args.player_id;

@@ -512,7 +512,7 @@ class ForEx extends Table
         $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
-            throw new BGAUserException(self::_("You only have ${count} ${curr} Certificates"));
+            throw new BgaUserException(self::_("You only have ${count} ${curr} Certificates"));
         }
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
