@@ -77,6 +77,7 @@ const DIVIDEND_BASE_W = 97.8;
 const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
 const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
 const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
+const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science buttons
 // matching args from forex.game.php
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
@@ -105,8 +106,7 @@ const SPOT = {
 // label for an already executed Spot trade
 const SPOT_TRANSACTION = "spot_transaction";
 const SPOT_DONE = "spot_trade_done";
-// label for number of certs currently being sold
-const CERTS_SOLD = "num_certs_to_sell";
+// label for currency to sell
 const DIVEST_CURRENCY = "divest_currency";
 
 const CURRENCY_TYPE = {
@@ -264,6 +264,9 @@ function (dojo, declare) {
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
+                    if (args.X_ACTION_BUTTONS) {
+                        log = log + args.X_ACTION_BUTTONS+'<br/>';
+                    }
                     if (args[X_MONIES]) {
                         for (const argm in args[X_MONIES]) {
                             var mon_str = args[X_MONIES][argm];
@@ -372,7 +375,6 @@ function (dojo, declare) {
             }
         },
 
-
         /**
          * Adds a Certificate to its appropriate available pile, incrementing the counter.
          * @param {Object} certificate
@@ -402,7 +404,6 @@ function (dojo, declare) {
                 this.payoutCounters[CONTRACT.C].create('payout_'+C+'_cntr');
             });
         },
-
 
         /**
          * Creates the Contract Queue, puts all Contracts in it
@@ -483,7 +484,6 @@ function (dojo, declare) {
                 case 'playerAction':
                     this.removeActionButtons();
                     this.SPOT_DONE = 0;
-                    this.CERTS_SOLD = 0;
                     break;
                 case 'dummmy':
                     break;
@@ -513,7 +513,6 @@ function (dojo, declare) {
                     break;
                 case 'nextDivest':
                     console.log(this.DIVEST_CURRENCY +"/"+this.gamedatas[DIVEST_CURRENCY]);
-                    this.DIVEST_CURRENCY = this.DIVEST_CURRENCY ?? this.gamedatas[DIVEST_CURRENCY];
                     this.addDivestOption();
                     break;
                 }
@@ -562,23 +561,26 @@ function (dojo, declare) {
         },
 
         /**
-         * Create row of Currency buttons
+         * Create row of Currency buttons (Note or Certificate) to be connected to actions.
+         * Each one has id "${curr}_${type}_btn"
          * @param {string} curr_type 
          */
         insertCurrencyButtons: function(curr_type) {
-            var curr_buttons = "";
+            var curr_buttons = "<div>";
             Object.keys(CURRENCY).forEach(curr => {
-                curr_buttons += " "+this.createNoteButton(curr_type, curr);
+                curr_buttons += " "+this.createCurrencyButton(curr_type, curr);
             });
+            curr_buttons += "</div>";
             return curr_buttons;
         },
 
         /**
-         * Create a button with a currency (either Note or Certificate)
+         * Create a button with a currency (either Note or Certificate).
+         * id = "${curr}_${type}_btn"
          * @param {string} curr_type
          * @param {string} curr 
          */
-        createNoteButton: function(curr_type, curr) {
+        createCurrencyButton: function(curr_type, curr) {
             return this.format_block('jstpl_curr_btn', {
                 "type": curr_type,
                 "curr": curr, 
@@ -742,7 +744,6 @@ function (dojo, declare) {
             }
 
         },
-
 
         /**
          * Animates moving notes between players in spot trades
@@ -1015,17 +1016,10 @@ function (dojo, declare) {
         },
 
         /**
-         * When players have option to Divest after one player sold certs.
+         * Adds Sell option buttons for following players, allowing them to sell.
          */
         addDivestOption: function() {
-            var curr = this.DIVEST_CURRENCY;
-            this.setDescriptionOnMyTurn(_("You may sell ")+this.format_block('jstpl_monies', {
-                num: "",
-                curr: curr,
-                type: CURRENCY_TYPE.CERTIFICATE
-            }), {X_ACTION_TEXT: 'divest_txt'});
-            this.CERTS_SOLD = 1;
-            this.addDivestButtons(curr);
+            this.insertSellButtons(false);
             this.addActionButton( ACTIONS.SELL+BTN, _('Sell'), () => {
                 this.confirmAction(ACTIONS.SELL);
             }, null, false, 'blue');
@@ -1260,21 +1254,30 @@ function (dojo, declare) {
         ///////////////////////// DIVEST /////////////////////////
 
         /**
-         * Add buttons to sell certificates
+         * Add sell actions to currency buttons placed by insertCurrencyButtons
          */
         addDivestActions: function() {
+            this.DIVEST_CURRENCY = null;
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_cert_btn';
                 var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
                 if (certs == 0) {
-                    $(btn_id).classList.add('frx_curr_btn_deactivate');
-                    $(btn_id).setAttribute("disabled", true);
+                    this.setBtnUnselectable(btn_id);
                 } else {
                     $(btn_id).addEventListener('click', () => {
                         this.divestAction(curr, btn_id, certs);
                     });
                 }
             });
+        },
+
+        /**
+         * Set a button to not selectable and disabled.
+         * @param {string} btn_id 
+         */
+        setBtnUnselectable: function(btn_id) {
+            $(btn_id).classList.add('frx_curr_btn_deactivate');
+            $(btn_id).setAttribute("disabled", true);
         },
 
         /**
@@ -1285,12 +1288,13 @@ function (dojo, declare) {
          * @param {int} num_certs
          */
         divestAction: function(curr, btn_id, num_certs) {
+            console.log('divestAction '+curr);
+            this.clearSellButtons();
             // are we deselecting it?
-            var deselect = $(btn_id).classList.contains('frx_curr_btn_selected');
-            console.log('divestAction '+curr+' '+deselect);
-            if (deselect) {
-                this.CERTS_SOLD = 0;
-                this.clearDivestButtons(curr);
+            var was_selected = $(btn_id).classList.contains('frx_curr_btn_selected');
+            if (was_selected) {
+                // we are deselecting it
+                this.DIVEST_CURRENCY = null;
             } else {
                 // we selected it. Deselect any previous ones
                 var selected = document.getElementsByClassName("frx_curr_btn_selected");
@@ -1302,121 +1306,63 @@ function (dojo, declare) {
                     }
                     $(selected[0]).classList.toggle("frx_curr_btn_selected");
                 }
+                this.DIVEST_CURRENCY = curr;
+                this.insertSellButtons(true);
             }
             // now toggle (either to deselect or select it)
             $(btn_id).classList.toggle("frx_curr_btn_selected");
-            // now construct message
-            if ($(btn_id).classList.contains('frx_curr_btn_selected')) {
-                this.setDescriptionOnMyTurn("You may sell", {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_txt'});
-                this.CERTS_SOLD = 1;
-                this.addDivestButtons(curr);
-            }
         },
 
         /**
-         * Increase number of certs to sell.
-         * @param {string} curr 
+         * Add the Sell +/- sell buttons.
+         * @param is_original_seller original "Divest" action or follower?
          */
-        increaseCertificates: function(curr) {
-            console.log("clicked increase "+curr+": "+this.CERTS_SOLD);
-            var certs = this.certCounters[this.player_id][CURRENCY[curr]-1].getValue();
-            if (this.CERTS_SOLD < certs) {
-                this.changeCertsSoldCount(curr, 1);
-            }
-        },
-
-        /**
-         * Decrease number of certs to sell.
-         * @param {string} curr 
-         */
-        decreaseCertificates: function(curr) {
-            console.log("clicked decrease "+curr+": "+this.CERTS_SOLD);
-            if (this.CERTS_SOLD > 1) {
-                this.changeCertsSoldCount(curr, -1);
-            }
-        },
-
-        /**
-         * Alter the CERTS_SOLD client-state var and the divest_txt message
-         * @param {string} curr 
-         * @param {int} amt 
-         */
-        changeCertsSoldCount: function(curr, amt) {
-            var old_ct = this.CERTS_SOLD;
-            this.CERTS_SOLD += amt;
-            this.DIVEST_COUNTER.setValue(this.CERTS_SOLD);
-        },
-
-        /**
-         * Set the message block for selling certs.
-         * @param {string} curr 
-         */
-        addDivestButtons: function(curr) {
-            var text = "";
-            console.log('addDivestButtons '+curr+' '+this.CERTS_SOLD);
-            if (this.CERTS_SOLD == 0) {
-                this.DIVEST_CURRENCY = null;
+        insertSellButtons: function(is_original_seller) {
+            var curr = this.DIVEST_CURRENCY;
+            var sell_buttons = this.format_block('jstpl_sell_buttons', {"curr": curr});
+            if (is_original_seller) {
+                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_BUTTONS: sell_buttons});
             } else {
-                this.DIVEST_CURRENCY = curr;
-                text = _("Sell ")+this.createMoniesXstr(this.CERTS_SOLD, curr, CURRENCY_TYPE.CERTIFICATE);
-                var inc_buttons = this.format_block('jstpl_plus_minus_btns', {
-                    "curr": curr,
-                    "type": CURRENCY_TYPE.CERTIFICATE
+                this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_BUTTONS: sell_buttons});
+            }
+            this.SELL_COUNTER = new ebg.counter();
+            this.SELL_COUNTER.create('sell_counter_'+curr);
+            this.SELL_COUNTER.setValue(1);
+            document.getElementById('sell_plus_btn_'+curr).addEventListener('click', () => {
+                if (this.SELL_COUNTER.getValue() < this.certCounters[this.player_id][CURRENCY[curr]-1].getValue()) {
+                    this.SELL_COUNTER.incValue(1);
+                }
+            });
+            document.getElementById('sell_minus_btn_'+curr).addEventListener('click', () => {
+                if (this.SELL_COUNTER.getValue() > 1) {
+                    this.SELL_COUNTER.incValue(-1);
+                }
+            });
+        },
+
+        /**
+         * Remove the sell and plus/minus buttons.
+         */
+        clearSellButtons: function() {
+            var curr = this.DIVEST_CURRENCY;
+            if (curr != null) {
+                ["sell_container_", "sell_counter_", "sell_", "sell_cert_icon_", "sell_plus_btn_", "sell_minus_btn_"].forEach(part => {
+                    var id = part+curr;
+                    document.getElementById(id).remove();
                 });
-                text += inc_buttons;
-            }
-            document.getElementById('divest_txt').innerHTML = text;
-            if (this.CERTS_SOLD != 0) {
-                this.addDivestCounterEventListeners(curr);
-            }
+                this.SELL_COUNTER = null;
+            };
         },
-
-        /**
-         * Remove the plus/minus buttons, clear the inner string
-         * @param {string} curr 
-         */
-        clearDivestButtons: function(curr) {
-            document.getElementById(curr+'_plus_btn').remove();
-            document.getElementById(curr+'_minus_btn').remove();
-            document.getElementById('divest_txt').remove();
-            this.DIVEST_COUNTER = null;
-        },
-
-        /**
-         * Put the inc/dec actions on +/- buttons
-         * @param {string} curr 
-         */
-        addDivestCounterEventListeners: function(curr) {
-            var cert_count = new ebg.counter();
-            cert_count.create('alter_'+curr+'_cert_counter');
-            cert_count.setValue(this.CERTS_SOLD);
-            this.DIVEST_COUNTER = cert_count;
-            document.getElementById(curr+'_plus_btn').addEventListener("click", () => {
-                this.increaseCertificates(curr);
-            });
-            document.getElementById(curr+'_minus_btn').addEventListener("click", () => {
-                this.decreaseCertificates(curr);
-            });
-        },
-
 
         ///////////////////////////////////////////////////
         //// Player's action
-        
-        /*
-            Here, you are defining methods to handle player's action (ex: results of mouse click on 
-            game objects).
-            
-            Most of the time, these methods:
-            _ check the action is possible at this game state.
-            _ make a call to the game server
-        
-        */
+        ///////////////////////////////////////////////////
 
         /**
+         * Player clicked "Spot Trade" button.
          * Sets up the Spot Trade Panel.
          * The SPOT_TRANSACTION is initialized, but cleared when canceled.
-         * @param {*} evt 
+         * @param {Object} evt 
          */
         spotTrade: function(evt) {
             if (this.checkAction('offerSpotTrade', true)) {
@@ -1439,7 +1385,109 @@ function (dojo, declare) {
         },
 
         /**
-         * Actual Ajax call to submit offer.
+         * Player clicked "Invest" button.
+         * @param {Object} evt 
+         */
+        investCurrency: function(evt) {
+            if (this.checkAction('investCurrency', true)) {
+                this.removeActionButtons();
+                this.setDescriptionOnMyTurn(_("You may buy 1 or 2 Certificates"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
+                this.addInvestActions();
+                this.addConfirmButton(ACTIONS.INVEST);
+                this.addCancelButton();
+            }
+        },
+
+        /**
+         * Player clicked "Divest" button during Player Action phase.
+         * @param {Object} evt 
+         */
+        divestCurrency: function(evt) {
+            if (this.checkAction('divestCurrency', true)) {
+                this.removeActionButtons();
+                this.setDescriptionOnMyTurn("You may sell 1 Currency", {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE})
+                this.addDivestActions();
+                this.addConfirmButton(ACTIONS.DIVEST);
+                this.addCancelButton();
+            }
+        },
+
+        /**
+         * Player clicked Contract.
+         * @param {Object} evt 
+         */
+        makeContract: function(evt) {
+            if (this.checkAction('makeContract', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton(ACTIONS.CONTRACT);
+                this.addCancelButton();
+            }
+        },
+
+        /**
+         * Player clicked Resolve.
+         * @param {Object} evt 
+         */
+        resolveContract: function(evt) {
+            if (this.checkAction('resolveContract', true)) {
+                this.removeActionButtons();
+                this.addConfirmButton(ACTIONS.RESOLVE);
+                this.addCancelButton();
+            }
+        },
+
+        /**
+         * Clicked the "Cancel" button during Player Action. Delete all action buttons and add the default ones back.
+         * @param {Object} evt 
+         */
+        cancelAction: function(evt) {
+            // refresh everything else
+            this.removeActionButtons();
+            this.addPlayerActionButtons();
+            this.setDescriptionOnMyTurn(_("You must choose an action"));
+        },
+
+        /**
+         * Pressed "Confirm" button. Actually submits the action
+         * @param {enum} evt 
+         */
+        confirmAction: function(action) {
+            console.log('confirmed '+ action);
+            switch(action) {
+                case ACTIONS.SPOT:
+                    this.submitSpotTrade();
+                    break;
+                case ACTIONS.INVEST:
+                    this.buyCertificates();
+                    break;
+                case ACTIONS.DIVEST:
+                    this.sellCertificates();
+                    break;
+                case ACTIONS.CONTRACT:
+                    break;
+                case ACTIONS.RESOLVE:
+                    break;
+                case ACTIONS.ACCEPT:
+                    this.respondSpotTrade(true);
+                    break;
+                case ACTIONS.REJECT:
+                    this.respondSpotTrade(false);
+                    break;
+                case ACTIONS.SELL:
+                    this.nextSeller(true);
+                    break;
+                case ACTIONS.DECLINE:
+                    this.nextSeller(false);
+                    break;
+            }
+        },
+
+        ///////////////////////////////////////////////////
+        //// AJAX Actions - the actual calls to the server
+        ///////////////////////////////////////////////////
+
+        /**
+         * Clicked "Confirm" to submit a Spot Trade offer.
          */
         submitSpotTrade: function() {
             if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION) {
@@ -1468,7 +1516,7 @@ function (dojo, declare) {
         },
 
         /**
-         * Accept or reject an offer
+         * Clicked "Accept" or "Reject" on a Spot Trade offer.
          * @param {boolean} is_accept 
          */
         respondSpotTrade: function(is_accept) {
@@ -1481,7 +1529,7 @@ function (dojo, declare) {
         },
 
         /**
-         * To cancel a Spot Trade offer.
+         * Clicked "Cancel" button - sends cancellation on a Spot Trade offer.
          */
         cancelSpotTrade: function() {
             if (this.checkAction('cancelSpotTrade', true)) {
@@ -1493,21 +1541,7 @@ function (dojo, declare) {
         },
 
         /**
-         * Player clicked Invest
-         * @param {*} evt 
-         */
-        investCurrency: function(evt) {
-            if (this.checkAction('investCurrency', true)) {
-                this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may buy 1 or 2 Certificates"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
-                this.addInvestActions();
-                this.addConfirmButton(ACTIONS.INVEST);
-                this.addCancelButton();
-            }
-        },
-
-        /**
-         * Actual AJAX call to buy
+         * Clicked "Confirm" on an Invest action to buy certs.
          */
         buyCertificates: function() {
             if (this.checkAction('investCurrency', true)) {
@@ -1530,12 +1564,12 @@ function (dojo, declare) {
         },
 
         /**
-         * Actual AJAX call to sell certificates.
+         * Clicked "Confirm" on a Divest action to sell certs.
          */
         sellCertificates: function() {
             if (this.checkAction('divestCurrency', true)) {
-                var certs = this.CERTS_SOLD;
                 var curr = this.DIVEST_CURRENCY;
+                var certs = this.SELL_COUNTER.getValue();
                 if (certs == 0 || curr == null) {
                     this.showMessage(_("No Certificates selected"), "info");
                 } else {
@@ -1549,12 +1583,13 @@ function (dojo, declare) {
         },
 
         /**
-         * The same as sellCertificates, but triggered by subsequent players.
+         * Clicked "Sell" as a following seller.
+         * @param is_sell true if Sell, false if Don't Sell
          */
-        nextSeller: function() {
+        nextSeller: function(is_sell) {
             if (this.checkAction('optDivestCurrency', true)) {
-                var certs = this.CERTS_SOLD;
                 var curr = this.DIVEST_CURRENCY;
+                var certs = is_sell ? this.SELL_COUNTER.getValue() : 0;
                 this.ajaxcall( "/forex/forex/optDivestCurrency.html", { 
                     curr: curr,
                     amt: certs,
@@ -1563,137 +1598,16 @@ function (dojo, declare) {
             }
         },
 
-        /**
-         * Player clicked Divest.
-         * @param {*} evt 
-         */
-        divestCurrency: function(evt) {
-            if (this.checkAction('divestCurrency', true)) {
-                this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_txt'});
-                this.addDivestActions();
-                this.addConfirmButton(ACTIONS.DIVEST);
-                this.addCancelButton();
-            }
-        },
-
-        /**
-         * Player clicked Contract.
-         * @param {*} evt 
-         */
-        makeContract: function(evt) {
-            if (this.checkAction('makeContract', true)) {
-                this.removeActionButtons();
-                this.addConfirmButton(ACTIONS.CONTRACT);
-                this.addCancelButton();
-            }
-        },
-
-        /**
-         * Player clicked Resolve.
-         * @param {*} evt 
-         */
-        resolveContract: function(evt) {
-            if (this.checkAction('resolveContract', true)) {
-                this.removeActionButtons();
-                this.addConfirmButton(ACTIONS.RESOLVE);
-                this.addCancelButton();
-            }
-        },
-
-        /**
-         * Delete all buttons and add the default ones back
-         * @param {*} evt 
-         */
-        cancelAction: function(evt) {
-            // refresh everything else
-            this.removeActionButtons();
-            this.addPlayerActionButtons();
-            this.setDescriptionOnMyTurn(_("You must choose an action"));
-        },
-
-        /**
-         * After pressing a confirm button, actually submits the action
-         * @param {enum} action 
-         */
-        confirmAction: function(action) {
-            console.log('confirmed '+ action);
-            switch(action) {
-                case ACTIONS.SPOT:
-                    this.submitSpotTrade();
-                    break;
-                case ACTIONS.INVEST:
-                    this.buyCertificates();
-                    break;
-                case ACTIONS.DIVEST:
-                    this.sellCertificates();
-                    break;
-                case ACTIONS.CONTRACT:
-                    break;
-                case ACTIONS.RESOLVE:
-                    break;
-                case ACTIONS.ACCEPT:
-                    this.respondSpotTrade(true);
-                    break;
-                case ACTIONS.REJECT:
-                    this.respondSpotTrade(false);
-                    break;
-                case ACTIONS.SELL:
-                    this.nextSeller();
-                    break;
-                case ACTIONS.DECLINE:
-                    this.CERTS_SOLD = 0;
-                    this.nextSeller();
-                    break;
-            }
-        },
-
-        /* Example:
-        
-        onMyMethodToCall1: function( evt )
-        {
-            console.log( 'onMyMethodToCall1' );
-            
-            // Preventing default browser reaction
-            dojo.stopEvent( evt );
-
-            // Check that this action is possible (see "possibleactions" in states.inc.php)
-            if( ! this.checkAction( 'myAction' ) )
-            {   return; }
-
-            this.ajaxcall( "/forex/forex/myAction.html", { 
-                                                                    lock: true, 
-                                                                    myArgument1: arg1, 
-                                                                    myArgument2: arg2,
-                                                                    ...
-                                                                 }, 
-                         this, function( result ) {
-                            
-                            // What to do after the server call if it succeeded
-                            // (most of the time: nothing)
-                            
-                         }, function( is_error) {
-
-                            // What to do after the server call in anyway (success or failure)
-                            // (most of the time: nothing)
-
-                         } );        
-        },        
-        
-        */
-
-        
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
+        ///////////////////////////////////////////////////
 
         /*
             setupNotifications:
-            
             In this method, you associate each of your game notifications with your local method to handle it.
             
             Note: game notification names correspond to "notifyAllPlayers" and "notifyPlayer" calls in
                   your forex.game.php file.
-        
         */
         setupNotifications: function()
         {

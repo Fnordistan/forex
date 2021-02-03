@@ -68,14 +68,6 @@ var jstpl_player_btn = '<button id="trade_${player_id}_btn" type="button" class=
 // a currency icon used as a button, either note or cert
 var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_curr_btn frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.4;"></button>';
 
-// The +/- to change amounts to divest
-var jstpl_plus_minus_btns = '<div style="display: inline-block;">\
-                                <span id="alter_${curr}_${type}_counter" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
-                                <span id="alter_${curr}_${type}_counter_icon" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
-                                <button id="${curr}_plus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">+</button>\
-                                <button id="${curr}_minus_btn" class="frx_inc_btn" style="color: var(--color_${type}_${curr});">-</button>\
-                            </div>';
-
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
 
@@ -98,6 +90,16 @@ var jstpl_mon_container = '<div id="${curr}_${id}_monies" class="frx_mon_contain
 var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ctr_container">\
                             <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
+                        </div>';
+
+// "Sell $n $curr [ICON] + -"
+var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\
+                            <span>Sell</span>\
+                            <span id="sell_counter_${curr}" class="frx_ctr" style="color: var(--color_cert_${curr}); font-size: 24px; vertical-align: baseline;"></span>\
+                            <span id="sell_${curr}" class="frx_curr_val" style="color: var(--color_cert_${curr});">${curr}</span>\
+                            <span id="sell_cert_icon_${curr}" class="frx_currency_card frx_cert frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
+                            <button id="sell_plus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">+</button>\
+                            <button id="sell_minus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">-</button>\
                         </div>';
 
 // curr1 is the board started on, curr2 (front) is the curr initially shown. Note that it is given the same id as a regular jstpl_curr_pair
