@@ -264,9 +264,6 @@ function (dojo, declare) {
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
-                    if (args.X_ACTION_BUTTONS) {
-                        log = log + args.X_ACTION_BUTTONS+'<br/>';
-                    }
                     if (args[X_MONIES]) {
                         for (const argm in args[X_MONIES]) {
                             var mon_str = args[X_MONIES][argm];
@@ -943,7 +940,6 @@ function (dojo, declare) {
          * @param {string} new_stronger
          */
         flipCounter: function(old_stronger, new_stronger) {
-            console.log("creating flip counter");
             var flipping_ctr = this.format_block('jstpl_flip_counter', {
                 curr1: new_stronger,
                 curr2: old_stronger
@@ -952,6 +948,15 @@ function (dojo, declare) {
             var flipped = dojo.place(flipping_ctr, new_stronger+'_1');
             flipped.classList.toggle("flip");
             return flipped;
+        },
+
+        /**
+         * Set a button to not selectable and disabled.
+         * @param {string} btn_id 
+         */
+        setBtnUnselectable: function(btn_id) {
+            $(btn_id).classList.add('frx_curr_btn_deactivate');
+            $(btn_id).setAttribute("disabled", true);
         },
 
         ///////////////////////////////////////////////////
@@ -1019,7 +1024,7 @@ function (dojo, declare) {
          * Adds Sell option buttons for following players, allowing them to sell.
          */
         addDivestOption: function() {
-            this.insertSellButtons(false);
+            this.insertSellButtons();
             this.addActionButton( ACTIONS.SELL+BTN, _('Sell'), () => {
                 this.confirmAction(ACTIONS.SELL);
             }, null, false, 'blue');
@@ -1069,8 +1074,6 @@ function (dojo, declare) {
          * @param {*} evt 
          */
         choosePlayer: function(player, otherPlayers) {
-            console.log("clicked button  for " + player['name']);
-
             // are we clicking or unclicking it?
             var disable = false;
             if (this.SPOT_TRANSACTION[SPOT.TO] == player['id']) {
@@ -1097,7 +1100,7 @@ function (dojo, declare) {
         addPlayerTradeActions: function(otherPlayers) {
             for (let p in otherPlayers) {
                 let player = otherPlayers[p];
-                dojo.connect( $('trade_'+player['id']+'_btn'), 'onclick', this, function(){
+                $('trade_'+player['id']+'_btn').addEventListener('click', () => {
                     this.choosePlayer(player, otherPlayers);
                 });
             }
@@ -1109,8 +1112,8 @@ function (dojo, declare) {
         addSpotTradeActions: function() {
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_note_btn';
-                dojo.connect( $(btn_id), 'onclick', this, function(){
-                    this.spotTradeAction(curr, btn_id);
+                $(btn_id).addEventListener('click', () => {
+                    this.spotTradeAction(curr);
                 });
             });
         },
@@ -1118,9 +1121,8 @@ function (dojo, declare) {
         /**
          * Action that happens when clicked on a note
          * @param {string} curr
-         * @param {string} btn_id 
          */
-        spotTradeAction: function(curr, btn_id) {
+        spotTradeAction: function(curr) {
             if (this.SPOT_TRANSACTION[SPOT.TO] == null) {
                 // need a player chosen first
                 return;
@@ -1184,7 +1186,7 @@ function (dojo, declare) {
                 let btn_id = curr+'_cert_btn';
                 var warn_msg = this.checkCanInvest(curr);
                 if (warn_msg == null) {
-                    dojo.connect( $(btn_id), 'onclick', this, function(){
+                    $(btn_id).addEventListener('click', () => {
                         this.investAction(curr, btn_id);
                     });
                 } else {
@@ -1254,13 +1256,13 @@ function (dojo, declare) {
         ///////////////////////// DIVEST /////////////////////////
 
         /**
-         * Add sell actions to currency buttons placed by insertCurrencyButtons
+         * Add sell actions to currency buttons during a divestCurrency action (by original seller).
          */
         addDivestActions: function() {
             this.DIVEST_CURRENCY = null;
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_cert_btn';
-                var certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
+                let certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
                 if (certs == 0) {
                     this.setBtnUnselectable(btn_id);
                 } else {
@@ -1272,15 +1274,6 @@ function (dojo, declare) {
         },
 
         /**
-         * Set a button to not selectable and disabled.
-         * @param {string} btn_id 
-         */
-        setBtnUnselectable: function(btn_id) {
-            $(btn_id).classList.add('frx_curr_btn_deactivate');
-            $(btn_id).setAttribute("disabled", true);
-        },
-
-        /**
          * Action that happens when clicked on a Certificate to sell.
          * Adds the cert button and +/- to increment them
          * @param {string} curr
@@ -1288,13 +1281,12 @@ function (dojo, declare) {
          * @param {int} num_certs
          */
         divestAction: function(curr, btn_id, num_certs) {
-            console.log('divestAction '+curr);
-            this.clearSellButtons();
             // are we deselecting it?
             var was_selected = $(btn_id).classList.contains('frx_curr_btn_selected');
             if (was_selected) {
                 // we are deselecting it
                 this.DIVEST_CURRENCY = null;
+                document.getElementById('sell_container_'+curr).remove();
             } else {
                 // we selected it. Deselect any previous ones
                 var selected = document.getElementsByClassName("frx_curr_btn_selected");
@@ -1307,24 +1299,28 @@ function (dojo, declare) {
                     $(selected[0]).classList.toggle("frx_curr_btn_selected");
                 }
                 this.DIVEST_CURRENCY = curr;
-                this.insertSellButtons(true);
+                this.createSellCounter(curr);
             }
             // now toggle (either to deselect or select it)
             $(btn_id).classList.toggle("frx_curr_btn_selected");
         },
 
         /**
-         * Add the Sell +/- sell buttons.
-         * @param is_original_seller original "Divest" action or follower?
+         * Add the "Sell $curr +/-" message and buttons.
          */
-        insertSellButtons: function(is_original_seller) {
+        insertSellButtons: function() {
             var curr = this.DIVEST_CURRENCY;
+            this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_TEXT: 'divest_text'});
+            this.createSellCounter(curr);
+        },
+
+        /**
+         * Create the "Sell [CURR] +/-" buttons
+         * @param {string*} curr 
+         */
+        createSellCounter: function(curr) {
             var sell_buttons = this.format_block('jstpl_sell_buttons', {"curr": curr});
-            if (is_original_seller) {
-                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_BUTTONS: sell_buttons});
-            } else {
-                this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_BUTTONS: sell_buttons});
-            }
+            document.getElementById('divest_text').innerHTML = sell_buttons;
             this.SELL_COUNTER = new ebg.counter();
             this.SELL_COUNTER.create('sell_counter_'+curr);
             this.SELL_COUNTER.setValue(1);
@@ -1338,20 +1334,6 @@ function (dojo, declare) {
                     this.SELL_COUNTER.incValue(-1);
                 }
             });
-        },
-
-        /**
-         * Remove the sell and plus/minus buttons.
-         */
-        clearSellButtons: function() {
-            var curr = this.DIVEST_CURRENCY;
-            if (curr != null) {
-                ["sell_container_", "sell_counter_", "sell_", "sell_cert_icon_", "sell_plus_btn_", "sell_minus_btn_"].forEach(part => {
-                    var id = part+curr;
-                    document.getElementById(id).remove();
-                });
-                this.SELL_COUNTER = null;
-            };
         },
 
         ///////////////////////////////////////////////////
@@ -1405,7 +1387,7 @@ function (dojo, declare) {
         divestCurrency: function(evt) {
             if (this.checkAction('divestCurrency', true)) {
                 this.removeActionButtons();
-                this.setDescriptionOnMyTurn("You may sell 1 Currency", {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE})
+                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_text'});
                 this.addDivestActions();
                 this.addConfirmButton(ACTIONS.DIVEST);
                 this.addCancelButton();
@@ -1611,8 +1593,6 @@ function (dojo, declare) {
         */
         setupNotifications: function()
         {
-            console.log( 'notifications subscriptions setup' );
-            
             dojo.subscribe( 'currencyStrengthened', this, "notif_currencyStrengthened" );
             this.notifqueue.setSynchronous( 'notif_currencyStrengthened', 500 );
             dojo.subscribe( 'currencyWeakened', this, "notif_currencyWeakened" );
@@ -1623,14 +1603,15 @@ function (dojo, declare) {
             dojo.subscribe( 'spotTradeRejected', this, "notif_spotTradeRejected" );
             dojo.subscribe( 'spotTradeCanceled', this, "notif_spotTradeCanceled" );
             dojo.subscribe( 'certificatesBought', this, "notif_certificatesBought" );
+            this.notifqueue.setSynchronous( 'notif_certificatesBought', 500 );
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
+            this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
         },
 
         /**
          * Adjusts counters. Does not do animation (that is handled by individual methods)
          */
         notif_moniesChanged: function( notif ) {
-            console.log( 'notif_moniesChanged' );
             var player_id = notif.args.player_id;
             var curr = notif.args.curr;
             var amt = parseFloat(notif.args.amt);
