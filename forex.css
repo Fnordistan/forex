@@ -410,7 +410,17 @@
 }
 
 .frx_curr_btn_selected {
-    outline: 3px solid green;
+    outline: 2px solid orange;
+}
+
+.frx_curr_promise {
+    transform: translate(0px, 10px);
+    outline: 3px double red;
+}
+
+.frx_curr_payoff {
+    transform: translate(0px, 10px);
+    outline: 3px double green;
 }
 
 .frx_inc_btn {

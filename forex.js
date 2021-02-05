@@ -1250,7 +1250,7 @@ function (dojo, declare) {
                 }
             });
 
-            dojo.byId('invest_txt').innerHTML = text;
+            document.getElementById('invest_txt').innerHTML = text;
         },
 
         ///////////////////////// DIVEST /////////////////////////
@@ -1336,6 +1336,73 @@ function (dojo, declare) {
             });
         },
 
+        ///////////////////////// MAKE CONTRACT /////////////////////////
+
+        /**
+         * Returns the first non-taken contract (by letter), or null if none.
+         */
+        getAvailableContract: function() {
+            var queued = [];
+            for (const c in this.gamedatas.contracts) {
+                var contract = this.gamedatas.contracts[c];
+                queued.push(contract.contract);
+            }
+            const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
+            for (let cl of letters) {
+                if (!queued.includes(cl)) {
+                    return cl;
+                }
+            }
+            return null;
+        },
+
+        /**
+         * Add Actionts 
+         * @param {*} contract 
+         */
+        addContractActions: function(contract) {
+            Object.keys(CURRENCY).forEach(curr => {
+                let btn_id = curr+'_note_btn';
+                $(btn_id).addEventListener('click', () => {
+                    this.createContract(curr, btn_id);
+                });
+            });
+        },
+
+
+        createContract: function(curr, btn_id) {
+            // are we unselecting it?
+            console.log("before - "+ curr + ":" +$(btn_id).classList);
+            if ($(btn_id).classList.contains("frx_curr_promise")) {
+                // we are deselecting the promise (and payoff, clearing message)
+                $(btn_id).classList.toggle("frx_curr_promise");
+                var payoff = document.getElementsByClassName("frx_curr_payoff");
+                if (payoff.length != 0) {
+                    payoff[0].classList.toggle("frx_curr_payoff");
+                }
+            } else if ($(btn_id).classList.contains("frx_curr_payoff")) {
+                // we are deselecting the payoff
+                $(btn_id).classList.toggle("frx_curr_payoff");
+            } else {
+                var is_payoff = document.getElementsByClassName("frx_curr_payoff");
+                if (is_payoff.length != 0) {
+                    // we are replacing payoff
+                    is_payoff[0].classList.toggle("frx_curr_payoff");
+                    $(btn_id).classList.toggle("frx_curr_payoff");
+                } else {
+                    var is_promise = document.getElementsByClassName("frx_curr_promise");
+                    if (is_promise.length != 0) {
+                        // this is the payoff
+                        $(btn_id).classList.toggle("frx_curr_payoff");
+                    } else {
+                        // this is the promise
+                        $(btn_id).classList.toggle("frx_curr_promise");
+                    }
+                }
+            }
+            console.log("after - "+ curr + ":" +$(btn_id).classList);
+        },
+
         ///////////////////////////////////////////////////
         //// Player's action
         ///////////////////////////////////////////////////
@@ -1400,9 +1467,16 @@ function (dojo, declare) {
          */
         makeContract: function(evt) {
             if (this.checkAction('makeContract', true)) {
-                this.removeActionButtons();
-                this.addConfirmButton(ACTIONS.CONTRACT);
-                this.addCancelButton();
+                var nextContract = this.getAvailableContract();
+                if (nextContract == null) {
+                    this.showMessage("No Contracts Available!");
+                } else {
+                    this.removeActionButtons();
+                    this.setDescriptionOnMyTurn(_("You may make a Contract (" + nextContract +")"), {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'contract_text'});
+                    this.addContractActions(nextContract);
+                    this.addConfirmButton(ACTIONS.CONTRACT);
+                    this.addCancelButton();
+                }
             }
         },
 
