@@ -94,6 +94,14 @@ var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ct
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 
+// "n CURR [ICON]" with counter
+var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_ctr_container">\
+                                <span id="${type}_counter" class="frx_ctr" style="color: var(--color_note_${curr}); font-size: 24px; vertical-align: baseline; width: 50px;"></span>\
+                                <span id="${type}_${curr}" class="frx_curr_val" style="color: var(--color_note_${curr});">${curr}</span>\
+                                <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
+                            </div>';
+
+
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\
                             <span>Sell</span>\
@@ -103,12 +111,6 @@ var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_contai
                             <button id="sell_plus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">+</button>\
                             <button id="sell_minus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">-</button>\
                         </div>';
-
-var jstpl_contract_create = '<div id="contract_creation_container" class="frx_ctr_container">\
-                                <span id="${type}_counter" class="frx_ctr" style="color: var(--color_note_${curr}); font-size: 24px; vertical-align: baseline; width: 50px;"></span>\
-                                <span id="${type}_${curr}" class="frx_curr_val" style="color: var(--color_note_${curr});">${curr}</span>\
-                                <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
-                            </div>';
 
 var jstpl_contract_buttons = '<button id="contract_plus_btn" class="frx_inc_btn" style="color: var(--color_note_${curr});">+</button>\
                               <button id="contract_minus_btn" class="frx_inc_btn" style="color: var(--color_note_${curr});">-</button>';

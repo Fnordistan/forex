@@ -82,6 +82,8 @@ const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science butt
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
 const X_MONIES = "arg_monies_string";
+// used as messages inserted in my turn message
+const SPOT_TRADE_MSG = 'spot_trade_txt';
 
 /**
  * Struct for a Currency Pair (stronger, weaker, and weaker = EXCHANGE* stronger)
@@ -109,9 +111,12 @@ const SPOT_DONE = "spot_trade_done";
 // label for currency to sell
 const DIVEST_CURRENCY = "divest_currency";
 
+// used to fill in HTML elements
 const CURRENCY_TYPE = {
     NOTE: "note",
-    CERTIFICATE: "cert"
+    CERTIFICATE: "cert",
+    PAY: "pay",
+    RECEIVE: "receive"
 }
 
 define([
@@ -1037,7 +1042,7 @@ function (dojo, declare) {
 
         /**
          * Create a div with a row of player buttons
-         * @param {*} players 
+         * @param {Array} players 
          */
         insertTradeButtons: function(players) {
             var trade_to_btns = "";
@@ -1071,14 +1076,15 @@ function (dojo, declare) {
 
         /**
          * Action when a player button is chosen in Spot Trade
-         * @param {*} evt 
+         * @param {Object} player
+         * @param {Array} otherPlayers
          */
         choosePlayer: function(player, otherPlayers) {
             // are we clicking or unclicking it?
             var disable = false;
             if (this.SPOT_TRANSACTION[SPOT.TO] == player['id']) {
                 // clear all
-                this.SPOT_TRANSACTION = {};
+                this.clearSpotPlayerSelected();
             } else {
                 this.SPOT_TRANSACTION[SPOT.TO] = player['id'];
                 disable = true;
@@ -1090,8 +1096,25 @@ function (dojo, declare) {
                     dojo.attr('trade_'+p2['id']+'_btn', 'disabled', disable);
                 }
             }
+            // create spotTrade message
             this.setSpotTradeMessage();
         },
+
+        /**
+         * Player button was unselected, so clear all Spot Trade arguments.
+         */
+        clearSpotPlayerSelected: function() {
+            this.SPOT_TRANSACTION = {};
+            var offer_button = document.getElementsByClassName("frx_curr_pay");
+            if (offer_button.length != 0) {
+                offer_button[0].classList.toggle("frx_curr_pay");
+            }
+            var pay_button = document.getElementsByClassName("frx_curr_receive");
+            if (pay_button.length != 0) {
+                pay_button[0].classList.toggle("frx_curr_receive");
+            }
+        },
+
 
         /**
          * Add actions to Buttons for players to offer trade to.
@@ -1113,67 +1136,102 @@ function (dojo, declare) {
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_note_btn';
                 $(btn_id).addEventListener('click', () => {
-                    this.spotTradeAction(curr);
+                    this.spotTradeAction(curr, btn_id);
                 });
             });
         },
 
         /**
-         * Action that happens when clicked on a note
-         * @param {string} curr
+         * Attached to Note button, assigns offer or receive currency.
+         * @param {string} curr 
+         * @param {string} btn_id 
          */
-        spotTradeAction: function(curr) {
+        spotTradeAction: function(curr, btn_id) {
             if (this.SPOT_TRANSACTION[SPOT.TO] == null) {
                 // need a player chosen first
+                this.showMessage("You must choose the Player you wish to trade with first", "info");
                 return;
             }
-            if (this.SPOT_TRANSACTION[SPOT.OFFER] == null) {
-                // there should be no currencies clicked, so this is the offer
-                this.SPOT_TRANSACTION[SPOT.OFFER] = curr;
-                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
-            } else if (this.SPOT_TRANSACTION[SPOT.OFFER] == curr) {
-                // clicked on the previously offered currency, so clear both
-                this.SPOT_TRANSACTION[SPOT.OFFER] = null;
-                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
-            } else if (this.SPOT_TRANSACTION[SPOT.REQUEST] == null) {
-                // this is the request
-                this.SPOT_TRANSACTION[SPOT.REQUEST] = curr;
-            } else if (this.SPOT_TRANSACTION[SPOT.REQUEST] == curr) {
-                // clicked on previous request currency, so clear it
-                this.SPOT_TRANSACTION[SPOT.REQUEST] = null;
+
+            // are we unselecting it?
+            if ($(btn_id).classList.contains("frx_curr_pay")) {
+                // we are deselecting the offer (and request, clearing message)
+                $(btn_id).classList.toggle("frx_curr_pay");
+                var payoff = document.getElementsByClassName("frx_curr_receive");
+                if (payoff.length != 0) {
+                    payoff[0].classList.toggle("frx_curr_receive");
+                }
+            } else if ($(btn_id).classList.contains("frx_curr_receive")) {
+                // we are deselecting the payoff
+                $(btn_id).classList.toggle("frx_curr_receive");
             } else {
-                this.SPOT_TRANSACTION[SPOT.REQUEST] = curr;
+                var is_payoff = document.getElementsByClassName("frx_curr_receive");
+                if (is_payoff.length != 0) {
+                    // we are replacing payoff
+                    is_payoff[0].classList.toggle("frx_curr_receive");
+                    $(btn_id).classList.toggle("frx_curr_receive");
+                } else {
+                    var is_promise = document.getElementsByClassName("frx_curr_pay");
+                    if (is_promise.length != 0) {
+                        // this is the payoff
+                        $(btn_id).classList.toggle("frx_curr_receive");
+                    } else {
+                        // this is the promise
+                        $(btn_id).classList.toggle("frx_curr_pay");
+                    }
+                }
             }
+            // create spotTrade message
             this.setSpotTradeMessage();
         },
 
         /**
-         * Change the text on the spot trade message
-         * @param {*} text 
+         * Create the "Offer X for Y" Spot Trade message.
          */
         setSpotTradeMessage: function() {
-            var text = "";
+            var contract_txt = "";
             if (this.SPOT_TRANSACTION[SPOT.TO]) {
-                text = _("Offer ")+this.spanPlayerName(this.SPOT_TRANSACTION[SPOT.TO]);
-                if (this.SPOT_TRANSACTION[SPOT.OFFER]) {
-                    var offer_txt = " ";
-                    if (this.SPOT_TRANSACTION[SPOT.REQUEST]) {
-                        // construct a complete message
-                        var offer_val = "";
-                        var req_val = "";
-                        var transaction = this.createSpotTransaction(this.SPOT_TRANSACTION[SPOT.FROM], this.SPOT_TRANSACTION[SPOT.TO], this.SPOT_TRANSACTION[SPOT.OFFER], this.SPOT_TRANSACTION[SPOT.REQUEST]);
-                        var offer_val = transaction[SPOT.OFF_AMT];
-                        var req_val = transaction[SPOT.REQ_AMT];
-                        offer_txt += this.createMoniesXstr(offer_val, this.SPOT_TRANSACTION[SPOT.OFFER], CURRENCY_TYPE.NOTE);
-                        offer_txt += _(" for ")+this.createMoniesXstr(req_val, this.SPOT_TRANSACTION[SPOT.REQUEST], CURRENCY_TYPE.NOTE);
+                contract_txt = _("Offer ")+this.spanPlayerName(this.SPOT_TRANSACTION[SPOT.TO]);
+                var prom_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
+                var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
+                if (prom_curr == "") {
+                    this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                } else {
+                    if (payoff_curr != "") {
+                        this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
+                        var exchg_pair = this.createCurrencyPair(prom_curr, payoff_curr);
+                        var prom_val = 1;
+                        var pay_val = 1;
+                        if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                            pay_val = exchg_pair[PAIR.EXCHANGE];
+                        } else {
+                            prom_val = exchg_pair[PAIR.EXCHANGE];
+                        }
+                        var promise_txt = this.format_block('jstpl_currency_counter', {
+                            "type": "offer",
+                            "curr": prom_curr
+                        });
+                        var payoff_txt = this.format_block('jstpl_currency_counter', {
+                            "type": "request",
+                            "curr": payoff_curr
+                        });
+            
+                        contract_txt += promise_txt+_("for")+payoff_txt;
+                        this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                        this.PAY_COUNTER = new forex.fcounter();
+                        this.PAY_COUNTER.create('offer_counter');
+                        this.PAY_COUNTER.setValue(prom_val);
+                        this.RECEIVE_COUNTER = new forex.fcounter();
+                        this.RECEIVE_COUNTER.create('request_counter');
+                        this.RECEIVE_COUNTER.setValue(pay_val);
                     } else {
-                        // only have offer
-                        offer_txt += this.createMoniesXstr('', this.SPOT_TRANSACTION[SPOT.OFFER], CURRENCY_TYPE.NOTE);
+                        contract_txt += this.createMoniesXstr("?", prom_curr, CURRENCY_TYPE.NOTE);
+                        this.setContractText(SPOT_TRADE_MSG, contract_txt);
                     }
-                    text += offer_txt;
                 }
+            } else {
+                this.setContractText(SPOT_TRADE_MSG, contract_txt);
             }
-            dojo.byId('spot_trade_txt').innerHTML = text;
         },
 
         ///////////////////////// INVEST /////////////////////////
@@ -1376,31 +1434,30 @@ function (dojo, declare) {
          */
         createContract: function(curr, btn_id) {
             // are we unselecting it?
-            console.log("before - "+ curr + ":" +$(btn_id).classList);
-            if ($(btn_id).classList.contains("frx_curr_promise")) {
+            if ($(btn_id).classList.contains("frx_curr_pay")) {
                 // we are deselecting the promise (and payoff, clearing message)
-                $(btn_id).classList.toggle("frx_curr_promise");
-                var payoff = document.getElementsByClassName("frx_curr_payoff");
+                $(btn_id).classList.toggle("frx_curr_pay");
+                var payoff = document.getElementsByClassName("frx_curr_receive");
                 if (payoff.length != 0) {
-                    payoff[0].classList.toggle("frx_curr_payoff");
+                    payoff[0].classList.toggle("frx_curr_receive");
                 }
-            } else if ($(btn_id).classList.contains("frx_curr_payoff")) {
+            } else if ($(btn_id).classList.contains("frx_curr_receive")) {
                 // we are deselecting the payoff
-                $(btn_id).classList.toggle("frx_curr_payoff");
+                $(btn_id).classList.toggle("frx_curr_receive");
             } else {
-                var is_payoff = document.getElementsByClassName("frx_curr_payoff");
+                var is_payoff = document.getElementsByClassName("frx_curr_receive");
                 if (is_payoff.length != 0) {
                     // we are replacing payoff
-                    is_payoff[0].classList.toggle("frx_curr_payoff");
-                    $(btn_id).classList.toggle("frx_curr_payoff");
+                    is_payoff[0].classList.toggle("frx_curr_receive");
+                    $(btn_id).classList.toggle("frx_curr_receive");
                 } else {
-                    var is_promise = document.getElementsByClassName("frx_curr_promise");
+                    var is_promise = document.getElementsByClassName("frx_curr_pay");
                     if (is_promise.length != 0) {
                         // this is the payoff
-                        $(btn_id).classList.toggle("frx_curr_payoff");
+                        $(btn_id).classList.toggle("frx_curr_receive");
                     } else {
                         // this is the promise
-                        $(btn_id).classList.toggle("frx_curr_promise");
+                        $(btn_id).classList.toggle("frx_curr_pay");
                     }
                 }
             }
@@ -1412,53 +1469,53 @@ function (dojo, declare) {
          * Create the "Pay X for Y" contract message.
          */
         createContractMessage: function() {
-            var prom_curr = this.getContractCurrency("promise");
-            var payoff_curr = this.getContractCurrency("payoff");
+            var pay_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
+            var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
             var contract_txt = "";
-            if (prom_curr == "") {
-                this.setContractText("");
+            if (pay_curr == "") {
+                this.setContractText("contract_text", "");
             } else {
                 if (payoff_curr != "") {
                     this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
-                    var exchg_pair = this.createCurrencyPair(prom_curr, payoff_curr);
+                    var exchg_pair = this.createCurrencyPair(pay_curr, payoff_curr);
                     var prom_val = 1;
                     var pay_val = 1;
-                    if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                    if (exchg_pair[PAIR.STRONGER] == pay_curr) {
                         pay_val = exchg_pair[PAIR.EXCHANGE];
                     } else {
                         prom_val = exchg_pair[PAIR.EXCHANGE];
                     }
-                    var promise_txt = this.format_block('jstpl_contract_create', {
-                        "type": "promise",
-                        "curr": prom_curr
+                    var pay_counter = this.format_block('jstpl_currency_counter', {
+                        "type": "pay",
+                        "curr": pay_curr
                     });
-                    var payoff_txt = this.format_block('jstpl_contract_create', {
-                        "type": "payoff",
+                    var receive_counter = this.format_block('jstpl_currency_counter', {
+                        "type": "receive",
                         "curr": payoff_curr
                     });
                     var contract_buttons = this.format_block('jstpl_contract_buttons', {
                         "curr": exchg_pair[PAIR.STRONGER]
                     });
         
-                    contract_txt = _("Pay")+promise_txt
-                    if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                    contract_txt = _("Pay")+pay_counter
+                    if (exchg_pair[PAIR.STRONGER] == pay_curr) {
                         contract_txt += contract_buttons;
                     }
-                    contract_txt += _("for")+payoff_txt;
+                    contract_txt += _("for")+receive_counter;
                     if (exchg_pair[PAIR.STRONGER] == payoff_curr) {
                         contract_txt += contract_buttons;
                     }
-                    this.setContractText(contract_txt);
-                    this.PROMISE_COUNTER = new forex.fcounter();
-                    this.PROMISE_COUNTER.create('promise_counter');
-                    this.PROMISE_COUNTER.setValue(prom_val);
-                    this.PAYOFF_COUNTER = new forex.fcounter();
-                    this.PAYOFF_COUNTER.create('payoff_counter');
-                    this.PAYOFF_COUNTER.setValue(pay_val);
-                    this.addContractButtons(prom_curr, exchg_pair);
+                    this.setContractText("contract_text", contract_txt);
+                    this.PAY_COUNTER = new forex.fcounter();
+                    this.PAY_COUNTER.create('pay_counter');
+                    this.PAY_COUNTER.setValue(prom_val);
+                    this.RECEIVE_COUNTER = new forex.fcounter();
+                    this.RECEIVE_COUNTER.create('receive_counter');
+                    this.RECEIVE_COUNTER.setValue(pay_val);
+                    this.addContractButtons(pay_curr, exchg_pair);
                 } else {
-                    contract_txt = _("Pay ") +this.createMoniesXstr("?", prom_curr, CURRENCY_TYPE.NOTE);
-                    this.setContractText(contract_txt);
+                    contract_txt = _("Pay ") +this.createMoniesXstr("?", pay_curr, CURRENCY_TYPE.NOTE);
+                    this.setContractText("contract_text", contract_txt);
                 }
             }
         },
@@ -1472,11 +1529,11 @@ function (dojo, declare) {
             var strong_counter = null;
             var weak_counter = null;
             if (exchg_pair[PAIR.STRONGER] == prom_curr) {
-                strong_counter = this.PROMISE_COUNTER;
-                weak_counter = this.PAYOFF_COUNTER;
+                strong_counter = this.PAY_COUNTER;
+                weak_counter = this.RECEIVE_COUNTER;
             } else {
-                strong_counter = this.PAYOFF_COUNTER;
-                weak_counter = this.PROMISE_COUNTER;
+                strong_counter = this.RECEIVE_COUNTER;
+                weak_counter = this.PAY_COUNTER;
             }
             document.getElementById('contract_plus_btn').addEventListener('click', () => {
                 if (strong_counter.getValue() < 10) {
@@ -1493,18 +1550,19 @@ function (dojo, declare) {
         },
 
         /**
-         * Set the contract message text.
-         * @param {string*} text 
+         * Sets message text on a text element already inserted into title section.
+         * @param {string} text_element
+         * @param {string} text 
          */
-        setContractText: function(text) {
-            document.getElementById("contract_text").innerHTML = text;
+        setContractText: function(text_element, text) {
+            document.getElementById(text_element).innerHTML = text;
         },
 
         /**
-         * Get either promised or payoff currency
-         * @param {string} type promise or payoff
+         * Get currency according to the button type selected.
+         * @param {string} type 
          */
-        getContractCurrency: function(type) {
+        getSelectedCurrency: function(type) {
             var curr = "";
             var selected = document.getElementsByClassName("frx_curr_"+type);
             if (selected.length != 0) {
@@ -1533,7 +1591,7 @@ function (dojo, declare) {
                     this.SPOT_TRANSACTION = {};
                     // this adds the buttons
                     var otherPlayers = this.getOtherPlayers();
-                    this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'spot_trade_txt'});
+                    this.setDescriptionOnMyTurn(_("Offer a Spot Trade to "), {X_SPOT_TRADE : otherPlayers, X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: SPOT_TRADE_MSG});
                     this.addPlayerTradeActions(otherPlayers);
                     this.addSpotTradeActions();
     
@@ -1580,8 +1638,8 @@ function (dojo, declare) {
         makeContract: function(evt) {
             if (this.checkAction('makeContract', true)) {
                 // clear any previous setups
-                this.PROMISE_COUNTER = null;
-                this.PAYOFF_COUNTER = null;
+                this.PAY_COUNTER = null;
+                this.RECEIVE_COUNTER = null;
                 var nextContract = this.getAvailableContract();
                 if (nextContract == null) {
                     this.showMessage("No Contracts Available!");
@@ -1663,21 +1721,21 @@ function (dojo, declare) {
          */
         submitSpotTrade: function() {
             if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION) {
-                if (this.SPOT_TRANSACTION[SPOT.TO] && this.SPOT_TRANSACTION[SPOT.OFFER] && this.SPOT_TRANSACTION[SPOT.REQUEST]) {
+                if (this.PAY_COUNTER && this.RECEIVE_COUNTER) {
                     var to = parseInt(this.SPOT_TRANSACTION[SPOT.TO]);
-                    var offer = this.SPOT_TRANSACTION[SPOT.OFFER];
-                    var request = this.SPOT_TRANSACTION[SPOT.REQUEST];
-                    var transaction = this.createSpotTransaction(this.player_id, to, offer, request);
-                    // do a pre-check - do both players have enough money?
-                    if (this.getMonies(this.player_id, offer, CURRENCY_TYPE.NOTE) < transaction[SPOT.OFF_AMT]) {
-                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(transaction[SPOT.OFF_AMT], offer, CURRENCY_TYPE.NOTE), 'info'));
-                    } else if (this.getMonies(to, request, CURRENCY_TYPE.NOTE) < transaction[SPOT.REQ_AMT]) {
-                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(transaction[SPOT.REQ_AMT], request, CURRENCY_TYPE.NOTE), 'info'));
+                    var offer_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
+                    var offer_amt = this.PAY_COUNTER.getValue();
+                    var request_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
+                    var request_amt = this.RECEIVE_COUNTER.getValue();
+                    if (this.getMonies(this.player_id, offer_curr, CURRENCY_TYPE.NOTE) < offer_amt) {
+                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(offer_amt, offer_curr, CURRENCY_TYPE.NOTE), 'info'));
+                    } else if (this.getMonies(to, request_curr, CURRENCY_TYPE.NOTE) < request_amt) {
+                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(request_amt, request_curr, CURRENCY_TYPE.NOTE), 'info'));
                     } else {
                         this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                             to_player: to,
-                            off_curr: offer,
-                            req_curr: request,
+                            off_curr: offer_curr,
+                            req_curr: request_curr,
                             lock: true 
                         }, this, function( result ) {  }, function( is_error) { } );
                     }
@@ -1775,11 +1833,11 @@ function (dojo, declare) {
          */
         placeContract: function() {
             if (this.checkAction('makeContract', true)) {
-                if (this.PROMISE_COUNTER && this.PAYOFF_COUNTER) {
-                    var promise_curr = this.getContractCurrency("promise");
-                    var promise_amt = this.PROMISE_COUNTER.getValue();
-                    var payoff_curr = this.getContractCurrency("payoff");
-                    var payoff_amt = this.PAYOFF_COUNTER.getValue();
+                if (this.PAY_COUNTER && this.RECEIVE_COUNTER) {
+                    var promise_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
+                    var promise_amt = this.PAY_COUNTER.getValue();
+                    var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
+                    var payoff_amt = this.RECEIVE_COUNTER.getValue();
                     console.log("paying " + promise_amt + " " + promise_curr + " for " + payoff_amt + " " + payoff_curr);
                 } else {
                     this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');

@@ -394,6 +394,7 @@
     outline: 3px solid lightgreen;
 }
 
+/* A currency button that cannot be selected */
 .frx_curr_btn_deactivate {
     cursor: not-allowed;
     box-shadow: none;
@@ -409,20 +410,24 @@
     outline: 3px solid darkgray;
 }
 
+/* A currency button that has been selected */
 .frx_curr_btn_selected {
     outline: 2px solid orange;
 }
 
-.frx_curr_promise {
+/* for currency buttons indicating what we will pay */
+.frx_curr_pay {
     transform: translate(0px, 10px);
     outline: 3px double red;
 }
 
-.frx_curr_payoff {
+/* for currency buttons indicating what we will receive */
+.frx_curr_receive {
     transform: translate(0px, 10px);
     outline: 3px double green;
 }
 
+/* For '+' or '-' buttons */
 .frx_inc_btn {
     font-size: 24px;
     font-weight: bold;
