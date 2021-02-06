@@ -1357,8 +1357,8 @@ function (dojo, declare) {
         },
 
         /**
-         * Add Actionts 
-         * @param {*} contract 
+         * Add Actions to Certificates. 
+         * @param {*} contract
          */
         addContractActions: function(contract) {
             Object.keys(CURRENCY).forEach(curr => {
@@ -1369,7 +1369,11 @@ function (dojo, declare) {
             });
         },
 
-
+        /**
+         * Attached to Certificate button, assigns promise or payoff currency.
+         * @param {string} curr 
+         * @param {string} btn_id 
+         */
         createContract: function(curr, btn_id) {
             // are we unselecting it?
             console.log("before - "+ curr + ":" +$(btn_id).classList);
@@ -1400,8 +1404,116 @@ function (dojo, declare) {
                     }
                 }
             }
-            console.log("after - "+ curr + ":" +$(btn_id).classList);
+            // create contract message
+            this.createContractMessage();
         },
+
+        /**
+         * Create the "Pay X for Y" contract message.
+         */
+        createContractMessage: function() {
+            var prom_curr = this.getContractCurrency("promise");
+            var payoff_curr = this.getContractCurrency("payoff");
+            var contract_txt = "";
+            if (prom_curr == "") {
+                this.setContractText("");
+            } else {
+                if (payoff_curr != "") {
+                    this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
+                    var exchg_pair = this.createCurrencyPair(prom_curr, payoff_curr);
+                    var prom_val = 1;
+                    var pay_val = 1;
+                    if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                        pay_val = exchg_pair[PAIR.EXCHANGE];
+                    } else {
+                        prom_val = exchg_pair[PAIR.EXCHANGE];
+                    }
+                    var promise_txt = this.format_block('jstpl_contract_create', {
+                        "type": "promise",
+                        "curr": prom_curr
+                    });
+                    var payoff_txt = this.format_block('jstpl_contract_create', {
+                        "type": "payoff",
+                        "curr": payoff_curr
+                    });
+                    var contract_buttons = this.format_block('jstpl_contract_buttons', {
+                        "curr": exchg_pair[PAIR.STRONGER]
+                    });
+        
+                    contract_txt = _("Pay")+promise_txt
+                    if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                        contract_txt += contract_buttons;
+                    }
+                    contract_txt += _("for")+payoff_txt;
+                    if (exchg_pair[PAIR.STRONGER] == payoff_curr) {
+                        contract_txt += contract_buttons;
+                    }
+                    this.setContractText(contract_txt);
+                    this.PROMISE_COUNTER = new forex.fcounter();
+                    this.PROMISE_COUNTER.create('promise_counter');
+                    this.PROMISE_COUNTER.setValue(prom_val);
+                    this.PAYOFF_COUNTER = new forex.fcounter();
+                    this.PAYOFF_COUNTER.create('payoff_counter');
+                    this.PAYOFF_COUNTER.setValue(pay_val);
+                    this.addContractButtons(prom_curr, exchg_pair);
+                } else {
+                    contract_txt = _("Pay ") +this.createMoniesXstr("?", prom_curr, CURRENCY_TYPE.NOTE);
+                    this.setContractText(contract_txt);
+                }
+            }
+        },
+
+        /**
+         * Promise or Payoff.
+         * @param {string} prom_curr 
+         * @param {Object} exchg_pair 
+         */
+        addContractButtons: function(prom_curr, exchg_pair) {
+            var strong_counter = null;
+            var weak_counter = null;
+            if (exchg_pair[PAIR.STRONGER] == prom_curr) {
+                strong_counter = this.PROMISE_COUNTER;
+                weak_counter = this.PAYOFF_COUNTER;
+            } else {
+                strong_counter = this.PAYOFF_COUNTER;
+                weak_counter = this.PROMISE_COUNTER;
+            }
+            document.getElementById('contract_plus_btn').addEventListener('click', () => {
+                if (strong_counter.getValue() < 10) {
+                    strong_counter.incValue(1);
+                    weak_counter.setValue(strong_counter.getValue() * exchg_pair[PAIR.EXCHANGE]);
+                }
+            });
+            document.getElementById('contract_minus_btn').addEventListener('click', () => {
+                if (strong_counter.getValue() > 1) {
+                    strong_counter.incValue(-1);
+                    weak_counter.setValue(strong_counter.getValue() * exchg_pair[PAIR.EXCHANGE]);
+                }
+            });
+        },
+
+        /**
+         * Set the contract message text.
+         * @param {string*} text 
+         */
+        setContractText: function(text) {
+            document.getElementById("contract_text").innerHTML = text;
+        },
+
+        /**
+         * Get either promised or payoff currency
+         * @param {string} type promise or payoff
+         */
+        getContractCurrency: function(type) {
+            var curr = "";
+            var selected = document.getElementsByClassName("frx_curr_"+type);
+            if (selected.length != 0) {
+                var sel_id = selected[0].id;
+                curr = sel_id.substring(0,3);
+            }
+            return curr;
+        },
+
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -1467,6 +1579,9 @@ function (dojo, declare) {
          */
         makeContract: function(evt) {
             if (this.checkAction('makeContract', true)) {
+                // clear any previous setups
+                this.PROMISE_COUNTER = null;
+                this.PAYOFF_COUNTER = null;
                 var nextContract = this.getAvailableContract();
                 if (nextContract == null) {
                     this.showMessage("No Contracts Available!");
@@ -1520,6 +1635,7 @@ function (dojo, declare) {
                     this.sellCertificates();
                     break;
                 case ACTIONS.CONTRACT:
+                    this.placeContract();
                     break;
                 case ACTIONS.RESOLVE:
                     break;
@@ -1651,6 +1767,23 @@ function (dojo, declare) {
                     amt: certs,
                     lock: true
                 }, this, function( result ) {  }, function( is_error) { } );
+            }
+        },
+
+        /**
+         * Clicked "Confirm" on a Make Contract action.
+         */
+        placeContract: function() {
+            if (this.checkAction('makeContract', true)) {
+                if (this.PROMISE_COUNTER && this.PAYOFF_COUNTER) {
+                    var promise_curr = this.getContractCurrency("promise");
+                    var promise_amt = this.PROMISE_COUNTER.getValue();
+                    var payoff_curr = this.getContractCurrency("payoff");
+                    var payoff_amt = this.PAYOFF_COUNTER.getValue();
+                    console.log("paying " + promise_amt + " " + promise_curr + " for " + payoff_amt + " " + payoff_curr);
+                } else {
+                    this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');
+                }
             }
         },
 

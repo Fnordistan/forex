@@ -108,16 +108,16 @@
 }
 
 .frx_contract_queue_slot {
-    border: 1 px black;
-    border-style: solid;
+    border: 1 px lightgray;
+    border-style: groove;
     width: calc(var(--scale) * var(--contract_w));
     height: calc(var(--scale) * var(--contract_h));
     margin: 5px;
 }
 
 .frx_currency_zone {
-    border: 1 px black;
-    border-style: solid;
+    border: 2 px lightgray;
+    border-style: dotted;
     width: calc(var(--scale) * var(--currency_w));
     height: calc(var(--scale) * var(--currency_h));
     margin: 5px;
@@ -460,7 +460,7 @@
     height: calc(var(--board_h) + (var(--currency_h)*var(--scale)) + 20);
 }
 
-#paper_display {
+#cards_display {
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
@@ -481,6 +481,14 @@
     flex-direction: column;
     height: 100%;
     margin: 0 5px;
+}
+
+#contracts_div {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    margin: 0 5px;
+    align-items: center;
 }
 
 /* Holds the vertical Contract Display */

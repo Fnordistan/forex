@@ -22,7 +22,7 @@
             <!-- END BANK_BLOCK -->
         </div>
     </div>
-    <div id="paper_display">
+    <div id="cards_display">
         <div id="available_certs_display" class="whiteblock">
             <h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
             <!-- BEGIN CERTIFICATES_BLOCK -->
@@ -31,22 +31,24 @@
             </div>
             <!-- END CERTIFICATES_BLOCK -->
         </div>
-        <div id="contract_display" class="whiteblock">
-            <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
-            <!-- BEGIN CONTRACTS_BLOCK -->
-            <div id="contract_{CONTRACT}" class="frx_contract_container">
-                <div id="contract_promise_{CONTRACT}" class="frx_currency_zone"><span id="promise_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
-                <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
-                <div id="contract_payout_{CONTRACT}" class="frx_currency_zone"><span id="payout_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
+        <div id="contracts_div" class="whiteblock">
+            <div id="contract_display">
+                <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
+                <!-- BEGIN CONTRACTS_BLOCK -->
+                <div id="contract_{CONTRACT}" class="frx_contract_container">
+                    <div id="contract_promise_{CONTRACT}" class="frx_currency_zone"><span id="promise_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
+                    <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
+                    <div id="contract_payout_{CONTRACT}" class="frx_currency_zone"><span id="payout_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
+                </div>
+                <!-- END CONTRACTS_BLOCK -->
             </div>
-            <!-- END CONTRACTS_BLOCK -->
-        </div>
-        <div id="contract_queue_display" class="whiteblock">
-            <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
-            <div id="contract_queue_container">
-                <!-- BEGIN QUEUE_BLOCK -->
-                <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
-                <!-- END QUEUE_BLOCK -->
+            <div id="contract_queue_display">
+                <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
+                <div id="contract_queue_container">
+                    <!-- BEGIN QUEUE_BLOCK -->
+                    <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
+                    <!-- END QUEUE_BLOCK -->
+                </div>
             </div>
         </div>
     </div>
@@ -101,6 +103,15 @@ var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_contai
                             <button id="sell_plus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">+</button>\
                             <button id="sell_minus_btn_${curr}" class="frx_inc_btn" style="color: var(--color_cert_${curr});">-</button>\
                         </div>';
+
+var jstpl_contract_create = '<div id="contract_creation_container" class="frx_ctr_container">\
+                                <span id="${type}_counter" class="frx_ctr" style="color: var(--color_note_${curr}); font-size: 24px; vertical-align: baseline; width: 50px;"></span>\
+                                <span id="${type}_${curr}" class="frx_curr_val" style="color: var(--color_note_${curr});">${curr}</span>\
+                                <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
+                            </div>';
+
+var jstpl_contract_buttons = '<button id="contract_plus_btn" class="frx_inc_btn" style="color: var(--color_note_${curr});">+</button>\
+                              <button id="contract_minus_btn" class="frx_inc_btn" style="color: var(--color_note_${curr});">-</button>';
 
 // curr1 is the board started on, curr2 (front) is the curr initially shown. Note that it is given the same id as a regular jstpl_curr_pair
 var jstpl_flip_counter = '<div id="pair_${curr1}_${curr2}" class="frx_flip_container">\
