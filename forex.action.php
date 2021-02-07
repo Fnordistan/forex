@@ -104,4 +104,16 @@
       self::ajaxResponse();
     }
 
+    /**
+     * Create contract.
+     */
+    public function makeContract() {
+      self::setAjaxMode();
+      $prom_curr = self::getArg( "promise", AT_alphanum, true );
+      $pay_curr = self::getArg( "payout", AT_alphanum, true );
+      $prom_amt = self::getArg( "promise_amt", AT_float, true );
+      $pay_amt = self::getArg( "payout_amt", AT_float, true );
+      $this->game->makeContract($prom_curr, $prom_amt, $pay_curr, $pay_amt);
+      self::ajaxResponse();
+    }
 }

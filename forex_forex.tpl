@@ -86,10 +86,10 @@ var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}
 var jspl_curr_tag = '<span class="frx_curr_lbl" style="color: var(--color_${type}_${curr}); --scale: 0.25;">${curr}</span>';
 
 // holds each player's Note and Certificates (two jstpl_mon_counters)
-var jstpl_mon_container = '<div id="${curr}_${id}_monies" class="frx_mon_container" style="background-color: var(--color_cert_${curr});"></div>';
+var jstpl_cert_note_container = '<div id="${curr}_${id}_monies" class="frx_mon_container" style="background-color: var(--color_cert_${curr});"></div>';
 
-// holds a Note/Certificate and Counter pair
-var jstpl_mon_counter = '<div id="${curr}_${type}_${id}_container" class="frx_ctr_container">\
+// holds a Note or Certificate + Counter on player board
+var jstpl_player_monies = '<div id="${curr}_${type}_${id}_container" class="frx_ctr_container">\
                             <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
@@ -101,6 +101,8 @@ var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_c
                                 <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
                             </div>';
 
+// a mini contract card
+var jstpl_contract_card = '<div class="frx_contract_card frx_{contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></div>';
 
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\

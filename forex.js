@@ -83,7 +83,10 @@ const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
 const X_MONIES = "arg_monies_string";
 // used as messages inserted in my turn message
-const SPOT_TRADE_MSG = 'spot_trade_txt';
+const SPOT_TRADE_MSG = "spot_trade_txt";
+const CONTRACT_MSG = "contract_txt";
+const INVEST_MSG = "invest_txt";
+const DIVEST_MSG = "divest_txt";
 
 /**
  * Struct for a Currency Pair (stronger, weaker, and weaker = EXCHANGE* stronger)
@@ -172,7 +175,7 @@ function (dojo, declare) {
                 // Setting up player board
                 var player_board_div = $('player_board_'+player_id);
                 Object.keys(CURRENCY).forEach(curr => {
-                    var container = dojo.place( this.format_block('jstpl_mon_container', {
+                    var container = dojo.place( this.format_block('jstpl_cert_note_container', {
                         "curr": curr,
                         "id": player_id
                     }), player_board_div);
@@ -180,12 +183,12 @@ function (dojo, declare) {
                         "curr": curr,
                         "type": CURRENCY_TYPE.NOTE
                     }), container);
-                    dojo.place( this.format_block('jstpl_mon_counter', {
+                    dojo.place( this.format_block('jstpl_player_monies', {
                         "curr": curr,
                         "type": CURRENCY_TYPE.NOTE,
                         "id": player_id
                     }), container);
-                    dojo.place( this.format_block('jstpl_mon_counter', {
+                    dojo.place( this.format_block('jstpl_player_monies', {
                         "curr": curr,
                         "type": CURRENCY_TYPE.CERTIFICATE,
                         "id": player_id
@@ -266,6 +269,7 @@ function (dojo, declare) {
                     if (args.X_CURRENCY) {
                         log = log + this.insertCurrencyButtons(args.X_CURRENCY)+'<br/>';
                     }
+                    // these are divs set by assigning innerHTML
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
@@ -390,25 +394,31 @@ function (dojo, declare) {
         createContractDisplay: function() {
             Object.keys(CONTRACT).forEach(C => {
                 var prom_id = 'contract_promise_'+C;
-                this.promiseStacks[CONTRACT.C] = new ebg.zone();
-                this.promiseStacks[CONTRACT.C].create(this, prom_id, this.cardwidth, this.cardheight);
-                this.promiseStacks[CONTRACT.C].setPattern('diagonal');
+                var promZone = new ebg.zone();
+                promZone.create(this, prom_id, this.cardwidth, this.cardheight);
+                promZone.setPattern('diagonal');
+                this.promiseStacks.push(promZone);
 
                 var pay_id = 'contract_payout_'+C;
-                this.payoutStacks[CONTRACT.C] = new ebg.zone();
-                this.payoutStacks[CONTRACT.C].create(this, prom_id, this.cardwidth, this.cardheight);
-                this.payoutStacks[CONTRACT.C].setPattern('diagonal');
+                var payZone = new ebg.zone();
+                payZone.create(this, prom_id, this.cardwidth, this.cardheight);
+                payZone.setPattern('diagonal');
+                this.payoutStacks.push(payZone);
 
-                this.promiseCounters[CONTRACT.C] = new forex.fcounter();
-                this.promiseCounters[CONTRACT.C].create('promise_'+C+'_cntr');
+                var promCounter = new forex.fcounter();
+                promCounter.create('promise_'+C+'_cntr');
+                this.promiseCounters.push(promCounter);
 
-                this.payoutCounters[CONTRACT.C] = new forex.fcounter();
-                this.payoutCounters[CONTRACT.C].create('payout_'+C+'_cntr');
+                var payCounter = new forex.fcounter();
+                payCounter.create('payout_'+C+'_cntr');
+                this.payoutCounters.push(payCounter);
             });
         },
 
         /**
-         * Creates the Contract Queue, puts all Contracts in it
+         * Creates the Contract Queue, puts all Contracts in it 
+         * AND the matching stacks in the Contract Display
+         * AND on the player board
          */
         createContractQueue: function() {
             for (const c in this.gamedatas.contracts) {
@@ -417,6 +427,8 @@ function (dojo, declare) {
                 var q_div = 'queue_'+q;
                 if (contract.contract == 'Dividend') {
                     this.createDividendsStack(q_div, q);
+                } else {
+                    this.placeContract(contract);
                 }
             }
         },
@@ -448,6 +460,71 @@ function (dojo, declare) {
             dojo.place(this.format_block('jstpl_dividend_counter'), divdiv.id);
             this.dividendCounter.create('dividend_counter');
             this.dividendCounter.incValue(dividends);
+        },
+
+
+        /**
+         * Put the tooltip on the contract in the Queue,
+         * add its stacks of notes in the Display,
+         * and the little icon on the player's board
+         * @param {Object} contract 
+         */
+        placeContract: function(contract) {
+            // first place in queue
+            this.placeContractInQueue(contract);
+            this.placeContractCurrencyInQueue(contract);
+            this.placeContractInQueue(contract);
+        },
+
+        /**
+         * Puts the contract in the queue at the correct spot
+         */
+        placeContractInQueue: function(contract) {
+            // first place in queue
+            var q = 8-contract.location;
+            var q_div = 'queue_'+q;
+            var contract_div = this.format_block('jstpl_contract_card', {"contract" : contract.contract, "scale": 0.5 });
+            dojo.place(contract_div, q_div);
+        },
+
+        /**
+         * Puts promise and payout currencies in stacks on Contract display
+         * @param {Object*} contract 
+         */
+        placeContractCurrencyInQueue: function(contract) {
+            var conL = contract.contract;
+            var promise = contract.promise;
+            var promise_amt = contract.promise_amt;
+            var ix = CONTRACT[conL];
+            var promStack = this.promiseStacks[ix];
+            for (let p = 0; p < promise_amt; p++) {
+                let pnote = this.format_block('jstpl_bank_note', {"curr": promise});
+                let pdiv = dojo.place(pnote, 'contract_promise_'+conL);
+                promStack.placeInZone(pdiv);
+            }
+            this.promiseCounters[ix].setValue(promise_amt);
+
+            var payout = contract.payout;
+            var payout_amt = contract.payout_amt;
+            var payStack = this.payoutStacks[ix];
+            for (let p = 0; p < payout_amt; p++) {
+                let pnote = this.format_block('jstpl_bank_note', {"curr": payout});
+                let pdiv = dojo.place(pnote, 'contract_payout_'+conL);
+                payStack.placeInZone(pdiv);
+            }
+            this.payoutCounters[ix].setValue(payout_amt);
+        },
+
+        /**
+         * Place a contract on the player board
+         * @param {Object} contract 
+         */
+        placeContractOnPlayerBoard: function(contract) {
+            var C = contract.contract;
+            var player_id = contract.player_id;
+            var player_board_div = $('player_board_'+player_id);
+            var contract_div = this.format_block('jstpl_contract_card', {"contract" : C, "scale": 0.25 });
+            dojo.place(contract_div, player_board_div);
         },
 
         /**
@@ -964,6 +1041,29 @@ function (dojo, declare) {
             $(btn_id).setAttribute("disabled", true);
         },
 
+        /**
+         * Sets message text on a text element already inserted into title section.
+         * @param {string} text_element
+         * @param {string} text 
+         */
+        setMessageText: function(text_element, text) {
+            document.getElementById(text_element).innerHTML = text;
+        },
+
+        /**
+         * Get currency according to the button type selected.
+         * @param {string} type 
+         */
+        getSelectedCurrency: function(type) {
+            var curr = "";
+            var selected = document.getElementsByClassName("frx_curr_"+type);
+            if (selected.length != 0) {
+                var sel_id = selected[0].id;
+                curr = sel_id.substring(0,3);
+            }
+            return curr;
+        },
+
         ///////////////////////////////////////////////////
         //// Client "State" Functions
         ///////////////////////////////////////////////////
@@ -1195,7 +1295,7 @@ function (dojo, declare) {
                 var prom_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
                 var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
                 if (prom_curr == "") {
-                    this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                    this.setMessageText(SPOT_TRADE_MSG, contract_txt);
                 } else {
                     if (payoff_curr != "") {
                         this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
@@ -1217,7 +1317,7 @@ function (dojo, declare) {
                         });
             
                         contract_txt += promise_txt+_("for")+payoff_txt;
-                        this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                        this.setMessageText(SPOT_TRADE_MSG, contract_txt);
                         this.PAY_COUNTER = new forex.fcounter();
                         this.PAY_COUNTER.create('offer_counter');
                         this.PAY_COUNTER.setValue(prom_val);
@@ -1226,11 +1326,11 @@ function (dojo, declare) {
                         this.RECEIVE_COUNTER.setValue(pay_val);
                     } else {
                         contract_txt += this.createMoniesXstr("?", prom_curr, CURRENCY_TYPE.NOTE);
-                        this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                        this.setMessageText(SPOT_TRADE_MSG, contract_txt);
                     }
                 }
             } else {
-                this.setContractText(SPOT_TRADE_MSG, contract_txt);
+                this.setMessageText(SPOT_TRADE_MSG, contract_txt);
             }
         },
 
@@ -1308,7 +1408,7 @@ function (dojo, declare) {
                 }
             });
 
-            document.getElementById('invest_txt').innerHTML = text;
+            document.getElementById(INVEST_MSG).innerHTML = text;
         },
 
         ///////////////////////// DIVEST /////////////////////////
@@ -1368,7 +1468,7 @@ function (dojo, declare) {
          */
         insertSellButtons: function() {
             var curr = this.DIVEST_CURRENCY;
-            this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_TEXT: 'divest_text'});
+            this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_TEXT: DIVEST_MSG});
             this.createSellCounter(curr);
         },
 
@@ -1378,7 +1478,7 @@ function (dojo, declare) {
          */
         createSellCounter: function(curr) {
             var sell_buttons = this.format_block('jstpl_sell_buttons', {"curr": curr});
-            document.getElementById('divest_text').innerHTML = sell_buttons;
+            document.getElementById(DIVEST_MSG).innerHTML = sell_buttons;
             this.SELL_COUNTER = new ebg.counter();
             this.SELL_COUNTER.create('sell_counter_'+curr);
             this.SELL_COUNTER.setValue(1);
@@ -1406,7 +1506,7 @@ function (dojo, declare) {
                 queued.push(contract.contract);
             }
             const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
-            for (let cl of letters) {
+            for (const cl of letters) {
                 if (!queued.includes(cl)) {
                     return cl;
                 }
@@ -1416,7 +1516,7 @@ function (dojo, declare) {
 
         /**
          * Add Actions to Certificates. 
-         * @param {*} contract
+         * @param {string} contract letter
          */
         addContractActions: function(contract) {
             Object.keys(CURRENCY).forEach(curr => {
@@ -1473,7 +1573,7 @@ function (dojo, declare) {
             var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
             var contract_txt = "";
             if (pay_curr == "") {
-                this.setContractText("contract_text", "");
+                this.setMessageText(CONTRACT_MSG, "");
             } else {
                 if (payoff_curr != "") {
                     this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
@@ -1505,7 +1605,7 @@ function (dojo, declare) {
                     if (exchg_pair[PAIR.STRONGER] == payoff_curr) {
                         contract_txt += contract_buttons;
                     }
-                    this.setContractText("contract_text", contract_txt);
+                    this.setMessageText(CONTRACT_MSG, contract_txt);
                     this.PAY_COUNTER = new forex.fcounter();
                     this.PAY_COUNTER.create('pay_counter');
                     this.PAY_COUNTER.setValue(prom_val);
@@ -1515,7 +1615,7 @@ function (dojo, declare) {
                     this.addContractButtons(pay_curr, exchg_pair);
                 } else {
                     contract_txt = _("Pay ") +this.createMoniesXstr("?", pay_curr, CURRENCY_TYPE.NOTE);
-                    this.setContractText("contract_text", contract_txt);
+                    this.setMessageText(CONTRACT_MSG, contract_txt);
                 }
             }
         },
@@ -1548,30 +1648,6 @@ function (dojo, declare) {
                 }
             });
         },
-
-        /**
-         * Sets message text on a text element already inserted into title section.
-         * @param {string} text_element
-         * @param {string} text 
-         */
-        setContractText: function(text_element, text) {
-            document.getElementById(text_element).innerHTML = text;
-        },
-
-        /**
-         * Get currency according to the button type selected.
-         * @param {string} type 
-         */
-        getSelectedCurrency: function(type) {
-            var curr = "";
-            var selected = document.getElementsByClassName("frx_curr_"+type);
-            if (selected.length != 0) {
-                var sel_id = selected[0].id;
-                curr = sel_id.substring(0,3);
-            }
-            return curr;
-        },
-
 
         ///////////////////////////////////////////////////
         //// Player's action
@@ -1610,7 +1686,7 @@ function (dojo, declare) {
         investCurrency: function(evt) {
             if (this.checkAction('investCurrency', true)) {
                 this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may buy 1 or 2 Certificates"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'invest_txt'});
+                this.setDescriptionOnMyTurn(_("You may buy 1 or 2 Certificates"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: INVEST_MSG});
                 this.addInvestActions();
                 this.addConfirmButton(ACTIONS.INVEST);
                 this.addCancelButton();
@@ -1624,7 +1700,7 @@ function (dojo, declare) {
         divestCurrency: function(evt) {
             if (this.checkAction('divestCurrency', true)) {
                 this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: 'divest_text'});
+                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: DIVEST_MSG});
                 this.addDivestActions();
                 this.addConfirmButton(ACTIONS.DIVEST);
                 this.addCancelButton();
@@ -1645,7 +1721,8 @@ function (dojo, declare) {
                     this.showMessage("No Contracts Available!");
                 } else {
                     this.removeActionButtons();
-                    this.setDescriptionOnMyTurn(_("You may make a Contract (" + nextContract +")"), {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: 'contract_text'});
+                    var contract_div = this.format_block('jstpl_contract_card', {"contract" : nextContract, "scale": 0.25 });
+                    this.setDescriptionOnMyTurn(_("You may take Contract ") + contract_div, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
                     this.addContractActions(nextContract);
                     this.addConfirmButton(ACTIONS.CONTRACT);
                     this.addCancelButton();
@@ -1693,7 +1770,7 @@ function (dojo, declare) {
                     this.sellCertificates();
                     break;
                 case ACTIONS.CONTRACT:
-                    this.placeContract();
+                    this.takeContract();
                     break;
                 case ACTIONS.RESOLVE:
                     break;
@@ -1799,7 +1876,10 @@ function (dojo, declare) {
         sellCertificates: function() {
             if (this.checkAction('divestCurrency', true)) {
                 var curr = this.DIVEST_CURRENCY;
-                var certs = this.SELL_COUNTER.getValue();
+                var certs = 0;
+                if (this.SELL_COUNTER) {
+                    certs = this.SELL_COUNTER.getValue();
+                }
                 if (certs == 0 || curr == null) {
                     this.showMessage(_("No Certificates selected"), "info");
                 } else {
@@ -1831,15 +1911,22 @@ function (dojo, declare) {
         /**
          * Clicked "Confirm" on a Make Contract action.
          */
-        placeContract: function() {
+        takeContract: function() {
             if (this.checkAction('makeContract', true)) {
                 if (this.PAY_COUNTER && this.RECEIVE_COUNTER) {
-                    var promise_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
-                    var promise_amt = this.PAY_COUNTER.getValue();
-                    var payoff_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
-                    var payoff_amt = this.RECEIVE_COUNTER.getValue();
-                    console.log("paying " + promise_amt + " " + promise_curr + " for " + payoff_amt + " " + payoff_curr);
-                } else {
+                    var prom_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
+                    var prom_amt = this.PAY_COUNTER.getValue();
+                    var pay_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
+                    var pay_amt = this.RECEIVE_COUNTER.getValue();
+                    debugger;
+                    this.ajaxcall( "/forex/forex/makeContract.html", { 
+                        promise: prom_curr,
+                        payout: pay_curr,
+                        promise_amt: prom_amt,
+                        payout_amt: pay_amt,
+                        lock: true
+                    }, this, function( result ) {  }, function( is_error) { } );
+                    } else {
                     this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');
                 }
             }
@@ -1871,6 +1958,7 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'notif_certificatesBought', 500 );
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
             this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
+            dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
         },
 
         /**
@@ -1975,7 +2063,6 @@ function (dojo, declare) {
             var certs = notif.args.certs;
             var curr = notif.args.curr;
             this.DIVEST_CURRENCY = curr;
-            console.log('notif_certificatesSold ' + this.DIVEST_CURRENCY);
             // can be null when additional players declined to sell
             if (certs != null) {
                 var player_id = notif.args.player_id;
@@ -1988,6 +2075,21 @@ function (dojo, declare) {
                 // show notes being acquired
                 this.moveBankNotes(player_id, curr, amt*2);
             }
+        },
+
+        /**
+         * When a player takes a Contract.
+         * @param {Object} notif 
+         */
+        notif_contractTaken: function( notif ) {
+            var player_id = notif.args.player_id;
+            var promise = notif.args.promise_curr;
+            var payout = notif.args.payout_curr;
+            var promise_amt = parseFloat(notif.args.promise_amt);
+            var payout_amt = parseFloat(notif.args.payout_amt);
+            var position = parseInt(notif.args.position);
+            // first create Contract Display
+
         },
     });
 });

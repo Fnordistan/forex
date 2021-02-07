@@ -16,7 +16,6 @@
   *
   */
 
-
 require_once( APP_GAMEMODULE_PATH.'module/table/table.game.php' );
 
 define('DIVIDENDS', 'Dividends');
@@ -249,13 +248,16 @@ class ForEx extends Table
         This method is called each time we are in a game state with the "updateGameProgression" property set to true 
         (see states.inc.php)
     */
-    function getGameProgression()
-    {
-        // TODO: compute and return the game progression
-
-        return 0;
+    function getGameProgression() {
+        $dividends = self::getGameStateValue(DIVIDEND_COUNT);
+        // $div_loc = self::getUniqueValueFromDB("SELECT location FROM CONTRACTS WHERE contract =\"".DIVIDENDS."\"");
+        // // how many contracts ahead of it in queue?
+        // self::debug('div_loc', $div_loc);
+        // $ahead = self::getCollectionFromDb("SELECT COUNT(*) FROM CONTRACTS WHERE location > $div_loc");
+        // self::debug('ahead', $ahead);
+        $inc = 0; //10 - ($ahead * (1 + 2/3));
+        return $inc + (5-$dividends)*20;
     }
-
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Utility functions
@@ -529,6 +531,13 @@ class ForEx extends Table
     }
 
     /**
+     * Get current location in queue of the Dividends stack
+     */
+    function getDividendLocation() {
+        return self::getUniqueValueFromDB("SELECT location FROM CONTRACTS WHERE contract =\"".DIVIDENDS."\"");
+    }
+
+    /**
      * For setting state - turn a currency into its corresponding int
      */
     function currencyToIndex($curr) {
@@ -767,6 +776,41 @@ class ForEx extends Table
         ));
         $this->weaken($curr, $amt);
     }
+
+    /**
+     * Create a contract.
+     */
+    function makeContract($prom_curr, $prom_amt, $pay_curr, $pay_amt) {
+        $player_id = self::getActivePlayerId();
+        $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE owner IS NULL AND contract != \"".DIVIDENDS."\" ORDER BY contract ASC LIMIT 1");
+        if ($contract == NULL) {
+            throw new BgaUserException(self::_("There are no Contracts available"));
+        }
+        if (min($prom_amt, $pay_amt) > 10) {
+            throw new BgaUserException(self::_("You may not make a Contract for more than 10 units of the stronger Currency"));
+        }
+        self::DBQuery("UPDATE CONTRACTS SET promise = \"$prom_curr\", promise_amt = $prom_amt, payout = \"$pay_curr\", payout_amt = $pay_amt, owner = $player_id, location = 0 WHERE contract = \"$contract\"");
+        // now push everything forward in queue
+        $this->pushContractQueue();
+        $position = self::getUniqueValueFromDB("SELECT location from CONTRACTS where contract = \"$contract\"");
+        $x_promise = $this->create_X_monies_arg($prom_amt, $prom_curr, NOTE);
+        $x_payout = $this->create_X_monies_arg($pay_amt, $pay_curr, NOTE);
+        self::notifyAllPlayers("contractTaken", clienttranslate('${player_name} took Contract ${contract} to pay ${x_promise} for ${x_payout}'), array(
+            'i18n' => array (),
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'promise_curr' => $prom_curr,
+            'promise_amt' => $prom_amt,
+            'payout_curr' => $pay_curr,
+            'payout_amt' => $pay_amt,
+            'x_promise' => $x_promise,
+            'x_payout' => $x_payout,
+            'contract' => $contract,
+            'position' => $position
+        ));
+        $this->gamestate->nextState("nextPlayer");
+    }
+
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments

@@ -53,6 +53,7 @@ $machinestates = array(
         "name" => "nextPlayer",
         "description" => "",
         "type" => "game",
+        "updateGameProgression" => true,   
         "action" => "stNextPlayer",
         "transitions" => array( "" => CHOOSE_ACTION  )
     ),
