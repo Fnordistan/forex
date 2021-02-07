@@ -36,9 +36,9 @@
                 <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
                 <!-- BEGIN CONTRACTS_BLOCK -->
                 <div id="contract_{CONTRACT}" class="frx_contract_container">
-                    <div id="contract_promise_{CONTRACT}" class="frx_currency_zone"><span id="promise_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
+                    <div id="contract_promise_{CONTRACT}" class="frx_contract_curr_box"></div>
                     <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
-                    <div id="contract_payout_{CONTRACT}" class="frx_currency_zone"><span id="payout_{CONTRACT}_cntr" class="frx_cert_cntr"></span></div>
+                    <div id="contract_payout_{CONTRACT}" class="frx_contract_curr_box"></div>
                 </div>
                 <!-- END CONTRACTS_BLOCK -->
             </div>
@@ -72,6 +72,10 @@ var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_
 
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
+// for notes that get stacked together
+var jstpl_bank_note_stacked = '<div id="${id}" class="frx_currency_card frx_note_nonum frx_${curr}" style="position: absolute; margin: ${offset}px;"></div>';
+// counter put on top of a stack
+var jstpl_stack_counter = '<span id="${curr}_${type}_stack_ctr_${id}" class="frx_stack_ctr" style="color: var(--color_${type}_${curr})"></span>';
 
 // an individual cert
 var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></div>';
@@ -102,7 +106,7 @@ var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_c
                             </div>';
 
 // a mini contract card
-var jstpl_contract_card = '<div class="frx_contract_card frx_{contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></div>';
+var jstpl_contract_card = '<span class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
 
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\

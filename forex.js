@@ -67,6 +67,8 @@ const ACTIONS = {
 const BTN = '_btn';
 
 const CERT_SPRITES = 'img/forex_certificates.jpg'
+const NOTE_SPRITES = 'img/forex_notes.jpg';
+
 // these to match css
 const CURR_BASE_W = 150;
 const CURR_BASE_H = 97.66;
@@ -213,17 +215,12 @@ function (dojo, declare) {
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
-            this.promiseStacks = [];
-            this.payoutStacks = [];
-            this.promiseCounters = [];
-            this.payoutCounters = [];
 
             this.addMonies();
             this.createCurrencyZones();
             this.placeCurrencyPairs();
             this.createAvailableCertificates();
             this.placeCertificates();
-            this.createContractDisplay();
             this.createContractQueue();
 
             // Setup game notifications to handle (see "setupNotifications" method below)
@@ -391,30 +388,6 @@ function (dojo, declare) {
             this.availableCertCounters[CURRENCY[certificate.curr]-1].incValue(1);
         },
 
-        createContractDisplay: function() {
-            Object.keys(CONTRACT).forEach(C => {
-                var prom_id = 'contract_promise_'+C;
-                var promZone = new ebg.zone();
-                promZone.create(this, prom_id, this.cardwidth, this.cardheight);
-                promZone.setPattern('diagonal');
-                this.promiseStacks.push(promZone);
-
-                var pay_id = 'contract_payout_'+C;
-                var payZone = new ebg.zone();
-                payZone.create(this, prom_id, this.cardwidth, this.cardheight);
-                payZone.setPattern('diagonal');
-                this.payoutStacks.push(payZone);
-
-                var promCounter = new forex.fcounter();
-                promCounter.create('promise_'+C+'_cntr');
-                this.promiseCounters.push(promCounter);
-
-                var payCounter = new forex.fcounter();
-                payCounter.create('payout_'+C+'_cntr');
-                this.payoutCounters.push(payCounter);
-            });
-        },
-
         /**
          * Creates the Contract Queue, puts all Contracts in it 
          * AND the matching stacks in the Contract Display
@@ -444,24 +417,24 @@ function (dojo, declare) {
             this.divstack.setPattern('verticalfit');
             // put each remaining dividend in stack, last first
             var dividends = parseInt(this.gamedatas.dividends);
-            var divdiv;
+            var last_id;
             for (var i = 0; i < dividends; i++) {
                 var div_num = 4-i;
                 var dividend = this.format_block('jstpl_dividend', {
                     "div_num" : div_num
                 });
-                divdiv = dojo.place(dividend, 'contract_queue_container');
+                var divcard = dojo.place(dividend, 'contract_queue_container');
                 var off_x = -div_num * this.dvdwidth;
-                divdiv.style["background-position"] = off_x+"px 0px";
-                this.divstack.placeInZone(divdiv.id);
+                divcard.style["background-position"] = off_x+"px 0px";
+                last_id = divcard.id;
+                this.divstack.placeInZone(last_id);
             }
             // we put the counter on top of the last Dividend
             this.dividendCounter = new ebg.counter();
-            dojo.place(this.format_block('jstpl_dividend_counter'), divdiv.id);
+            dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
             this.dividendCounter.incValue(dividends);
         },
-
 
         /**
          * Put the tooltip on the contract in the Queue,
@@ -472,8 +445,8 @@ function (dojo, declare) {
         placeContract: function(contract) {
             // first place in queue
             this.placeContractInQueue(contract);
-            this.placeContractCurrencyInQueue(contract);
-            this.placeContractInQueue(contract);
+            this.placeContractCurrencies(contract);
+            this.placeContractOnPlayerBoard(contract);
         },
 
         /**
@@ -484,35 +457,54 @@ function (dojo, declare) {
             var q = 8-contract.location;
             var q_div = 'queue_'+q;
             var contract_div = this.format_block('jstpl_contract_card', {"contract" : contract.contract, "scale": 0.5 });
-            dojo.place(contract_div, q_div);
+            var contract_card = dojo.place(contract_div, q_div);
+            // to fit in zone box
+            contract_card.style.margin = "0px";
         },
 
         /**
-         * Puts promise and payout currencies in stacks on Contract display
-         * @param {Object*} contract 
+         * Puts promise and payout currencies in stacks on Contract display and adds counters.
+         * @param {Object} contract
          */
-        placeContractCurrencyInQueue: function(contract) {
-            var conL = contract.contract;
-            var promise = contract.promise;
-            var promise_amt = contract.promise_amt;
-            var ix = CONTRACT[conL];
-            var promStack = this.promiseStacks[ix];
-            for (let p = 0; p < promise_amt; p++) {
-                let pnote = this.format_block('jstpl_bank_note', {"curr": promise});
-                let pdiv = dojo.place(pnote, 'contract_promise_'+conL);
-                promStack.placeInZone(pdiv);
-            }
-            this.promiseCounters[ix].setValue(promise_amt);
+        placeContractCurrencies: function(contract) {
+            this.populateContractCurrencyStack(contract, "promise");
+            this.populateContractCurrencyStack(contract, "payout");
+        },
 
-            var payout = contract.payout;
-            var payout_amt = contract.payout_amt;
-            var payStack = this.payoutStacks[ix];
-            for (let p = 0; p < payout_amt; p++) {
-                let pnote = this.format_block('jstpl_bank_note', {"curr": payout});
-                let pdiv = dojo.place(pnote, 'contract_payout_'+conL);
-                payStack.placeInZone(pdiv);
+        /**
+         * Put the Notes on either promise or payout side of the Contract.
+         */
+        populateContractCurrencyStack: function(contract, type) {
+            var C = contract.contract;
+            var curr = (type == "promise") ? contract.promise : contract.payout;
+            var amt = (type == "promise") ? contract.promise_amt : contract.payout_amt;
+            this.createCurrencyStack(C, type, curr, amt);
+        },
+
+        /**
+         * Creates an actual stack of Notes next to a Contract.
+         * @param {*} C 
+         * @param {*} type 
+         * @param {*} curr 
+         * @param {*} amt 
+         */
+        createCurrencyStack: function(C, type, curr, amt) {
+            var id = 'contract_'+type+'_'+C;
+            // holds Notes
+            var last_id;
+            for (let i = 0; i < amt; i++) {
+                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "offset": i*2});
+                last_id = dojo.place(note, id, i);
             }
-            this.payoutCounters[ix].setValue(payout_amt);
+            // put the counter on top of the last Note
+            var counter = new forex.fcounter();
+            var ctr_id = dojo.place(this.format_block('jstpl_stack_counter', {
+                "id": C,
+                "curr": curr,
+                "type": "note"
+            }), last_id);
+            counter.create(ctr_id);
+            counter.setValue(amt);
         },
 
         /**
@@ -1193,7 +1185,7 @@ function (dojo, declare) {
             for (p in otherPlayers) {
                 var p2 = otherPlayers[p];
                 if (player != p2) {
-                    dojo.attr('trade_'+p2['id']+'_btn', 'disabled', disable);
+                    dojo.attr('trade_'+p2['id']+BTN, 'disabled', disable);
                 }
             }
             // create spotTrade message
@@ -1223,7 +1215,7 @@ function (dojo, declare) {
         addPlayerTradeActions: function(otherPlayers) {
             for (let p in otherPlayers) {
                 let player = otherPlayers[p];
-                $('trade_'+player['id']+'_btn').addEventListener('click', () => {
+                $('trade_'+player['id']+BTN).addEventListener('click', () => {
                     this.choosePlayer(player, otherPlayers);
                 });
             }
@@ -1918,7 +1910,6 @@ function (dojo, declare) {
                     var prom_amt = this.PAY_COUNTER.getValue();
                     var pay_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
                     var pay_amt = this.RECEIVE_COUNTER.getValue();
-                    debugger;
                     this.ajaxcall( "/forex/forex/makeContract.html", { 
                         promise: prom_curr,
                         payout: pay_curr,

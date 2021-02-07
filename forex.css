@@ -115,9 +115,9 @@
     margin: 5px;
 }
 
-.frx_currency_zone {
-    border: 2 px lightgray;
-    border-style: dotted;
+.frx_contract_curr_box {
+    outline: 2px white;
+    outline-style: groove;
     width: calc(var(--scale) * var(--currency_w));
     height: calc(var(--scale) * var(--currency_h));
     margin: 5px;
@@ -195,6 +195,10 @@
     background-image: url(img/forex_notes.jpg);
 }
 
+.frx_note_nonum {
+    background-image: url(img/forex_notes_un.jpg);
+}
+
 .frx_cert {
     background-image: url(img/forex_certificates.jpg);
 }
@@ -267,6 +271,21 @@
         1px -1px 0 lightgray,
         -1px 1px 0 lightgray,
         1px 1px 0 lightgray;
+}
+
+.frx_stack_ctr {
+    font-family: 'DM Mono';
+    font-size: 36px;
+    font-weight: 700;
+    float: right;
+    margin: 5px;
+    vertical-align: text-top;
+    text-shadow:
+        1px 1px 0 white,
+        -1px -1px 0 white,  
+        1px -1px 0 white,
+        -1px 1px 0 white,
+        1px 1px 0 white;
 }
 
 .frx_curr_pr_zone {
