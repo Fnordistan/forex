@@ -792,6 +792,7 @@ class ForEx extends Table
         self::DBQuery("UPDATE CONTRACTS SET promise = \"$prom_curr\", promise_amt = $prom_amt, payout = \"$pay_curr\", payout_amt = $pay_amt, owner = $player_id, location = 0 WHERE contract = \"$contract\"");
         // now push everything forward in queue
         $this->pushContractQueue();
+
         $position = self::getUniqueValueFromDB("SELECT location from CONTRACTS where contract = \"$contract\"");
         $x_promise = $this->create_X_monies_arg($prom_amt, $prom_curr, NOTE);
         $x_payout = $this->create_X_monies_arg($pay_amt, $pay_curr, NOTE);
@@ -806,7 +807,9 @@ class ForEx extends Table
             'x_promise' => $x_promise,
             'x_payout' => $x_payout,
             'contract' => $contract,
-            'position' => $position
+            'position' => $position,
+            X_MONIES => array('x_promise' => $x_promise, 'x_payout' => $x_payout),
+
         ));
         $this->gamestate->nextState("nextPlayer");
     }

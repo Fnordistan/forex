@@ -73,9 +73,9 @@ var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
 // for notes that get stacked together
-var jstpl_bank_note_stacked = '<div id="${id}" class="frx_currency_card frx_note_nonum frx_${curr}" style="position: absolute; margin: ${offset}px;"></div>';
+var jstpl_bank_note_stacked = '<div id="${id}" class="frx_currency_card frx_note_nonum frx_${curr}" style="position: absolute; margin: ${offset};"></div>';
 // counter put on top of a stack
-var jstpl_stack_counter = '<span id="${curr}_${type}_stack_ctr_${id}" class="frx_stack_ctr" style="color: var(--color_${type}_${curr})"></span>';
+var jstpl_stack_counter = '<span id="${curr}_${type}_stack_ctr_${id}" class="frx_stack_ctr" style="color: var(--color_cert_${curr})"></span>';
 
 // an individual cert
 var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></div>';

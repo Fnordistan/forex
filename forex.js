@@ -397,9 +397,8 @@ function (dojo, declare) {
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
                 var q = 8-contract.location;
-                var q_div = 'queue_'+q;
                 if (contract.contract == 'Dividend') {
-                    this.createDividendsStack(q_div, q);
+                    this.createDividendsStack(q);
                 } else {
                     this.placeContract(contract);
                 }
@@ -408,10 +407,10 @@ function (dojo, declare) {
 
         /**
          * Create the Dividends stack as a Zone.
-         * @param {string} div_el 
          * @param {int} q
          */
-        createDividendsStack: function(div_el, q) {
+        createDividendsStack: function(q) {
+            var div_el = 'queue_'+q;
             this.divstack = new ebg.zone();
             this.divstack.create(this, div_el, this.dvdwidth, this.dvdheight);
             this.divstack.setPattern('verticalfit');
@@ -493,7 +492,14 @@ function (dojo, declare) {
             // holds Notes
             var last_id;
             for (let i = 0; i < amt; i++) {
-                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "offset": i*2});
+                var off = 2*i;
+                var offset = "0px";
+                if (type == "promise") {
+                    offset = -off+"px";
+                } else {
+                    offset = -off+"px "+off+"px";
+                }
+                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "offset": offset});
                 last_id = dojo.place(note, id, i);
             }
             // put the counter on top of the last Note
@@ -1950,6 +1956,7 @@ function (dojo, declare) {
             dojo.subscribe( 'certificatesSold', this, "notif_certificatesSold" );
             this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
             dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
+            this.notifqueue.setSynchronous( 'notif_contractTaken', 500 );
         },
 
         /**
@@ -2074,13 +2081,68 @@ function (dojo, declare) {
          */
         notif_contractTaken: function( notif ) {
             var player_id = notif.args.player_id;
+            var C = notif.args.contract;
             var promise = notif.args.promise_curr;
             var payout = notif.args.payout_curr;
             var promise_amt = parseFloat(notif.args.promise_amt);
             var payout_amt = parseFloat(notif.args.payout_amt);
             var position = parseInt(notif.args.position);
-            // first create Contract Display
+            // put Contract in Queue
+            var contract = {
+                "contract": C,
+                "location": position,
+                "promise": promise,
+                "promise_amt": promise_amt,
+                "payout": payout,
+                "payout_amt": payout_amt,
+                "player_id": player_id,
+            };
+            // first move all contracts forward in queue
+            var dividend_slot = 0;
+            for (let q = 1; q <= 7; q++) {
+                var div_q = 'queue_'+q;
+                var children = document.getElementById(div_q).childNodes;
+                // sanity check - should never happen
+                if (children.length > 0) {
+                    if (q == 1) {
+                        throw "Error: Contract added when queue is full";
+                    } else {
+                        children.forEach(c => {
+                            this.slideTemporaryObject( c, contract_queue_container, div_q, 'queue_'+(q-1), 500 ).play();
+                            if (c.classList.contains("frx_dividend")) {
+                                dividend_slot = q;
+                            }
+                        });
+                    }
+                }
+            }
 
+            // slide contract to player board
+            var contract_card = this.format_block('jstpl_contract_card', {"contract": C, "scale": 0.5});
+            debugger;
+            this.slideTemporaryObject( contract_card, 'contract_'+C, 'contract_card_'+C, 'player_board_'+player_id, 500 ).play();
+            // slide contract to queue
+            this.slideTemporaryObject( contract_card, 'contract_'+C, 'contract_card_'+C, 'queue_'+position, 500 ).play();
+            // slide notes from bank to contract display
+            this.addNotesToStack(C, 'promise', promise, promise_amt);
+            this.addNotesToStack(C, 'payout', payout, payout_amt);
+            this.placeContract(contract);
+            this.createDividendsStack(dividend_slot-1);
         },
+
+        /**
+         * Move notes from bank stack to either side of the Contract Display.
+         * @param {*} contract 
+         * @param {*} type 
+         * @param {*} curr 
+         * @param {*} amt 
+         */
+        addNotesToStack: function(contract, type, curr, amt) {
+            for (let p = 0; p < amt; p++) {
+                var note = this.format_block('jstpl_bank_note', {"curr": curr});
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_payout_'+contract, 500 ).play();
+            }
+        },
+
     });
 });
