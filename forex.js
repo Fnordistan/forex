@@ -2143,7 +2143,9 @@ function (dojo, declare) {
                 // show movement
                 this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
                 // add to new parent
-                if (!is_dividends) {
+                if (is_dividends) {
+                    div_q.removeChild(c);
+                } else {
                     div_q2.appendChild(c);
                 }
             }
