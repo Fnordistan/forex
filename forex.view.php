@@ -82,7 +82,7 @@ define('ZONE_V_GAP', 107);
         }
 
         $this->page->begin_block($template, 'QUEUE_BLOCK');
-        for ($i = 1; $i <= 7; $i++) {
+        for ($i = 7; $i > 0; $i--) {
           $this->page->insert_block('QUEUE_BLOCK', array(
             'Q' => $i
           ));

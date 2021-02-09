@@ -236,6 +236,7 @@
     background-size: calc(5 * var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
     background-image: url(img/forex_dividends.jpg);
     background-repeat: no-repeat;
+    border: 1px solid black;
     width: calc(var(--scale) * var(--contract_w));
     height: calc(var(--scale) * var(--contract_h));
 }
@@ -275,7 +276,7 @@
 
 .frx_stack_ctr {
     font-family: 'DM Mono';
-    font-size: 36px;
+    font-size: 30px;
     font-weight: 700;
     float: right;
     margin: 5px;

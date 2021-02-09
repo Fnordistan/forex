@@ -59,7 +59,7 @@
 /*** Javascript HTML templates ***/
 
 // show a Dividend card
-var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend"></span>';
+var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style="margin: ${offset}px;"></span>';
 
 // the number of Dividends left, put on top of stack
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';

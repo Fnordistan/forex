@@ -524,7 +524,7 @@ class ForEx extends Table
     }
 
     /**
-     * Adds 1 to every Contract in the queue
+     * Slide left: adds 1 to every Contract in the queue
      */
     function pushContractQueue() {
         self::DBQuery("UPDATE CONTRACTS SET location = location+1 WHERE location IS NOT NULL");
