@@ -360,7 +360,8 @@ function (dojo, declare) {
                     "curr2": curr2
                 });
                 var currdiv = dojo.place(curr_pr, 'currency_board');
-                this.currencyPairZones[CURRENCY[curr1]-1][currency_pairs[c]['position']-1].placeInZone(currdiv.id);
+                var posi = currency_pairs[c]['position']-1;
+                this.currencyPairZones[CURRENCY[curr1]-1][posi].placeInZone(currdiv.id);
             }
         },
 
@@ -435,7 +436,7 @@ function (dojo, declare) {
             this.dividendCounter = new ebg.counter();
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
-            this.dividendCounter.incValue(dividends);
+            this.dividendCounter.setValue(dividends);
         },
 
         /**
@@ -457,11 +458,57 @@ function (dojo, declare) {
                 last_d = d;
             });
             this.divstack = new_stack;
-            // // replace counter on top of last Dividend
-            // this.dividendCounter = new ebg.counter();
-            // dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
-            // this.dividendCounter.create('dividend_counter');
-            // this.dividendCounter.incValue(dividends);
+            // counter automatically moves
+        },
+
+        /**
+         * Push all items in a ContractQueue slot to the left.
+         */
+        pushContractQueue: function() {
+            // start with leftmost
+            for (let q = 6; q > 0; q--) {
+                this.slideContractQueue(q, q+1);
+            }
+        },
+
+        /**
+         * Move contents of one queue slot to another. Show the animation.
+         * @param {int} start 
+         * @param {int} end 
+         */
+        slideContractQueue: function(start, end) {
+            var q = 'queue_'+start;
+            var q2 = 'queue_'+end;
+            var div_q = document.getElementById(q);
+            var div_q2 = document.getElementById(q2);
+            var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
+            if (is_dividends) {
+                this.moveDividendsStack(end);
+            } else {
+                while (div_q.childNodes.length > 0) {
+                    var c = div_q.firstChild;
+                    // create a temp copy to slide
+                    var temp_c = dojo.clone(c);
+                    var child = div_q.removeChild(c);
+                    // show movement
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
+                    div_q2.appendChild(child);
+                }
+            }
+        },
+
+        /**
+         * Move notes from bank stack to either side of the Contract Display.
+         * @param {string} contract 
+         * @param {string} type 
+         * @param {string} curr 
+         * @param {int} amt 
+         */
+        slideNotesToStack: function(contract, type, curr, amt) {
+            for (let p = 0; p < amt; p++) {
+                var note = this.format_block('jstpl_bank_note', {"curr": curr});
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500 ).play();
+            }
         },
 
         /**
@@ -481,11 +528,13 @@ function (dojo, declare) {
          * Puts the contract in the queue at the correct spot
          */
         placeContractInQueue: function(contract) {
+            debugger;
             // first place in queue
             var q = contract.location;
             var q_div = 'queue_'+q;
             var contract_div = this.format_block('jstpl_contract_card', {"contract" : contract.contract, "scale": 0.5 });
             var contract_card = dojo.place(contract_div, q_div);
+            this.addTooltipHtml(contract_card, this.getContractHelpHtml(contract), 0);
             // to fit in zone box
             contract_card.style.margin = "0px";
         },
@@ -497,6 +546,21 @@ function (dojo, declare) {
         placeContractCurrencies: function(contract) {
             this.populateContractCurrencyStack(contract, CURRENCY_TYPE.PAY);
             this.populateContractCurrencyStack(contract, CURRENCY_TYPE.RECEIVE);
+        },
+
+        /**
+         * Add tooltips to all instances of a contract
+         * @param {Object} contract 
+         */
+        getContractHelpHtml: function(contract) {
+            var helpstr = "<b>"+("Contract ")+contract.contract+"</b></br>";
+            if (contract.player_id) {
+                var player = this.gamedatas.players[contract.player_id];
+                var name = player.name;
+                helpstr += name+" Pays"+this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
+                helpstr += _("for")+this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+            }
+            return helpstr;
         },
 
         /**
@@ -2124,7 +2188,6 @@ function (dojo, declare) {
                 "player_id": player_id,
             };
             // slide existing Contracts in Queue to left
-            // debugger;
             this.pushContractQueue();
             var contract_card = this.format_block('jstpl_contract_card', {"contract": C, "scale": 0.5});
             // slide contract to Queue
@@ -2136,56 +2199,6 @@ function (dojo, declare) {
             this.slideNotesToStack(C, 'payout', payout, payout_amt);
             // now put the contract in queue, on display, and on player boards
             this.placeContract(contract);
-        },
-
-        /**
-         * Push all items in a ContractQueue slot to the left.
-         */
-        pushContractQueue: function() {
-            // start with leftmost
-            for (let q = 6; q > 0; q--) {
-                this.slideContractQueue(q, q+1);
-            }
-        },
-
-        /**
-         * Move contents of one queue slot to another. Show the animation.
-         * @param {int} start 
-         * @param {int} end 
-         */
-        slideContractQueue: function(start, end) {
-            var q = 'queue_'+start;
-            var q2 = 'queue_'+end;
-            var div_q = document.getElementById(q);
-            var div_q2 = document.getElementById(q2);
-            var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
-            if (is_dividends) {
-                this.moveDividendsStack(end);
-            } else {
-                while (div_q.childNodes.length > 0) {
-                    var c = div_q.firstChild;
-                    // create a temp copy to slide
-                    var temp_c = dojo.clone(c);
-                    var child = div_q.removeChild(c);
-                    // show movement
-                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
-                    div_q2.appendChild(child);
-                }
-            }
-        },
-
-        /**
-         * Move notes from bank stack to either side of the Contract Display.
-         * @param {*} contract 
-         * @param {*} type 
-         * @param {*} curr 
-         * @param {*} amt 
-         */
-        slideNotesToStack: function(contract, type, curr, amt) {
-            for (let p = 0; p < amt; p++) {
-                var note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500 ).play();
-            }
         },
 
     });
