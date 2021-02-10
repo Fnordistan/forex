@@ -47,6 +47,8 @@ const CONTRACT = {
     F: 5
 }
 
+const DIVIDENDS = "Dividends";
+
 // 0-indexed array
 const EXCHANGE_RATE = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8];
 
@@ -397,7 +399,7 @@ function (dojo, declare) {
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
                 var q = contract.location;
-                if (contract.contract == 'Dividend') {
+                if (contract.contract == DIVIDENDS) {
                     this.createDividendsStack(q);
                 } else {
                     this.placeContract(contract);
@@ -434,6 +436,32 @@ function (dojo, declare) {
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
             this.dividendCounter.incValue(dividends);
+        },
+
+        /**
+         * Takes the existing Dividends stack and moves all the items to a new position.
+         * @param {int} q
+         */
+        moveDividendsStack: function(q) {
+            var q_id = 'queue_'+q;
+            // create the new zone
+            var new_stack = new ebg.zone();
+            new_stack.create(this, q_id, this.dvdwidth, this.dvdheight);
+            new_stack.setPattern('verticalfit');
+
+            var dividends = this.divstack.getAllItems();
+            var last_d;
+            dividends.forEach(d => {
+                this.divstack.removeFromZone(d, false, q_id);
+                new_stack.placeInZone(d);
+                last_d = d;
+            });
+            this.divstack = new_stack;
+            // // replace counter on top of last Dividend
+            // this.dividendCounter = new ebg.counter();
+            // dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
+            // this.dividendCounter.create('dividend_counter');
+            // this.dividendCounter.incValue(dividends);
         },
 
         /**
@@ -486,8 +514,8 @@ function (dojo, declare) {
          * Creates an actual stack of Notes next to a Contract.
          * @param {string} C contract letter
          * @param {string} stack "promise" or "payout"
-         * @param {*} curr 
-         * @param {*} amt 
+         * @param {string} curr 
+         * @param {int} amt 
          */
         createCurrencyStack: function(C, stack, curr, amt) {
             var id = 'contract_'+stack+'_'+C;
@@ -1000,8 +1028,8 @@ function (dojo, declare) {
         /**
          * Remove counter from one zone, add to another, animate its movement.
          * @param {Object} pair
-         * @param {*} startZone
-         * @param {*} endZone
+         * @param {Object} startZone
+         * @param {Object} endZone
          */
         moveCounter: function(pair, startZone, endZone) {
             // pair ids are assigned initially in starting order,
@@ -1498,16 +1526,14 @@ function (dojo, declare) {
 
         /**
          * Returns the first non-taken contract (by letter), or null if none.
+         * Must be client-side!
          */
         getAvailableContract: function() {
-            var queued = [];
-            for (const c in this.gamedatas.contracts) {
-                var contract = this.gamedatas.contracts[c];
-                queued.push(contract.contract);
-            }
             const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
             for (const cl of letters) {
-                if (!queued.includes(cl)) {
+                var cards = document.getElementsByClassName("frx_"+cl);
+                console.log(cl+" instances: " + cards.length);
+                if (cards.length == 1) {
                     return cl;
                 }
             }
@@ -1515,24 +1541,22 @@ function (dojo, declare) {
         },
 
         /**
-         * Add Actions to Certificates. 
-         * @param {string} contract letter
+         * Add Actions to Notes to allow increasing or decreasing the Contract currencies.
          */
-        addContractActions: function(contract) {
+        addContractActions: function() {
             Object.keys(CURRENCY).forEach(curr => {
                 let btn_id = curr+'_note_btn';
                 $(btn_id).addEventListener('click', () => {
-                    this.createContract(curr, btn_id);
+                    this.createContract(btn_id);
                 });
             });
         },
 
         /**
-         * Attached to Certificate button, assigns promise or payoff currency.
-         * @param {string} curr 
+         * Attached to Note button, assigns promise or payoff currency.
          * @param {string} btn_id 
          */
-        createContract: function(curr, btn_id) {
+        createContract: function(btn_id) {
             // are we unselecting it?
             if ($(btn_id).classList.contains("frx_curr_pay")) {
                 // we are deselecting the promise (and payoff, clearing message)
@@ -1723,7 +1747,7 @@ function (dojo, declare) {
                     this.removeActionButtons();
                     var contract_div = this.format_block('jstpl_contract_card', {"contract" : nextContract, "scale": 0.25 });
                     this.setDescriptionOnMyTurn(_("You may take Contract ") + contract_div, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
-                    this.addContractActions(nextContract);
+                    this.addContractActions();
                     this.addConfirmButton(ACTIONS.CONTRACT);
                     this.addCancelButton();
                 }
@@ -2135,22 +2159,18 @@ function (dojo, declare) {
             var div_q = document.getElementById(q);
             var div_q2 = document.getElementById(q2);
             var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
-            while (div_q.childNodes.length > 0) {
-                var c = div_q.firstChild;
-                // create a temp copy to slide
-                var temp_c = dojo.clone(c);
-                temp_c.setAttribute("id", "temp_obj");
-                // show movement
-                this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
-                // add to new parent
-                if (is_dividends) {
-                    div_q.removeChild(c);
-                } else {
-                    div_q2.appendChild(c);
-                }
-            }
             if (is_dividends) {
-                this.createDividendsStack(end);
+                this.moveDividendsStack(end);
+            } else {
+                while (div_q.childNodes.length > 0) {
+                    var c = div_q.firstChild;
+                    // create a temp copy to slide
+                    var temp_c = dojo.clone(c);
+                    var child = div_q.removeChild(c);
+                    // show movement
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
+                    div_q2.appendChild(child);
+                }
             }
         },
 

@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS `CERTIFICATES` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 
 CREATE TABLE IF NOT EXISTS `CONTRACTS` (
-    `contract` varchar(8) NOT NULL COMMENT 'A-F, Div',
+    `contract` varchar(9) NOT NULL COMMENT 'A-F, Dividends',
     `owner` varchar(16) COMMENT 'player_id or null',
     `promise` varchar(3) COMMENT 'currency',
     `promise_amt` FLOAT(2),
