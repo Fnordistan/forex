@@ -1872,7 +1872,6 @@ function (dojo, declare) {
                     });
                 }
                 this.setDescriptionOnMyTurn(_("Resolve") + contract_div+"<br/>");
-
                 this.addConfirmButton(ACTIONS.RESOLVE);
                 this.addCancelButton();
             }
@@ -1909,6 +1908,7 @@ function (dojo, declare) {
                     this.takeContract();
                     break;
                 case ACTIONS.RESOLVE:
+                    this.resolveNextContract();
                     break;
                 case ACTIONS.ACCEPT:
                     this.respondSpotTrade(true);
@@ -2061,9 +2061,20 @@ function (dojo, declare) {
                         payout_amt: pay_amt,
                         lock: true
                     }, this, function( result ) {  }, function( is_error) { } );
-                    } else {
+                } else {
                     this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');
                 }
+            }
+        },
+
+        /**
+         * Clicked "Confirm" on Resolve Contract action.
+         */
+        resolveNextContract: function() {
+            if (this.checkAction('resolveContract', true)) {
+                this.ajaxcall( "/forex/forex/resolveContract.html", { 
+                    lock: true
+                }, this, function( result ) {  }, function( is_error) { } );
             }
         },
 

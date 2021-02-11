@@ -798,7 +798,7 @@ class ForEx extends Table
         $x_payout = $this->create_X_monies_arg($pay_amt, $pay_curr, NOTE);
         // conL is hack to send separate message to notify than Contract, which gets interpolated
         self::notifyAllPlayers("contractTaken", clienttranslate('${player_name} took Contract ${contract} to pay ${x_promise} for ${x_payout}').'${conL}', array(
-            'i18n' => array (),
+            'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
             'promise_curr' => $prom_curr,
@@ -815,6 +815,31 @@ class ForEx extends Table
         ));
         $this->gamestate->nextState("nextPlayer");
     }
+
+    /**
+     * Get the next Contract or Dividends and resolve it
+     */
+    function resolveContract() {
+        $player_id = self::getActivePlayerId();
+        $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
+        throw new BgaUserException(self::_("Resolving Contract ${contract}"));
+        $endgame = false;
+        $this->notifyAllPlayers("resolvedContract", clienttranslate("{$player_name} Resolves Contract: ${contract}").'${conL}', array(
+            'i18n' => array ('contract'),
+            'player_id' => $player_id,
+            'player_name' => self::getActivePlayerName(),
+            'contract' => $contract,
+            'conL' => $contract,
+        ));
+        if ($contract == DIVIDENDS) {
+            $endgame = resolveDividends();
+        } else {
+            $endgame = resolveContract($contract);
+        }
+        $state = $endgame ? "endgame" : "nextPlayer";
+        $self->nextState($state);
+    }
+
 
 
 //////////////////////////////////////////////////////////////////////////////

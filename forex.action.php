@@ -116,4 +116,13 @@
       $this->game->makeContract($prom_curr, $prom_amt, $pay_curr, $pay_amt);
       self::ajaxResponse();
     }
+
+    /**
+     * Resolve contract.
+     */
+    public function resolveContract() {
+      self::setAjaxMode();
+      $this->game->resolveContract();
+      self::ajaxResponse();
+    }
 }
