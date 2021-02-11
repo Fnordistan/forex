@@ -262,6 +262,14 @@ function (dojo, declare) {
                         // only for curr quantities without a number
                         args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE, true);
                     }
+                    if (args.contract) {
+                        args.contract = this.format_block('jstpl_contract_card', {
+                            "contract": args.contract,
+                            "scale": 0.25
+                        });
+                        // hack because we inserted ${conL}
+                        log = log.replace('${conL}', '');
+                    }
                     if (args.X_SPOT_TRADE) {
                         log = log + this.insertTradeButtons(args.X_SPOT_TRADE) + '<br/>';
                     }
@@ -424,11 +432,10 @@ function (dojo, declare) {
                 var div_num = 4-i;
                 var dividend = this.format_block('jstpl_dividend', {
                     "div_num" : div_num,
-                    "offset": i
+                    "offset": -div_num * this.dvdwidth,
+                    "margin": i
                 });
                 var divcard = dojo.place(dividend, 'contract_queue_container');
-                var off_x = -div_num * this.dvdwidth;
-                divcard.style["background-position"] = off_x+"px 0px";
                 last_id = divcard.id;
                 this.divstack.placeInZone(last_id);
             }
@@ -528,7 +535,6 @@ function (dojo, declare) {
          * Puts the contract in the queue at the correct spot
          */
         placeContractInQueue: function(contract) {
-            debugger;
             // first place in queue
             var q = contract.location;
             var q_div = 'queue_'+q;
@@ -593,7 +599,7 @@ function (dojo, declare) {
                 } else {
                     offset = -off+"px "+off+"px";
                 }
-                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "offset": offset});
+                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "margin": offset});
                 last_id = dojo.place(note, id, i);
             }
             // put the counter on top of the last Note
@@ -683,7 +689,6 @@ function (dojo, declare) {
                     }
                     break;
                 case 'nextDivest':
-                    console.log(this.DIVEST_CURRENCY +"/"+this.gamedatas[DIVEST_CURRENCY]);
                     this.addDivestOption();
                     break;
                 }
@@ -1737,6 +1742,31 @@ function (dojo, declare) {
             });
         },
 
+        ///////////////////////// RESOLVE CONTRACT /////////////////////////
+
+        /**
+         * Look for the first contract to be Resolved based on queue position
+         */
+        getContractToResolve: function() {
+            for (let q = 7; q > 0; q--) {
+                var q_div = document.getElementById('queue_'+q);
+                if (q_div.childElementCount > 0) {
+                    // first look for Dividend in the name
+                    var child = q_div.firstChild;
+                    if (child.classList.contains("frx_dividend")) {
+                        return DIVIDENDS;
+                    }
+                    for (const cl of ['A', 'B', 'C', 'D', 'E', 'F']) {
+                        if (child.classList.contains("frx_"+cl)) {
+                            return cl;
+                        }
+                    }
+                }
+            }
+            return null;
+        },
+
+
         ///////////////////////////////////////////////////
         //// Player's action
         ///////////////////////////////////////////////////
@@ -1810,7 +1840,7 @@ function (dojo, declare) {
                 } else {
                     this.removeActionButtons();
                     var contract_div = this.format_block('jstpl_contract_card', {"contract" : nextContract, "scale": 0.25 });
-                    this.setDescriptionOnMyTurn(_("You may take Contract ") + contract_div, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
+                    this.setDescriptionOnMyTurn(_("You may take Contract") + contract_div, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
                     this.addContractActions();
                     this.addConfirmButton(ACTIONS.CONTRACT);
                     this.addCancelButton();
@@ -1825,6 +1855,24 @@ function (dojo, declare) {
         resolveContract: function(evt) {
             if (this.checkAction('resolveContract', true)) {
                 this.removeActionButtons();
+                // get the end of the Contract Queue
+                var contract = this.getContractToResolve();
+                var contract_div;
+                if (contract == DIVIDENDS) {
+                    var div_num = this.dividendCounter.getValue();
+                    contract_div = this.format_block('jstpl_dividend_card', {
+                        "div_num" : div_num,
+                        "margin": 5,
+                        "offset": -(5-div_num) * this.dvdwidth
+                    });
+                } else {
+                    contract_div = "Contract"+this.format_block('jstpl_contract_card', {
+                        "contract": contract,
+                        "scale": 0.5
+                    });
+                }
+                this.setDescriptionOnMyTurn(_("Resolve") + contract_div+"<br/>");
+
                 this.addConfirmButton(ACTIONS.RESOLVE);
                 this.addCancelButton();
             }
@@ -2171,7 +2219,7 @@ function (dojo, declare) {
          */
         notif_contractTaken: function( notif ) {
             var player_id = notif.args.player_id;
-            var C = notif.args.contract;
+            var C = notif.args.conL;
             var promise = notif.args.promise_curr;
             var payout = notif.args.payout_curr;
             var promise_amt = parseFloat(notif.args.promise_amt);

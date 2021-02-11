@@ -58,8 +58,11 @@
 
 /*** Javascript HTML templates ***/
 
-// show a Dividend card
-var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style="margin: ${offset}px;"></span>';
+// Dividend card for Dividend stack
+var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style="margin: ${margin}px; background-position: ${offset}px 0px"></span>';
+// for showing individual dividends in title text or tooltip
+var jstpl_dividend_card = '<span id="show_dividend_${div_num}" class="frx_dividend" style="display: inline-block; vertical-align: middle; margin: ${margin}px; background-position: ${offset}px 0px"></span>';
+
 
 // the number of Dividends left, put on top of stack
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
@@ -73,23 +76,30 @@ var jstpl_curr_btn = '<button id="${curr}_${type}_btn" type="button" class="frx_
 // an individual note
 var jstpl_bank_note = '<div class="frx_currency_card frx_note frx_${curr}"></div>';
 // for notes that get stacked together
-var jstpl_bank_note_stacked = '<div id="${id}" class="frx_currency_card frx_note_nonum frx_${curr}" style="position: absolute; margin: ${offset};"></div>';
+var jstpl_bank_note_stacked = '<div id="${id}" class="frx_currency_card frx_note_nonum frx_${curr}" style="position: absolute; margin: ${margin};"></div>';
 // counter put on top of a stack
 var jstpl_stack_counter = '<span id="${curr}_${type}_stack_ctr_${id}" class="frx_stack_ctr" style="color: var(--color_cert_${curr})"></span>';
 
-// an individual cert
+// an individual Certificate
 var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></div>';
 
-// displays just the "number+currency" string
+// "# Currency" string
 var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span>';
 
-// displays number + currency+ icon
+// "# Currency [ICON]" string
 var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}" title="${curr} ${type}"></span>';
 
-// displays just the name of a currency, in appropriate color (note or cert)
+// "# Currency [ICON]" + Counter
+var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_ctr_container">\
+                                <span id="${type}_counter" class="frx_ctr" style="color: var(--color_note_${curr}); font-size: 24px; vertical-align: baseline; width: 50px;"></span>\
+                                <span id="${type}_${curr}" class="frx_curr_val" style="color: var(--color_note_${curr});">${curr}</span>\
+                                <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
+                            </div>';
+
+// Just the name of a currency, in appropriate color (note or cert)
 var jspl_curr_tag = '<span class="frx_curr_lbl" style="color: var(--color_${type}_${curr}); --scale: 0.25;">${curr}</span>';
 
-// holds each player's Note and Certificates (two jstpl_mon_counters)
+// holds each player's Notes and Certificates of one Currency (two jstpl_mon_counters)
 var jstpl_cert_note_container = '<div id="${curr}_${id}_monies" class="frx_mon_container" style="background-color: var(--color_cert_${curr});"></div>';
 
 // holds a Note or Certificate + Counter on player board
@@ -98,14 +108,7 @@ var jstpl_player_monies = '<div id="${curr}_${type}_${id}_container" class="frx_
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 
-// "n CURR [ICON]" with counter
-var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_ctr_container">\
-                                <span id="${type}_counter" class="frx_ctr" style="color: var(--color_note_${curr}); font-size: 24px; vertical-align: baseline; width: 50px;"></span>\
-                                <span id="${type}_${curr}" class="frx_curr_val" style="color: var(--color_note_${curr});">${curr}</span>\
-                                <span id="${type}_icon" class="frx_currency_card frx_note frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\
-                            </div>';
-
-// a mini contract card
+// An individual contract card
 var jstpl_contract_card = '<span class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
 
 // "Sell $n $curr [ICON] + -"
