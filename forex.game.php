@@ -494,15 +494,15 @@ class ForEx extends Table
      * Return an array of card ids of the certificates a player has of the currency.
      */
     function getCertificates($player_id, $curr) {
-        $certs = self::getObjectListFromDB("SELECT card_id from CERTIFICATES WHERE card_type = \"$curr\" AND card_location = $player_id", true);
+        $certs = $this->certificates->getCardsOfTypeInLocation( $curr, null, $player_id, null);
         return $certs;
     }
 
     /**
-     * Return an array of card ids of available certificates for a currency
+     * Return an array of certs of available certificates for a currency
      */
     function getAvailableCertificates($curr) {
-        $certs = self::getObjectListFromDB("SELECT card_id from CERTIFICATES WHERE card_type = \"$curr\" AND card_location = \"".AVAILABLE."\"", true);
+        $certs = $this->certificates->getCardsOfTypeInLocation( $curr, null, AVAILABLE, null);
         return $certs;
     }
 
@@ -518,9 +518,13 @@ class ForEx extends Table
         }
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
-        $sqlArray = "(" . implode(",", $certs_to_divest) . ")";
-        self::DBQuery("UPDATE CERTIFICATES SET card_location = \"".DISCARD."\" WHERE card_id IN $sqlArray");
-        return $certs_to_divest;
+        $sell_ids = array();
+        foreach($certs_to_divest as $cert) {
+            $cert_id = $cert['id'];
+            $this->certificates->moveCard($cert_id, DISCARD);
+            $sell_ids[] = $cert_id;
+        }
+        return $sell_ids;
     }
 
     /**
@@ -581,6 +585,97 @@ class ForEx extends Table
             throw new BgaUserException(self::_("No ${curr} Certificates available for purchase"));
         }
         return $availablecerts;
+    }
+
+    /**
+     * Determine how many certs are held in hands.
+     * Returns an array of the currency(s) with the MOST Certs in player hands.
+     */
+    function countHeldCertificates() {
+        $players = self::loadPlayersBasicInfos();
+        $curr_ct = array();
+        foreach($this->currencies as $c => $curr) {
+            $curr_ct[$curr] = 0;
+            foreach($players as $player_id => $player) {
+                $certs = $this->getCertificates($player_id, $curr);
+                $curr_ct[$curr] += count($certs);
+            }
+        }
+        $max = 0;
+        $most = array();
+        foreach($curr_ct as $curr => $ct) {
+            if ($ct > $max) {
+                $most = array($curr);
+                $max = $ct;
+            } elseif ($ct == $max) {
+                $most[] = $curr;
+            }
+        }
+        return $most;
+    }
+
+    /**
+     * Any Currencies in the 10 position do not pay.
+     */
+    function nonPayingCertificates() {
+        $nopay = self::getObjectListFromDB( "SELECT curr1 curr FROM CURRENCY_PAIRS WHERE curr1 != stronger AND position = 10", true );
+        $curr2 = self::getObjectListFromDB( "SELECT curr2 curr FROM CURRENCY_PAIRS WHERE curr2 != stronger AND position = 10", true );
+
+        foreach($curr2 as $curr) {
+            if (!in_array($curr, $nopay)) {
+                $nopay[] = $curr;
+            }
+        }
+        return $nopay;
+    }
+
+    /**
+     * Resolve the next Dividend on stack.
+     */
+    function resolveDividends() {
+        $div_ct = self::getGameStateValue(DIVIDEND_COUNT);
+        $mult = $this->dividends[$div_ct];
+        if ($mult == 0) {
+            self::notifyAllPlayers("noDividendsPaid", clienttranslate("No dividends paid"), array());
+        } else {
+            $nonpaying = $this->nonPayingCertificates();
+
+            $players = self::loadPlayersBasicInfos();
+
+            foreach($players as $player_id => $player) {
+                foreach ($this->currencies as $c => $curr) {
+                    if (in_array($curr, $nonpaying)) {
+                    } else {
+                        $certs = count($this->getCertificates($player_id, $curr));
+                        if ($certs > 0) {
+                            $monies = $certs * $mult;
+                            $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
+                            $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
+                            self::notifyAllPlayers("dividendsPaid", clienttranslate("${player_name} paid ${x_notes} for ${x_certs}"), array(
+                                'i18n' => array ('off_curr', 'req_curr'),
+                                'player_name' => $player['name'],
+                                'x_notes' => $paid_str,
+                                'x_certs' => $cert_str,
+                                X_MONIES => array('x_notes' => $paid_str, 'x_certs' => $cert_str)
+                            ));
+                            $this->adjustMonies($player_id, $curr, $monies);
+                        }
+                    }
+                }
+            }
+        }
+        // the currency held by most players is strengthened
+        $mostHeld = $this->countHeldCertificates();
+        if (count($mostHeld) > 0) {
+
+        } else {
+            $this->strengthen($mostHeld[0]);
+        }
+        self::setGameStateValue(DIVIDEND_COUNT, $div_ct-1);
+        self::notifyAllPlayers("dividendsStackPopped", clienttranslate("${dividends} Dividend Certificates left"), array(
+            'dividends' => self::getGameStateValue(DIVIDEND_COUNT),
+        ));
+        return self::getGameStateValue(DIVIDEND_COUNT) == 0;;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -698,7 +793,7 @@ class ForEx extends Table
         foreach($currencies as $curr) {
             // take the first cert
             $cert = array_pop($availablecerts[$curr]);
-            self::DBQuery("UPDATE CERTIFICATES SET card_location = $player_id WHERE card_id = $cert");
+            $this->certificates->moveCard($cert['id'], $player_id);
             $this->adjustMonies($player_id, $curr, -2);
 
             $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
@@ -709,7 +804,7 @@ class ForEx extends Table
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
                 'curr' => $curr,
-                'cert_id' => $cert,
+                'cert_id' => $cert['id'],
                 'x_certs_bought' => $x_certs,
                 X_MONIES => array('x_certs_bought' => $x_certs),
             ));
@@ -823,7 +918,6 @@ class ForEx extends Table
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
         throw new BgaUserException(self::_("Resolving Contract ${contract}"));
-        $endgame = false;
         $this->notifyAllPlayers("resolvedContract", clienttranslate("{$player_name} Resolves Contract: ${contract}").'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
@@ -831,6 +925,7 @@ class ForEx extends Table
             'contract' => $contract,
             'conL' => $contract,
         ));
+        $endgame = false;
         if ($contract == DIVIDENDS) {
             $endgame = resolveDividends();
         } else {
@@ -839,8 +934,6 @@ class ForEx extends Table
         $state = $endgame ? "endgame" : "nextPlayer";
         $self->nextState($state);
     }
-
-
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
