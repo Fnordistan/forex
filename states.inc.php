@@ -61,11 +61,10 @@ $machinestates = array(
 
     STRENGTHEN_CURRENCY => array(
         "name" => "strengthenCurrency",
-        "description" => clienttranslate( '${actplayer} must choose the currency to strengthen: ${currency}' ),
-        "descriptionmyturn" => clienttranslate( '${you} must choose the currency to strengthen: ${currency}' ),
+        "description" => clienttranslate( '${actplayer} must choose the currency to strengthen' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose the currency to strengthen' ),
         "type" => "activeplayer",
         "possibleactions" => array( "chooseCurrencyToStrengthen" ),
-        "args" => "argsChooseCurrency",
         "transitions" => array( "nextPlayer" => NEXT_PLAYER  )
     ),
 

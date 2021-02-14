@@ -80,6 +80,7 @@ const DIVIDEND_BASE_W = 97.8;
 // strings that get inserted into format_string_recursive
 const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
 const X_CURRENCY = "x_currency_buttons"; // flags adding currency buttons
+const X_CURRENCIES = "x_currency_choice_buttons"; // flags adding selective list of currency buttons
 const X_ACTION_TEXT = "x_action_text"; // span that contains summary of action
 const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science buttons
 // matching args from forex.game.php
@@ -275,6 +276,9 @@ function (dojo, declare) {
                     }
                     if (args.X_CURRENCY) {
                         log = log + this.insertCurrencyButtons(args.X_CURRENCY)+'<br/>';
+                    }
+                    if (args.X_CURRENCIES) {
+                        log = log + this.insertCurrencyButtons(CURRENCY_TYPE.CERTIFICATE, args.X_CURRENCIES)+'<br/>';
                     }
                     // these are divs set by assigning innerHTML
                     if (args.X_ACTION_TEXT) {
@@ -696,7 +700,7 @@ function (dojo, declare) {
                     break;
                 }
             }
-        },        
+        },
 
         ///////////////////////////////////////////////////
         //// Utility methods
@@ -742,12 +746,15 @@ function (dojo, declare) {
         /**
          * Create row of Currency buttons (Note or Certificate) to be connected to actions.
          * Each one has id "${curr}_${type}_btn"
-         * @param {string} curr_type 
+         * @param {string} curr_type
+         * @param {array} filter (optional) only include currency buttons for these
          */
-        insertCurrencyButtons: function(curr_type) {
+        insertCurrencyButtons: function(curr_type, filter) {
             var curr_buttons = "<div>";
             Object.keys(CURRENCY).forEach(curr => {
-                curr_buttons += " "+this.createCurrencyButton(curr_type, curr);
+                if (!filter || (filter.includes(curr))) {
+                    curr_buttons += " "+this.createCurrencyButton(curr_type, curr);
+                }
             });
             curr_buttons += "</div>";
             return curr_buttons;
@@ -1166,16 +1173,33 @@ function (dojo, declare) {
 
         /**
          * Count the certificates of each currency held by each player,
-         * and return the currencies held by the most players.
+         * and return an array of the currency(s) held by the most players.
          */
         getMostHeldCertificates: function() {
+            var currCount = {};
             for (let ctr in this.certCounters) {
                 let playerCerts = this.certCounters[ctr];
-                for (let C of CURRENCY) {
-                    var curr = CURRENCY[C];
-                    var cert_ct = playerCerts[C].getValue();
+                for (let C in CURRENCY) {
+                    var ci = CURRENCY[C];
+                    var cert_ct = playerCerts[ci-1].getValue();
+                    if (C in currCount) {
+                        currCount[C] += cert_ct;
+                    } else {
+                        currCount[C] = cert_ct;
+                    }
                 }
             }
+            var held = [];
+            var max = 0;
+            for (let curr in currCount) {
+                if (currCount[curr] > max) {
+                    max = currCount[curr];
+                    held = [curr];
+                } else if (currCount[curr] == max) {
+                    held.push(curr);
+                }
+            };
+            return held;
         },
 
         ///////////////////////////////////////////////////
@@ -1252,11 +1276,32 @@ function (dojo, declare) {
             }, null, false, 'red');
         },
 
+       ///////////////////////// CHOOSE CURRENCIES (when player must choose from the strongest currencies) /////////////////////////
+
         /**
          * There is more than one currency with most Certificates in hand. We have to manually recalculate this on the client side.
          */
         addCurrenciesStrengthen: function() {
             var currencies = this.getMostHeldCertificates();
+            if (currencies.length == 1) {
+                // should not happen!
+                throw "Only one currency is held by most players; should not be in this state";
+            }
+            this.setDescriptionOnMyTurn(_("Choose which currency will be strengthened:"), {X_CURRENCIES: currencies});
+            this.addChooseCurrencyAction(currencies);
+        },
+
+        /**
+         * Add an action to the buttons for each currency to choose it to be the one that is stronger/strengthened.
+         * @param {array} currencies 
+         */
+        addChooseCurrencyAction: function(currencies) {
+            currencies.forEach(curr => {
+                let btn_id = curr+'_cert_btn';
+                $(btn_id).addEventListener('click', () => {
+                    this.chooseStrengthen(curr);
+                });
+            });
         },
 
         ///////////////////////// SPOT TRADE /////////////////////////
@@ -2102,6 +2147,20 @@ function (dojo, declare) {
             }
         },
 
+        /**
+         * Player chose the currency which will be strengthened.
+         * @param {string} currStr
+         */
+        chooseStrengthen: function(currStr) {
+            console.log("strengthen " + currStr);
+            if (this.checkAction('chooseCurrencyToStrengthen', true)) {
+                this.ajaxcall( "/forex/forex/chooseCurrencyToStrengthen.html", {
+                    curr: currStr,
+                    lock: true
+                }, this, function( result ) {  }, function( is_error) { } );
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
         ///////////////////////////////////////////////////
@@ -2133,6 +2192,7 @@ function (dojo, declare) {
             dojo.subscribe( 'noDividendsPaid', this, "notif_noDividends" );
             dojo.subscribe( 'dividendsPaid', this, "notif_dividendsPaid" );
             dojo.subscribe( 'dividendsStackPopped', this, "notif_dividendsPopped" );
+            // dojo.subscribe( 'currencyChosen', this, "notif_currencyChosen" );
         },
 
         /**

@@ -652,9 +652,8 @@ class ForEx extends Table
                             $monies = $certs * $mult;
                             $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
                             $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
-                            self::notifyAllPlayers("dividendsPaid", clienttranslate("${player_name} paid ${x_notes} for ${x_certs}"), array(
-                                'i18n' => array ('off_curr', 'req_curr'),
-                                'player_name' => $player['name'],
+                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} paid ${x_notes} for ${x_certs}'), array(
+                                'player_name' => $player['player_name'],
                                 'x_notes' => $paid_str,
                                 'x_certs' => $cert_str,
                                 X_MONIES => array('x_notes' => $paid_str, 'x_certs' => $cert_str)
@@ -668,7 +667,8 @@ class ForEx extends Table
         // the currency held by most players is strengthened
         $mostHeld = $this->countHeldCertificates();
         $chooseCurrency = false;
-        if (count($mostHeld) > 0) {
+        // could be 0 or >1
+        if (count($mostHeld) != 1) {
             $chooseCurrency = true;
         } else {
             $this->strengthen($mostHeld[0]);
@@ -940,6 +940,19 @@ class ForEx extends Table
         $this->gamestate->nextState($nextState);
     }
 
+    /**
+     * Strengthen the currency the player chose.
+     */
+    function chooseCurrencyToStrengthen($curr) {
+        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses to strengthen ${currency}'), array(
+            'i18n' => array ('currency'),
+            'player_name' => self::getActivePlayerName(),
+            'currency' => $curr,
+        ));
+        $this->strengthen($curr);
+        $this->gamestate->nextState("nextPlayer");
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
 ////////////
@@ -985,18 +998,6 @@ class ForEx extends Table
             "curr" => $curr,
             "currency" => $currency
         );
-    }
-
-    /**
-     * Arguments for choosing the Currency that gets strengthened.
-     */
-    function argsChooseCurrency() {
-        $currs = $this->countHeldCertificates();
-        return array(
-            "i18n" => array('currency'),
-            "currency" => $currs
-        );
-
     }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -125,4 +125,14 @@
       $this->game->resolveContract();
       self::ajaxResponse();
     }
+
+    /**
+     * Strengthen the chosen currency.
+     */
+    public function chooseCurrencyToStrengthen() {
+      self::setAjaxMode();
+      $curr = self::getArg("curr", AT_alphanum, true);
+      $this->game->chooseCurrencyToStrengthen($curr);
+      self::ajaxResponse();
+    }
 }
