@@ -631,6 +631,7 @@ class ForEx extends Table
 
     /**
      * Resolve the next Dividend on stack.
+     * Return true if the player must choose the Currency to strengthen, else false.
      */
     function resolveDividends() {
         $div_ct = self::getGameStateValue(DIVIDEND_COUNT);
@@ -666,16 +667,17 @@ class ForEx extends Table
         }
         // the currency held by most players is strengthened
         $mostHeld = $this->countHeldCertificates();
+        $chooseCurrency = false;
         if (count($mostHeld) > 0) {
-
+            $chooseCurrency = true;
         } else {
             $this->strengthen($mostHeld[0]);
         }
         self::setGameStateValue(DIVIDEND_COUNT, $div_ct-1);
-        self::notifyAllPlayers("dividendsStackPopped", clienttranslate("${dividends} Dividend Certificates left"), array(
+        self::notifyAllPlayers("dividendsStackPopped", clienttranslate('${dividends} Dividend Certificates left'), array(
             'dividends' => self::getGameStateValue(DIVIDEND_COUNT),
         ));
-        return self::getGameStateValue(DIVIDEND_COUNT) == 0;;
+        return $chooseCurrency;
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -917,22 +919,25 @@ class ForEx extends Table
     function resolveContract() {
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
-        throw new BgaUserException(self::_("Resolving Contract ${contract}"));
-        $this->notifyAllPlayers("resolvedContract", clienttranslate("{$player_name} Resolves Contract: ${contract}").'${conL}', array(
+        $this->notifyAllPlayers("resolvedContract", clienttranslate('${player_name} Resolves Contract: ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
             'contract' => $contract,
             'conL' => $contract,
         ));
-        $endgame = false;
+        $nextState;
         if ($contract == DIVIDENDS) {
-            $endgame = resolveDividends();
+            $chooseCurrency = $this->resolveDividends();
+            if ($chooseCurrency) {
+                $nextState = "chooseCurrency";
+            } else {
+                $nextState = (self::getGameStateValue(DIVIDEND_COUNT) == 0) ? "endGame" : "nextPlayer";
+            }
         } else {
-            $endgame = resolveContract($contract);
+            $nextState = resolveContract($contract);
         }
-        $state = $endgame ? "endgame" : "nextPlayer";
-        $self->nextState($state);
+        $this->gamestate->nextState($nextState);
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -942,7 +947,7 @@ class ForEx extends Table
     /**
      * Arguments sent for a Spot Trade Offer
      */
-    function argSpotOffer() {
+    function argsSpotOffer() {
         $from_player = self::getGameStateValue(SPOT_FROM);
         $to_player = self::getGameStateValue(SPOT_TO);
         $offer = self::getGameStateValue(SPOT_OFFER);
@@ -980,6 +985,18 @@ class ForEx extends Table
             "curr" => $curr,
             "currency" => $currency
         );
+    }
+
+    /**
+     * Arguments for choosing the Currency that gets strengthened.
+     */
+    function argsChooseCurrency() {
+        $currs = $this->countHeldCertificates();
+        return array(
+            "i18n" => array('currency'),
+            "currency" => $currs
+        );
+
     }
 
 //////////////////////////////////////////////////////////////////////////////

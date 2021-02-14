@@ -691,6 +691,9 @@ function (dojo, declare) {
                 case 'nextDivest':
                     this.addDivestOption();
                     break;
+                case 'strengthenCurrency':
+                    this.addCurrenciesStrengthen();
+                    break;
                 }
             }
         },        
@@ -1161,6 +1164,20 @@ function (dojo, declare) {
             return curr;
         },
 
+        /**
+         * Count the certificates of each currency held by each player,
+         * and return the currencies held by the most players.
+         */
+        getMostHeldCertificates: function() {
+            for (let ctr in this.certCounters) {
+                let playerCerts = this.certCounters[ctr];
+                for (let C of CURRENCY) {
+                    var curr = CURRENCY[C];
+                    var cert_ct = playerCerts[C].getValue();
+                }
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Client "State" Functions
         ///////////////////////////////////////////////////
@@ -1233,6 +1250,13 @@ function (dojo, declare) {
             this.addActionButton( ACTIONS.DECLINE+BTN, _('Don\'t sell'), () => {
                 this.confirmAction(ACTIONS.DECLINE);
             }, null, false, 'red');
+        },
+
+        /**
+         * There is more than one currency with most Certificates in hand. We have to manually recalculate this on the client side.
+         */
+        addCurrenciesStrengthen: function() {
+            var currencies = this.getMostHeldCertificates();
         },
 
         ///////////////////////// SPOT TRADE /////////////////////////
@@ -2106,6 +2130,9 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
             dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
             this.notifqueue.setSynchronous( 'notif_contractTaken', 500 );
+            dojo.subscribe( 'noDividendsPaid', this, "notif_noDividends" );
+            dojo.subscribe( 'dividendsPaid', this, "notif_dividendsPaid" );
+            dojo.subscribe( 'dividendsStackPopped', this, "notif_dividendsPopped" );
         },
 
         /**
@@ -2258,6 +2285,32 @@ function (dojo, declare) {
             this.slideNotesToStack(C, 'payout', payout, payout_amt);
             // now put the contract in queue, on display, and on player boards
             this.placeContract(contract);
+        },
+
+        /**
+         * First time Dividend stack is resolved. No Dividends paid.
+         * @param {Object} notif 
+         */
+        notif_noDividends: function(notif) {
+            console.log("no dividends");
+        },
+
+        /**
+         * Dividends were paid.
+         * @param {Object} notif 
+         */
+        notif_dividendsPaid: function(notif) {
+            console.log("dividends paid");
+
+        },
+
+        /**
+         * Remove top Dividend and move stack to back of queue.
+         * @param {Object} notif 
+         */
+        notif_dividendsPopped: function(notif) {
+            console.log("pop stack");
+
         },
 
     });

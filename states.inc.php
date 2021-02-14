@@ -18,6 +18,7 @@ if (!defined('SETUP')) { // ensure this block is only invoked once, since it is 
     define("SETUP", 1);
     define("CHOOSE_ACTION", 2);
     define("NEXT_PLAYER", 3);
+    define("STRENGTHEN_CURRENCY", 4);
     define("SPOT_RESPONSE", 20);
     define("HANDLE_OFFER", 21); // game manager between traders
     define("HANDLE_RESPONSE", 22);
@@ -46,7 +47,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
         "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
-        "transitions" => array( "spotOffer" => HANDLE_OFFER, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST)
+        "transitions" => array( "spotOffer" => HANDLE_OFFER, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST, "chooseCurrency" => STRENGTHEN_CURRENCY, "endGame" => LAST_RESOLVE)
     ),
 
     NEXT_PLAYER => array(
@@ -56,6 +57,16 @@ $machinestates = array(
         "updateGameProgression" => true,   
         "action" => "stNextPlayer",
         "transitions" => array( "" => CHOOSE_ACTION  )
+    ),
+
+    STRENGTHEN_CURRENCY => array(
+        "name" => "strengthenCurrency",
+        "description" => clienttranslate( '${actplayer} must choose the currency to strengthen: ${currency}' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose the currency to strengthen: ${currency}' ),
+        "type" => "activeplayer",
+        "possibleactions" => array( "chooseCurrencyToStrengthen" ),
+        "args" => "argsChooseCurrency",
+        "transitions" => array( "nextPlayer" => NEXT_PLAYER  )
     ),
 
     HANDLE_OFFER => array(
@@ -72,7 +83,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${from_player_name} offered ${to_player_name} a Spot Trade of ${x_monies_offer} for ${x_monies_request}' ),
         "type" => "multipleactiveplayer",
         "possibleactions" => array( "respondSpotTrade", "cancelSpotTrade" ),
-        "args" => "argSpotOffer",
+        "args" => "argsSpotOffer",
         "transitions" => array( "" => HANDLE_RESPONSE )
     ),
 
