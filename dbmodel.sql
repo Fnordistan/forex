@@ -33,9 +33,9 @@ CREATE TABLE IF NOT EXISTS `CONTRACTS` (
     `contract` varchar(9) NOT NULL COMMENT 'A-F, Dividends',
     `owner` varchar(16) COMMENT 'player_id or null',
     `promise` varchar(3) COMMENT 'currency',
-    `promise_amt` FLOAT(2),
+    `promise_amt` FLOAT(8),
     `payout` varchar(3) COMMENT 'currency',
-    `payout_amt` FLOAT(2),
+    `payout_amt` FLOAT(8),
     `location` TINYINT COMMENT 'queue position or NULL',
     PRIMARY KEY (`contract`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS `CONTRACTS` (
 CREATE TABLE IF NOT EXISTS `BANK` (
     `player` INT(11) NOT NULL,
     `curr` varchar(3) NOT NULL,
-    `amt` FLOAT(2) NOT NULL,
+    `amt` FLOAT(8) NOT NULL,
     CONSTRAINT `Curr_Holdings` PRIMARY KEY (`player`, `curr`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 

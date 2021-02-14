@@ -46,7 +46,7 @@ $machinestates = array(
         "description" => clienttranslate( '${actplayer} must choose an action' ),
         "descriptionmyturn" => clienttranslate( '${you} must choose an action' ),
         "type" => "activeplayer",
-        "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolveContract" ),
+        "possibleactions" => array( "offerSpotTrade", "makeContract", "investCurrency", "divestCurrency", "resolve" ),
         "transitions" => array( "spotOffer" => HANDLE_OFFER, "nextPlayer" => NEXT_PLAYER, "divest" => DIVEST, "chooseCurrency" => STRENGTHEN_CURRENCY, "endGame" => LAST_RESOLVE)
     ),
 
@@ -65,7 +65,7 @@ $machinestates = array(
         "descriptionmyturn" => clienttranslate( '${you} must choose the currency to strengthen' ),
         "type" => "activeplayer",
         "possibleactions" => array( "chooseCurrencyToStrengthen" ),
-        "transitions" => array( "nextPlayer" => NEXT_PLAYER  )
+        "transitions" => array( "nextPlayer" => NEXT_PLAYER, "endGame" => LAST_RESOLVE)
     ),
 
     HANDLE_OFFER => array(

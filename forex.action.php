@@ -120,9 +120,9 @@
     /**
      * Resolve contract.
      */
-    public function resolveContract() {
+    public function resolve() {
       self::setAjaxMode();
-      $this->game->resolveContract();
+      $this->game->resolve();
       self::ajaxResponse();
     }
 

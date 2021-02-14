@@ -652,7 +652,7 @@ class ForEx extends Table
                             $monies = $certs * $mult;
                             $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
                             $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
-                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} paid ${x_notes} for ${x_certs}'), array(
+                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends of ${x_notes} for ${x_certs}'), array(
                                 'player_name' => $player['player_name'],
                                 'x_notes' => $paid_str,
                                 'x_certs' => $cert_str,
@@ -673,16 +673,67 @@ class ForEx extends Table
         } else {
             $this->strengthen($mostHeld[0]);
         }
-        self::setGameStateValue(DIVIDEND_COUNT, $div_ct-1);
+        self::incGameStateValue(DIVIDEND_COUNT, -1);
+        if (self::getGameStateValue(DIVIDEND_COUNT) > 0) {
+            // push Dividends to back of queue
+            self::DBQuery("UPDATE CONTRACTS SET location = 0 WHERE contract = \"".DIVIDENDS."\"");
+            $this->pushContractQueue();
+        }
         self::notifyAllPlayers("dividendsStackPopped", clienttranslate('${dividends} Dividend Certificates left'), array(
             'dividends' => self::getGameStateValue(DIVIDEND_COUNT),
         ));
         return $chooseCurrency;
     }
 
-//////////////////////////////////////////////////////////////////////////////
-//////////// Player actions
-//////////// 
+    /**
+     * Resolve a Contract.
+     */
+    function resolveContract($conL) {
+        $contract = self::getNonEmptyObjectFromDB("SELECT * from CONTRACTS WHERE contract = \"".$conL."\"");
+        $player_id = $contract['owner'];
+        $promise = $contract['promise'];
+        $promise_amt = $contract['promise_amt'];
+        $payout = $contract['payout'];
+        $payout_amt = $contract['payout_amt'];
+        $location = $contract['location'];
+        // can the owner pay it?
+        $cash = $this->getMonies($player_id, $promise);
+        
+        $nextState = "nextPlayer";
+        if ($promise_amt > $cash) {
+            // either converts to a loan, or bankruptcy
+            if ($payout == null) {
+                // this was already a loan - player is bankrupt!
+            } else {
+                // turn it into a loan
+                $this->adjustMonies($player_id, $payout, $payout_amt);
+                self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, $payout = LOAN, $payout_amt = NULL WHERE contract = \"".$conL."\"");
+            }
+        } else {
+            $players = self::loadPlayersBasicInfos();
+            $player_name = $players[$player_id]['player_name'];
+            // pay the contract, get the payout
+            self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'contract' => $conL,
+                'promise' => $promise,
+                'promise_amt' => $promise_amt,
+                'payout' => $payout,
+                'payout_amt' => $payout_amt,
+                'location' => $location,
+                'conL' => $conL,
+            ));
+            $this->adjustMonies($player_id, $promise, -$promise_amt);
+            $this->adjustMonies($player_id, $payout, $payout_amt);
+            self::DbQuery("UPDATE CONTRACTS SET owner = NULL, location = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL WHERE contract = \"".$conL."\"");
+        }
+        return $nextState;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //////////// Player actions
+    //////////// 
 
     /*
         Each time a player is doing some game action, one of the methods below is called.
@@ -916,10 +967,10 @@ class ForEx extends Table
     /**
      * Get the next Contract or Dividends and resolve it
      */
-    function resolveContract() {
+    function resolve() {
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
-        $this->notifyAllPlayers("resolvedContract", clienttranslate('${player_name} Resolves Contract: ${contract}').'${conL}', array(
+        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} activates Contract Queue: ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -935,7 +986,7 @@ class ForEx extends Table
                 $nextState = (self::getGameStateValue(DIVIDEND_COUNT) == 0) ? "endGame" : "nextPlayer";
             }
         } else {
-            $nextState = resolveContract($contract);
+            $nextState = $this->resolveContract($contract);
         }
         $this->gamestate->nextState($nextState);
     }
@@ -950,7 +1001,8 @@ class ForEx extends Table
             'currency' => $curr,
         ));
         $this->strengthen($curr);
-        $this->gamestate->nextState("nextPlayer");
+        $nextState = (self::getGameStateValue(DIVIDEND_COUNT) == 0) ? "endGame" : "nextPlayer";
+        $this->gamestate->nextState($nextState);
     }
 
 //////////////////////////////////////////////////////////////////////////////

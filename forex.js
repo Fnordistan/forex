@@ -58,7 +58,7 @@ const ACTIONS = {
     INVEST: 'investCurrency',
     DIVEST: 'divestCurrency',
     CONTRACT: 'makeContract',
-    RESOLVE: 'resolveContract',
+    RESOLVE: 'resolveAction',
     CONFIRM: 'confirmAction',
     CANCEL: 'cancelAction',
     ACCEPT: 'acceptTrade',
@@ -431,7 +431,6 @@ function (dojo, declare) {
             this.divstack.setPattern('verticalfit');
             // put each remaining dividend in stack, last first
             var dividends = parseInt(this.gamedatas.dividends);
-            var last_id;
             for (var i = 0; i < dividends; i++) {
                 var div_num = 4-i;
                 var dividend = this.format_block('jstpl_dividend', {
@@ -440,15 +439,24 @@ function (dojo, declare) {
                     "margin": i
                 });
                 var divcard = dojo.place(dividend, 'contract_queue_container');
-                last_id = divcard.id;
-                this.divstack.placeInZone(last_id);
+                this.divstack.placeInZone(divcard.id);
             }
             // we put the counter on top of the last Dividend
+            this.addDividendsCounter();
+        },
+
+        /**
+         * Put the Dividends stack counter on top of the stack
+         */
+        addDividendsCounter() {
             this.dividendCounter = new ebg.counter();
+            var items = this.divstack.getAllItems();
+            var last_id = items[items.length-1];
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
-            this.dividendCounter.setValue(dividends);
+            this.dividendCounter.setValue(items.length);
         },
+
 
         /**
          * Takes the existing Dividends stack and moves all the items to a new position.
@@ -626,6 +634,7 @@ function (dojo, declare) {
             var player_id = contract.player_id;
             var player_board_div = $('player_board_'+player_id);
             var contract_div = this.format_block('jstpl_contract_card', {"contract" : C, "scale": 0.25 });
+            contract_div.id = "contract_"+player_id+"_"+C;
             dojo.place(contract_div, player_board_div);
         },
 
@@ -904,9 +913,52 @@ function (dojo, declare) {
             var note_html = this.format_block('jstpl_bank_note', {
                 "curr": curr
             });
-            for (var i = 0; i < Math.abs(amt); i++) {
+            for (let i = 0; i < Math.abs(amt); i++) {
                 this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
             }
+        },
+
+        /**
+         * For moving money off a Contract Display, to bank or player board.
+         * @param {string} contract letter
+         * @param {string} curr currency type
+         * @param {float} amt
+         * @param {player_id} optional if null then it's going from promise to bank, otherwise from payout to player
+         */
+        moveContractNotes: function(contract, curr, amt, player_id) {
+            var parent_id = 'contract_'+contract;
+            var from = 'contract_promise_'+contract;
+            var to = 'bank_'+curr;
+            if (player_id) {
+                from = 'contract_payout_'+contract;
+                to = curr+'_note_counter_icon_'+player_id;
+            }
+            var note_html = this.format_block('jstpl_bank_note', {
+                "curr": curr
+            });
+            for (let i = 0; i < amt; i++) {
+                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
+            }
+            // cleanup: remove notes from stack
+            var stack = document.getElementById(from);
+            while (stack.firstChild) {
+                stack.removeChild(stack.firstChild);
+            }
+        },
+
+        /**
+         * For sliding a Contract card back to the Contract Display either from player's board or queue
+         * @param {string} contract letter
+         * @param {string} parent_id enclosing container, queue or player board
+         * @param {string} from queue slot or player's board
+         */
+        moveContract: function(contract, parent_id, from) {
+            var contract_html = this.format_block('jstpl_contract_card', {
+                "contract": contract,
+                "scale": 0.5
+            });
+            var to = 'contract_card_'+contract;
+            this.slideTemporaryObject( contract_html, parent_id, from, to, 500 ).play();
         },
 
         /**
@@ -1921,8 +1973,8 @@ function (dojo, declare) {
          * Player clicked Resolve.
          * @param {Object} evt 
          */
-        resolveContract: function(evt) {
-            if (this.checkAction('resolveContract', true)) {
+        resolveAction: function(evt) {
+            if (this.checkAction('resolve', true)) {
                 this.removeActionButtons();
                 // get the end of the Contract Queue
                 var contract = this.getContractToResolve();
@@ -1977,7 +2029,7 @@ function (dojo, declare) {
                     this.takeContract();
                     break;
                 case ACTIONS.RESOLVE:
-                    this.resolveNextContract();
+                    this.resolveContractQueue();
                     break;
                 case ACTIONS.ACCEPT:
                     this.respondSpotTrade(true);
@@ -2139,9 +2191,9 @@ function (dojo, declare) {
         /**
          * Clicked "Confirm" on Resolve Contract action.
          */
-        resolveNextContract: function() {
-            if (this.checkAction('resolveContract', true)) {
-                this.ajaxcall( "/forex/forex/resolveContract.html", { 
+        resolveContractQueue: function() {
+            if (this.checkAction('resolve', true)) {
+                this.ajaxcall( "/forex/forex/resolve.html", { 
                     lock: true
                 }, this, function( result ) {  }, function( is_error) { } );
             }
@@ -2189,10 +2241,8 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
             dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
             this.notifqueue.setSynchronous( 'notif_contractTaken', 500 );
-            dojo.subscribe( 'noDividendsPaid', this, "notif_noDividends" );
-            dojo.subscribe( 'dividendsPaid', this, "notif_dividendsPaid" );
             dojo.subscribe( 'dividendsStackPopped', this, "notif_dividendsPopped" );
-            // dojo.subscribe( 'currencyChosen', this, "notif_currencyChosen" );
+            dojo.subscribe( 'contractPaid', this, "notif_contractPaid");
         },
 
         /**
@@ -2348,29 +2398,44 @@ function (dojo, declare) {
         },
 
         /**
-         * First time Dividend stack is resolved. No Dividends paid.
-         * @param {Object} notif 
-         */
-        notif_noDividends: function(notif) {
-            console.log("no dividends");
-        },
-
-        /**
-         * Dividends were paid.
-         * @param {Object} notif 
-         */
-        notif_dividendsPaid: function(notif) {
-            console.log("dividends paid");
-
-        },
-
-        /**
          * Remove top Dividend and move stack to back of queue.
          * @param {Object} notif 
          */
         notif_dividendsPopped: function(notif) {
-            console.log("pop stack");
+            var div_items = this.divstack.getAllItems();
+            this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contracts_div');
+            this.addDividendsCounter();
+            this.pushContractQueue();
+            this.moveDividendsStack(1);
+        },
 
+        /**
+         * Remove contracts from player boards and display queue.
+         * @param {*} notif 
+         */
+        notif_contractPaid: function(notif) {
+            var player_id = notif.args.player_id;
+            var C = notif.args.conL;
+            var prom_curr = notif.args.promise;
+            var prom_amt = parseFloat(notif.args.promise_amt);
+            var pay_curr = notif.args.payout;
+            var pay_amt = parseFloat(notif.args.payout_amt);
+            var q = notif.args.location; 
+            // move notes from promise stack and player's board to bank
+            debugger;
+            this.moveBankNotes(player_id, prom_curr, -prom_amt);
+            this.moveContractNotes(C, prom_curr, prom_amt);
+            // move notes from payout stack to player's board
+            this.moveContractNotes(C, pay_curr, pay_amt, player_id);
+            // move Contract from player's board to Contract Display
+            this.moveContract(C, 'player_board_'+player_id, 'player_board_'+player_id);
+            // remove contract from player board
+            document.getElementById('contract_'+player_id+'_'+C).remove();
+            // move Contract from Contract Queue to Display
+            this.moveContract(C, 'contract_queue_display', 'queue_'+q);
+            // delete the contract from the queue
+            var qslot = document.getElementById('queue_'+q);
+            qslot.removeChild(qslot.firstChild);
         },
 
     });
