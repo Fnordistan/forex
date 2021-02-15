@@ -167,7 +167,6 @@ function (dojo, declare) {
         setup: function( gamedatas )
         {
             dojo.destroy('debug_output');
-            console.log( "Starting game setup" );
             
             this.certCounters = [];
             this.noteCounters = [];
@@ -226,6 +225,7 @@ function (dojo, declare) {
             this.createAvailableCertificates();
             this.placeCertificates();
             this.createContractQueue();
+            this.markLoans();
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -428,6 +428,33 @@ function (dojo, declare) {
                 } else {
                     this.placeContract(contract);
                 }
+            }
+        },
+
+        /**
+         * Any Contract that is a loan should be decorated as one.
+         */
+        markLoans: function() {
+            for (const c in this.gamedatas.contracts) {
+                var contract = this.gamedatas.contracts[c];
+                if (contract.payout == LOAN) {
+                    this.decorateLoans(contract.contract);
+                }
+            }
+        },
+
+        /**
+         * Find all Contract Cards of this letter and decorate them with loan class,
+         * @param {string} C 
+         */
+        decorateLoans: function(C) {
+            var loandocs = document.getElementsByClassName("frx_"+C);
+            for (let i = 0; i < loandocs.length; i++) {
+                loandocs[i].classList.add("frx_loan");
+                var loan = document.createElement("span");
+                loan.innerHTML = "LOAN";
+                loan.classList.add("frx_loan_text");
+                dojo.place(loan, loandocs[i]);
             }
         },
 
@@ -2474,10 +2501,7 @@ function (dojo, declare) {
             // push Contract to back of queue
             this.pushContractQueue();
             this.slideContractQueue(q+1, 1);
-            var contracts = document.getElementsByClassName("frx_"+C);
-            for (cn in contracts) {
-                contracts[cn].classList.add("frx_loan");
-            }
+            this.decorateLoans(C);
         },
 
     });

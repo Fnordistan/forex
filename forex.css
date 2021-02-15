@@ -20,6 +20,13 @@
     font-weight: 500;
 }
 
+@font-face {
+    font-family: 'Allerta Stencil', sans-serif;;
+    src: local('Allerta Stencil'), url(https://fonts.googleapis.com/css2?family=Allerta+Stencil);
+    font-style: normal;
+    font-weight: 500;
+}
+
 :root {
     --color_cert_GBP: #ED2026;
     --color_cert_EUR: #5256A5;
@@ -88,6 +95,14 @@
     outline: red;
     outline-style: dashed;
     outline-width: 2px;
+}
+
+.frx_loan_text {
+    font-family: 'Allerta Stencil';
+    font-weight: 700;
+    color: red;
+    position: absolute;
+    transform: translate(-10%, 50%) rotate(-45deg);
 }
 
 .frx_A {

@@ -705,27 +705,12 @@ class ForEx extends Table
         $nextState = "nextPlayer";
         if ($promise_amt > $cash) {
             // either converts to a loan, or bankruptcy
-            if ($payout == null) {
+            if ($payout == LOAN) {
                 // this was already a loan - player is bankrupt!
                 throw new BgaUserException(self::_("BANKRUPTCY!"));
             } else {
                 // turn it into a loan
-                $this->adjustMonies($player_id, $payout, $payout_amt);
-                self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, payout = \"".LOAN."\", payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
-                $this->pushContractQueue();
-                self::dump('player_name', $player_name);
-                self::dump('contact', $conL);
-                self::notifyAllPlayers("loanTaken", clienttranslate('${player_name} cannot resolve Contract ${contract}; it is converted to a loan').'${conL}', array(
-                    'player_id' => $player_id,
-                    'player_name' => $player_name,
-                    'contract' => $conL,
-                    'promise' => $promise,
-                    'promise_amt' => $promise_amt,
-                    'payout' => $payout,
-                    'payout_amt' => $payout_amt,
-                    'location' => $location, // note we are sending the original location in queue
-                    'conL' => $conL,
-                ));
+                $this->resolveLoan($contract);
             }
         } else {
             // pay the contract, get the payout
@@ -745,6 +730,41 @@ class ForEx extends Table
             self::DbQuery("UPDATE CONTRACTS SET owner = NULL, location = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL WHERE contract = \"".$conL."\"");
         }
         return $nextState;
+    }
+
+    /**
+     * The contract must be converted to a LOAN.
+     */
+    function resolveLoan($contract) {
+        $player_id = $contract['owner'];
+        $promise = $contract['promise'];
+        $promise_amt = $contract['promise_amt'];
+        $payout = $contract['payout'];
+        $payout_amt = $contract['payout_amt'];
+        $conL = $contract['contract'];
+        $players = self::loadPlayersBasicInfos();
+        $player_name = $players[$player_id]['player_name'];
+
+        // does this player already have a loan?
+        $loan = self::getUniqueValueFromDB("SELECT * FROM CONTRACTS WHERE payout = \"".LOAN."\" AND owner = $player_id");
+        if ($loan != NULL) {
+            // we need to add the amount owed from the first contract to this one, and remove the old loan
+        }
+
+        $this->adjustMonies($player_id, $payout, $payout_amt);
+        self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, payout = \"".LOAN."\", payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
+        $this->pushContractQueue();
+        self::notifyAllPlayers("loanTaken", clienttranslate('${player_name} cannot resolve Contract ${contract}; it is converted to a loan').'${conL}', array(
+            'player_id' => $player_id,
+            'player_name' => $player_name,
+            'contract' => $conL,
+            'promise' => $promise,
+            'promise_amt' => $promise_amt,
+            'payout' => $payout,
+            'payout_amt' => $payout_amt,
+            'location' => $location, // note we are sending the original location in queue
+            'conL' => $conL,
+        ));
     }
 
     //////////////////////////////////////////////////////////////////////////////
