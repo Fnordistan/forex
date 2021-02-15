@@ -33,6 +33,7 @@ define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
+define('LOAN', 'LON');
 
 class ForEx extends Table
 {
@@ -698,20 +699,35 @@ class ForEx extends Table
         $location = $contract['location'];
         // can the owner pay it?
         $cash = $this->getMonies($player_id, $promise);
-        
+        $players = self::loadPlayersBasicInfos();
+        $player_name = $players[$player_id]['player_name'];
+    
         $nextState = "nextPlayer";
         if ($promise_amt > $cash) {
             // either converts to a loan, or bankruptcy
             if ($payout == null) {
                 // this was already a loan - player is bankrupt!
+                throw new BgaUserException(self::_("BANKRUPTCY!"));
             } else {
                 // turn it into a loan
                 $this->adjustMonies($player_id, $payout, $payout_amt);
-                self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, $payout = LOAN, $payout_amt = NULL WHERE contract = \"".$conL."\"");
+                self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, payout = \"".LOAN."\", payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
+                $this->pushContractQueue();
+                self::dump('player_name', $player_name);
+                self::dump('contact', $conL);
+                self::notifyAllPlayers("loanTaken", clienttranslate('${player_name} cannot resolve Contract ${contract}; it is converted to a loan').'${conL}', array(
+                    'player_id' => $player_id,
+                    'player_name' => $player_name,
+                    'contract' => $conL,
+                    'promise' => $promise,
+                    'promise_amt' => $promise_amt,
+                    'payout' => $payout,
+                    'payout_amt' => $payout_amt,
+                    'location' => $location, // note we are sending the original location in queue
+                    'conL' => $conL,
+                ));
             }
         } else {
-            $players = self::loadPlayersBasicInfos();
-            $player_name = $players[$player_id]['player_name'];
             // pay the contract, get the payout
             self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
                 'player_id' => $player_id,
@@ -970,8 +986,7 @@ class ForEx extends Table
     function resolve() {
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
-        self::dump('contract', $contract);
-        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} activates Contract Queue: ${contract}').'${conL}', array(
+        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract Queue: ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),

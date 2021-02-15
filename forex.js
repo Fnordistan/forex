@@ -87,6 +87,7 @@ const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science butt
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
 const X_MONIES = "arg_monies_string";
+const LOAN = "LON";
 // used as messages inserted in my turn message
 const SPOT_TRADE_MSG = "spot_trade_txt";
 const CONTRACT_MSG = "contract_txt";
@@ -573,7 +574,9 @@ function (dojo, declare) {
          */
         placeContractCurrencies: function(contract) {
             this.populateContractCurrencyStack(contract, CURRENCY_TYPE.PAY);
-            this.populateContractCurrencyStack(contract, CURRENCY_TYPE.RECEIVE);
+            if (contract.payout != LOAN) {
+                this.populateContractCurrencyStack(contract, CURRENCY_TYPE.RECEIVE);
+            }
         },
 
         /**
@@ -586,7 +589,11 @@ function (dojo, declare) {
                 var player = this.gamedatas.players[contract.player_id];
                 var name = player.name;
                 helpstr += name+" Pays"+this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
-                helpstr += _("for")+this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+                if (contract.payout == LOAN) {
+                    helpstr += _("(LOAN)");
+                } else {
+                    helpstr += _("for")+this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+                }
             }
             return helpstr;
         },
@@ -643,7 +650,7 @@ function (dojo, declare) {
             var C = contract.contract;
             var player_id = contract.player_id;
             var player_board_div = $('player_board_'+player_id);
-            var contract_div = this.format_block('jstpl_contract_card', {"contract" : C, "scale": 0.25 });
+            var contract_div = this.format_block('jstpl_contract_card_wid', {"id": 'contract_'+player_id+'_'+C, "contract" : C, "scale": 0.25 });
             contract_div.id = "contract_"+player_id+"_"+C;
             dojo.place(contract_div, player_board_div);
         },
@@ -943,15 +950,11 @@ function (dojo, declare) {
                 from = 'contract_payout_'+contract;
                 to = curr+'_note_counter_icon_'+player_id;
             }
-            var note_html = this.format_block('jstpl_bank_note', {
-                "curr": curr
-            });
-            for (let i = 0; i < amt; i++) {
-                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
-            }
             // cleanup: remove notes from stack
             var stack = document.getElementById(from);
             while (stack.firstChild) {
+                let note_html = this.format_block('jstpl_bank_note', {"curr": curr});
+                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
                 stack.removeChild(stack.firstChild);
             }
         },
@@ -2253,7 +2256,11 @@ function (dojo, declare) {
             dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
             this.notifqueue.setSynchronous( 'notif_contractTaken', 500 );
             dojo.subscribe( 'dividendsStackPopped', this, "notif_dividendsPopped" );
+            this.notifqueue.setSynchronous( 'notif_dividendsPopped', 500 );
             dojo.subscribe( 'contractPaid', this, "notif_contractPaid");
+            this.notifqueue.setSynchronous( 'notif_contractPaid', 500 );
+            dojo.subscribe( 'loanTaken', this, "notif_loanTaken");
+            this.notifqueue.setSynchronous( 'notif_loanTaken', 500 );
         },
 
         /**
@@ -2422,7 +2429,7 @@ function (dojo, declare) {
 
         /**
          * Remove contracts from player boards and display queue.
-         * @param {*} notif 
+         * @param {Object} notif 
          */
         notif_contractPaid: function(notif) {
             var player_id = notif.args.player_id;
@@ -2433,7 +2440,6 @@ function (dojo, declare) {
             var pay_amt = parseFloat(notif.args.payout_amt);
             var q = notif.args.location; 
             // move notes from promise stack and player's board to bank
-            debugger;
             this.moveBankNotes(player_id, prom_curr, -prom_amt);
             this.moveContractNotes(C, prom_curr, prom_amt);
             // move notes from payout stack to player's board
@@ -2447,6 +2453,31 @@ function (dojo, declare) {
             // delete the contract from the queue
             var qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
+        },
+
+        /**
+         * Player must take a loan
+         * @param {Object} notif 
+         */
+        notif_loanTaken: function(notif) {
+            var player_id = notif.args.player_id;
+            var C = notif.args.conL;
+            var prom_curr = notif.args.promise;
+            var pay_curr = notif.args.payout;
+            var pay_amt = parseFloat(notif.args.payout_amt);
+            // this is the location before it is moved
+            var q = parseInt(notif.args.location); 
+            // add 1 to promise
+            this.slideNotesToStack(C, 'promise', prom_curr, 1);
+            // move notes from payout stack to player's board
+            this.moveContractNotes(C, pay_curr, pay_amt, player_id);
+            // push Contract to back of queue
+            this.pushContractQueue();
+            this.slideContractQueue(q+1, 1);
+            var contracts = document.getElementsByClassName("frx_"+C);
+            for (cn in contracts) {
+                contracts[cn].classList.add("frx_loan");
+            }
         },
 
     });

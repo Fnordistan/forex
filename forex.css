@@ -83,6 +83,13 @@
     margin: 5px;
 }
 
+/* marks a Contract as a loan */
+.frx_loan {
+    outline: red;
+    outline-style: dashed;
+    outline-width: 2px;
+}
+
 .frx_A {
     background-position: 0px 0px;
 }

@@ -63,7 +63,6 @@ var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style=
 // for showing individual dividends in title text or tooltip
 var jstpl_dividend_card = '<span id="show_dividend_${div_num}" class="frx_dividend" style="display: inline-block; vertical-align: middle; margin: 5px; background-position: ${offset}px 0px; --scale: ${scale}"></span>';
 
-
 // the number of Dividends left, put on top of stack
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
@@ -110,6 +109,8 @@ var jstpl_player_monies = '<div id="${curr}_${type}_${id}_container" class="frx_
 
 // An individual contract card
 var jstpl_contract_card = '<span class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
+// for when we need ids
+var jstpl_contract_card_wid = '<span id="${id}" class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
 
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\
