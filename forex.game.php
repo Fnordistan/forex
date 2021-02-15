@@ -970,6 +970,7 @@ class ForEx extends Table
     function resolve() {
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
+        self::dump('contract', $contract);
         $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} activates Contract Queue: ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
@@ -977,6 +978,7 @@ class ForEx extends Table
             'contract' => $contract,
             'conL' => $contract,
         ));
+
         $nextState;
         if ($contract == DIVIDENDS) {
             $chooseCurrency = $this->resolveDividends();

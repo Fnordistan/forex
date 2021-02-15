@@ -75,7 +75,7 @@ const NOTE_SPRITES = 'img/forex_notes.jpg';
 const CURR_BASE_W = 150;
 const CURR_BASE_H = 97.66;
 const DIVIDEND_BASE_H = 150;
-const DIVIDEND_BASE_W = 97.8;
+const DIVIDEND_BASE_W = 97.66;
 
 // strings that get inserted into format_string_recursive
 const X_SPOT_TRADE = "x_spot_trade"; // flags inserting player-to-trade buttons
@@ -143,7 +143,7 @@ function (dojo, declare) {
         constructor: function(){
             console.log('forex constructor');
             // matches css
-            var scale = 0.5;
+            let scale = 0.5;
             this.cardwidth = CURR_BASE_W*scale;
             this.cardheight = CURR_BASE_H*scale;
             this.dvdwidth = DIVIDEND_BASE_W*scale;
@@ -264,10 +264,20 @@ function (dojo, declare) {
                         args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE, true);
                     }
                     if (args.contract) {
-                        args.contract = this.format_block('jstpl_contract_card', {
-                            "contract": args.contract,
-                            "scale": 0.25
-                        });
+                        if (args.contract == DIVIDENDS) {
+                            let div_num = this.dividendCounter.getValue();
+                            let scale = 0.25;
+                            args.contract = this.format_block('jstpl_dividend_card', {
+                                "div_num" : div_num,
+                                "offset": -(5-div_num) * DIVIDEND_BASE_W*scale,
+                                "scale": scale
+                            });
+                        } else {
+                            args.contract = this.format_block('jstpl_contract_card', {
+                                "contract": args.contract,
+                                "scale": 0.25
+                            });
+                        }
                         // hack because we inserted ${conL}
                         log = log.replace('${conL}', '');
                     }
@@ -1981,10 +1991,11 @@ function (dojo, declare) {
                 var contract_div;
                 if (contract == DIVIDENDS) {
                     var div_num = this.dividendCounter.getValue();
+                    let scale = 0.5;
                     contract_div = this.format_block('jstpl_dividend_card', {
                         "div_num" : div_num,
-                        "margin": 5,
-                        "offset": -(5-div_num) * this.dvdwidth
+                        "offset": -(5-div_num) * DIVIDEND_BASE_W*scale,
+                        "scale": scale
                     });
                 } else {
                     contract_div = "Contract"+this.format_block('jstpl_contract_card', {

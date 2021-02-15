@@ -61,7 +61,7 @@
 // Dividend card for Dividend stack
 var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style="margin: ${margin}px; background-position: ${offset}px 0px"></span>';
 // for showing individual dividends in title text or tooltip
-var jstpl_dividend_card = '<span id="show_dividend_${div_num}" class="frx_dividend" style="display: inline-block; vertical-align: middle; margin: ${margin}px; background-position: ${offset}px 0px"></span>';
+var jstpl_dividend_card = '<span id="show_dividend_${div_num}" class="frx_dividend" style="display: inline-block; vertical-align: middle; margin: 5px; background-position: ${offset}px 0px; --scale: ${scale}"></span>';
 
 
 // the number of Dividends left, put on top of stack
