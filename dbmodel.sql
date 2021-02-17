@@ -34,9 +34,27 @@ CREATE TABLE IF NOT EXISTS `CONTRACTS` (
     `owner` varchar(16) COMMENT 'player_id or null',
     `promise` varchar(3) COMMENT 'currency',
     `promise_amt` FLOAT(8),
-    `payout` varchar(3) COMMENT 'currency',
+    `payout` varchar(4) COMMENT 'currency or LOAN',
     `payout_amt` FLOAT(8),
     `location` TINYINT COMMENT 'queue position or NULL',
+    PRIMARY KEY (`contract`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
+
+CREATE TABLE IF NOT EXISTS `LOANS` (
+    `contract` varchar(1) NOT NULL COMMENT 'A-F',
+    `owner` varchar(16) COMMENT 'player_id or null',
+    `p1` varchar(3),
+    `p1_amt` float(8),
+    `p2` varchar(3),
+    `p2_amt` float(8),
+    `p3` varchar(3),
+    `p3_amt` float(8),
+    `p4` varchar(3),
+    `p4_amt` float(8),
+    `p5` varchar(3),
+    `p5_amt` float(8),
+    `p6` varchar(3),
+    `p6_amt` float(8),
     PRIMARY KEY (`contract`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 AUTO_INCREMENT=1 ;
 

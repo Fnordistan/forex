@@ -33,7 +33,7 @@ define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
-define('LOAN', 'LON');
+define('LOAN', 'LOAN');
 
 class ForEx extends Table
 {
@@ -529,6 +529,13 @@ class ForEx extends Table
     }
 
     /**
+     * Take a Contract (by letter) and clear all values.
+     */
+    function clearContract($contract) {
+        self::DbQuery("UPDATE CONTRACTS SET owner = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL, location = NULL WHERE contract = \"".$contract."\"");        
+    }
+
+    /**
      * Slide left: adds 1 to every Contract in the queue
      */
     function pushContractQueue() {
@@ -691,29 +698,26 @@ class ForEx extends Table
      */
     function resolveContract($conL) {
         $contract = self::getNonEmptyObjectFromDB("SELECT * from CONTRACTS WHERE contract = \"".$conL."\"");
-        $player_id = $contract['owner'];
-        $promise = $contract['promise'];
-        $promise_amt = $contract['promise_amt'];
-        $payout = $contract['payout'];
-        $payout_amt = $contract['payout_amt'];
-        $location = $contract['location'];
-        // can the owner pay it?
-        $cash = $this->getMonies($player_id, $promise);
-        $players = self::loadPlayersBasicInfos();
-        $player_name = $players[$player_id]['player_name'];
     
         $nextState = "nextPlayer";
-        if ($promise_amt > $cash) {
-            // either converts to a loan, or bankruptcy
-            if ($payout == LOAN) {
-                // this was already a loan - player is bankrupt!
-                throw new BgaUserException(self::_("BANKRUPTCY!"));
-            } else {
-                // turn it into a loan
-                $this->resolveLoan($contract);
-            }
+
+        if ($promise == LOAN) {
+            $this->resolveLoan($contract);
+        } else if ($promise_amt > $cash) {
+            $this->createLoan($contract);
         } else {
             // pay the contract, get the payout
+            $player_id = $contract['owner'];
+            $promise = $contract['promise'];
+            $promise_amt = $contract['promise_amt'];
+            $payout = $contract['payout'];
+            $payout_amt = $contract['payout_amt'];
+            $location = $contract['location'];
+            // can the owner pay it?
+            $cash = $this->getMonies($player_id, $promise);
+            $players = self::loadPlayersBasicInfos();
+            $player_name = $players[$player_id]['player_name'];
+
             self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
@@ -727,15 +731,46 @@ class ForEx extends Table
             ));
             $this->adjustMonies($player_id, $promise, -$promise_amt);
             $this->adjustMonies($player_id, $payout, $payout_amt);
+            // clear the contract
             self::DbQuery("UPDATE CONTRACTS SET owner = NULL, location = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL WHERE contract = \"".$conL."\"");
         }
         return $nextState;
     }
 
+
     /**
-     * The contract must be converted to a LOAN.
+     * Consult the LOANS table because this contract might represent more than one loan.
+     * Return associative array of curr => amount
      */
-    function resolveLoan($contract) {
+    function getAllLoans($player_id, $contract) {
+        $loan = self::getNonEmptyObjectFromDB("SELECT * FROM LOANS WHERE owner = $player_id AND contract = \"".$contract."\"");
+        $promises = array();
+        for($p = 1; $p <= 6; $p++) {
+            $prom = "p".$p;
+            if ($loan[$prom] != null) {
+                $promises[$loan[$prom]] = $loan[$prom."_amt"];
+            }
+        }
+        return $promises;
+    }
+
+    /**
+     * Get the first p slot in a loan that is not filled
+     */
+    function getFirstLoanSlot($loan) {
+        for($p = 1; $p <= 6; $p++) {
+            $prom = "p".$p;
+            if ($loan[$prom] == null) {
+                return $p;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * The player cannot pay for this contract, so convert it to a loan
+     */
+    function createLoan($contract) {
         $player_id = $contract['owner'];
         $promise = $contract['promise'];
         $promise_amt = $contract['promise_amt'];
@@ -744,25 +779,94 @@ class ForEx extends Table
         $conL = $contract['contract'];
         $players = self::loadPlayersBasicInfos();
         $player_name = $players[$player_id]['player_name'];
+        $location = $contract['location'];
 
         // does this player already have a loan?
-        $loan = self::getUniqueValueFromDB("SELECT * FROM CONTRACTS WHERE payout = \"".LOAN."\" AND owner = $player_id");
-        if ($loan != NULL) {
-            // we need to add the amount owed from the first contract to this one, and remove the old loan
+        $oldloan = self::getObjectFromDB("SELECT * FROM LOANS WHERE owner = $player_id");
+        $promise_amt++;
+        $x_loan = $this->create_X_monies_arg($promise_amt, $promise, NOTE);
+    if ($oldloan == null) {
+            // turn this contract into a loan, enter it into LOANS table
+            self::notifyAllPlayers("loanCreated", clienttranslate('${player_name} cannot pay Contract ${contract} - it is converted to a loan for ${x_loan}').'${conL}', array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'contract' => $conL,
+                'promise' => $promise,
+                'promise_amt' => $promise_amt,
+                'payout' => $payout,
+                'payout_amt' => $payout_amt,
+                'location' => $location,
+                'conL' => $conL,
+                'x_loan' => $x_loan,
+                X_MONIES => array("x_loan" => $x_loan),
+            ));
+            $this->adjustMonies($player_id, $payout, $payout_amt);
+            // enter it in the LOANS table
+            self::DbQuery("UPDATE LOANS SET owner = $player_id, p1 = \"".$promise."\", p1_amt = $promise_amt, WHERE contract = \"".$conL."\"");
+            // mark the contract a LOAN
+            self::DbQuery("UPDATE CONTRACTS SET promise = \"".LOAN."\", promise_amt = NULL, payout = NULL, payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
+            $this->pushContractQueue();
+        } else {
+            // add this contract's loan to previous loan
+            $loan_contract = $oldloan['contract'];
+            self::notifyAllPlayers("loanMerged", clienttranslate('${player_name} cannot pay Contract ${contract} - it is added as loan for ${x_loan} to ${loan}').'${conL}', array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'contract' => $conL,
+                'promise' => $promise,
+                'promise_amt' => $promise_amt,
+                'payout' => $payout,
+                'payout_amt' => $payout_amt,
+                'location' => $location,
+                'conL' => $conL,
+                'loan' => $loan_contract,
+                'x_loan' => $x_loan,
+                X_MONIES => array("x_loan" => $x_loan),
+            ));
+            $this->adjustMonies($player_id, $payout, $payout_amt);
+            // add to first available slot in old loan
+            $p = $this->getFirstLoanSlot($oldloan);
+            if ($p == null) {
+                // should not happen!
+                throw new BgaVisibleSystemException("Contract $loan_contract has no unfilled Loan slots!");
+            }
+            $ploan = "p".$p;
+            $p_amt = $ploan."_amt";
+            self::DbQuery("UPDATE LOANS SET $ploan = \"".$promise."\", $p_amt = $promise_amt, WHERE contract = \"".$loan_contract."\"");
+            // clear current contract
+            $this->clearContract($conL);
+        }
+    }
+
+    function resolveBankruptcy() {
+        throw new BgaUserException(self::_("BANKRUPTCY!"));
+    }
+
+    /**
+     * This is a Contract marked as a loan.
+     * It must be paid.
+     */
+    function resolveLoan($contract) {
+        $player_id = $contract['owner'];
+        $conL = $contract['contract'];
+        $players = self::loadPlayersBasicInfos();
+        $player_name = $players[$player_id]['player_name'];
+        $loans = $this->getAllLoans($player_id, $conL);
+        // can the player pay them all off?
+        foreach ($loans as $curr => $amt) {
+            if ($amt > $this->getMonies($player_id, $curr)) {
+                // BANKRUPT!
+                $this->resolveBankruptcy();
+            } else {
+                $this->adjustMonies($player_id, $curr, -$amt);
+            }
         }
 
-        $this->adjustMonies($player_id, $payout, $payout_amt);
-        self::DbQuery("UPDATE CONTRACTS SET promise_amt = $promise_amt+1, payout = \"".LOAN."\", payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
-        $this->pushContractQueue();
-        self::notifyAllPlayers("loanTaken", clienttranslate('${player_name} cannot resolve Contract ${contract}; it is converted to a loan').'${conL}', array(
+        self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
             'player_id' => $player_id,
             'player_name' => $player_name,
             'contract' => $conL,
-            'promise' => $promise,
-            'promise_amt' => $promise_amt,
-            'payout' => $payout,
-            'payout_amt' => $payout_amt,
-            'location' => $location, // note we are sending the original location in queue
+            'location' => $contract['location'], // note we are sending the original location in queue
             'conL' => $conL,
         ));
     }

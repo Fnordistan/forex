@@ -87,7 +87,7 @@ const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science butt
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
 const X_MONIES = "arg_monies_string";
-const LOAN = "LON";
+const LOAN = "LOAN";
 // used as messages inserted in my turn message
 const SPOT_TRADE_MSG = "spot_trade_txt";
 const CONTRACT_MSG = "contract_txt";
