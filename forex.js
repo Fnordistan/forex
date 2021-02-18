@@ -437,7 +437,7 @@ function (dojo, declare) {
         markLoans: function() {
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
-                if (contract.payout == LOAN) {
+                if (contract.promise == LOAN) {
                     this.decorateLoans(contract.contract);
                 }
             }
@@ -577,7 +577,7 @@ function (dojo, declare) {
         placeContract: function(contract) {
             // first place in queue
             this.placeContractInQueue(contract);
-            this.placeContractCurrencies(contract);
+            this.placeContractInDisplay(contract);
             this.placeContractOnPlayerBoard(contract);
         },
 
@@ -590,7 +590,7 @@ function (dojo, declare) {
             var q_div = 'queue_'+q;
             var contract_div = this.format_block('jstpl_contract_card', {"contract" : contract.contract, "scale": 0.5 });
             var contract_card = dojo.place(contract_div, q_div);
-            this.addTooltipHtml(contract_card, this.getContractHelpHtml(contract), 0);
+            // this.addTooltipHtml(contract_card, this.getContractHelpHtml(contract), 0);
             // to fit in zone box
             contract_card.style.margin = "0px";
         },
@@ -599,9 +599,11 @@ function (dojo, declare) {
          * Puts promise and payout currencies in stacks on Contract display and adds counters.
          * @param {Object} contract
          */
-        placeContractCurrencies: function(contract) {
-            this.populateContractCurrencyStack(contract, CURRENCY_TYPE.PAY);
-            if (contract.payout != LOAN) {
+        placeContractInDisplay: function(contract) {
+            if (contract.promise == LOAN) {
+                this.populateLoan(contract);
+            } else {
+                this.populateContractCurrencyStack(contract, CURRENCY_TYPE.PAY);
                 this.populateContractCurrencyStack(contract, CURRENCY_TYPE.RECEIVE);
             }
         },
@@ -616,7 +618,7 @@ function (dojo, declare) {
                 var player = this.gamedatas.players[contract.player_id];
                 var name = player.name;
                 helpstr += name+" Pays"+this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
-                if (contract.payout == LOAN) {
+                if (contract.promise == LOAN) {
                     helpstr += _("(LOAN)");
                 } else {
                     helpstr += _("for")+this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
@@ -627,6 +629,8 @@ function (dojo, declare) {
 
         /**
          * Put the Notes on either promise or payout side of the Contract.
+         * @param {Object} contract 
+         * @param {enum} type PAY or RECEIVE
          */
         populateContractCurrencyStack: function(contract, type) {
             var C = contract.contract;
@@ -634,6 +638,17 @@ function (dojo, declare) {
             var amt = (type == CURRENCY_TYPE.PAY) ? contract.promise_amt : contract.payout_amt;
             var stack = (type == CURRENCY_TYPE.PAY) ? "promise" : "payout";
             this.createCurrencyStack(C, stack, curr, amt);
+        },
+
+        /**
+         * This contract is a Loan, so get all the loans and stack them in the "promise" side
+         * @param {Object} contract 
+         */
+        populateLoan: function(contract) {
+            let loans = contract.loans;
+            for (const c of loans) {
+                debugger;
+            }
         },
 
         /**
@@ -2286,8 +2301,12 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'notif_dividendsPopped', 500 );
             dojo.subscribe( 'contractPaid', this, "notif_contractPaid");
             this.notifqueue.setSynchronous( 'notif_contractPaid', 500 );
-            dojo.subscribe( 'loanTaken', this, "notif_loanTaken");
-            this.notifqueue.setSynchronous( 'notif_loanTaken', 500 );
+            dojo.subscribe( 'loanCreated', this, "notif_loanCreated");
+            this.notifqueue.setSynchronous( 'notif_loanCreated', 500 );
+            dojo.subscribe( 'loanMerged', this, "notif_loanMerged");
+            this.notifqueue.setSynchronous( 'notif_loanMerged', 500 );
+            dojo.subscribe( 'loanResolved', this, "notif_loanResolved");
+            this.notifqueue.setSynchronous( 'notif_loanResolved', 500 );
         },
 
         /**
@@ -2483,10 +2502,10 @@ function (dojo, declare) {
         },
 
         /**
-         * Player must take a loan
+         * Player must take a loan.
          * @param {Object} notif 
          */
-        notif_loanTaken: function(notif) {
+        notif_loanCreated: function(notif) {
             var player_id = notif.args.player_id;
             var C = notif.args.conL;
             var prom_curr = notif.args.promise;
@@ -2502,6 +2521,22 @@ function (dojo, declare) {
             this.pushContractQueue();
             this.slideContractQueue(q+1, 1);
             this.decorateLoans(C);
+        },
+
+        /**
+         * Player had a loan already and takes a new one, which merges with old one.
+         * @param {Object} notif 
+         */
+        notif_loanMerged: function(notif) {
+
+        },
+
+        /**
+         * Player paid off a loan.
+         * @param {Object} notif 
+         */
+        notif_loanResolved: function(notif) {
+
         },
 
     });

@@ -229,6 +229,12 @@ class ForEx extends Table
             WHERE location IS NOT NULL 
         ");
         $result['contracts'] = $contracts;
+        foreach ($contracts as $conL => $contract) {
+            if ($contract['promise'] == LOAN) {
+                $loans = $this->getLoansOnContract($contract['player_id'], $conL);
+                $result['contracts'][$conl]['loans'] = $loans;
+            }
+        }
         // spot trade - may be null
         $result['spot_transaction'] = $this->getSpotTrade();
         $result[SPOT_DONE] = self::getGameStateValue(SPOT_DONE);
@@ -530,9 +536,11 @@ class ForEx extends Table
 
     /**
      * Take a Contract (by letter) and clear all values.
+     * Also clears any Loans attached to this letter.
      */
-    function clearContract($contract) {
-        self::DbQuery("UPDATE CONTRACTS SET owner = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL, location = NULL WHERE contract = \"".$contract."\"");        
+    function clearContract($conL) {
+        self::DbQuery("UPDATE CONTRACTS SET owner = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL, location = NULL WHERE contract = \"$conL\"");
+        self::DbQuery("DELETE FROM LOANS WHERE contract = \"$conL\"");
     }
 
     /**
@@ -732,21 +740,20 @@ class ForEx extends Table
             $this->adjustMonies($player_id, $promise, -$promise_amt);
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // clear the contract
-            self::DbQuery("UPDATE CONTRACTS SET owner = NULL, location = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL WHERE contract = \"".$conL."\"");
+            $this->clearContract($conL);
         }
         return $nextState;
     }
-
 
     /**
      * Consult the LOANS table because this contract might represent more than one loan.
      * Return associative array of curr => amount
      */
-    function getAllLoans($player_id, $contract) {
-        $loan = self::getNonEmptyObjectFromDB("SELECT * FROM LOANS WHERE owner = $player_id AND contract = \"".$contract."\"");
+    function getLoansOnContract($player_id, $contract) {
+        $loan = self::getNonEmptyObjectFromDB("SELECT * FROM LOANS WHERE owner = $player_id AND contract = \"$contract\"");
         $promises = array();
-        for($p = 1; $p <= 6; $p++) {
-            $prom = "p".$p;
+        for ($p = 1; $p <= 6; $p++) {
+            $prom = "p$p";
             if ($loan[$prom] != null) {
                 $promises[$loan[$prom]] = $loan[$prom."_amt"];
             }
@@ -802,9 +809,9 @@ class ForEx extends Table
             ));
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // enter it in the LOANS table
-            self::DbQuery("UPDATE LOANS SET owner = $player_id, p1 = \"".$promise."\", p1_amt = $promise_amt, WHERE contract = \"".$conL."\"");
+            self::DbQuery("INSERT INTO LOANS (owner, contract, p1, p1_amt ) VALUES ($player_id, \"$conL\", \"$promise\", $promise_amt");
             // mark the contract a LOAN
-            self::DbQuery("UPDATE CONTRACTS SET promise = \"".LOAN."\", promise_amt = NULL, payout = NULL, payout_amt = NULL, location = 0 WHERE contract = \"".$conL."\"");
+            self::DbQuery("UPDATE CONTRACTS SET promise = \"".LOAN."\", promise_amt = NULL, payout = NULL, payout_amt = NULL, location = 0 WHERE contract = \"$conL\"");
             $this->pushContractQueue();
         } else {
             // add this contract's loan to previous loan
@@ -832,12 +839,15 @@ class ForEx extends Table
             }
             $ploan = "p".$p;
             $p_amt = $ploan."_amt";
-            self::DbQuery("UPDATE LOANS SET $ploan = \"".$promise."\", $p_amt = $promise_amt, WHERE contract = \"".$loan_contract."\"");
+            self::DbQuery("UPDATE LOANS SET $ploan = \"$promise\", $p_amt = $promise_amt WHERE contract = \"$loan_contract\"");
             // clear current contract
             $this->clearContract($conL);
         }
     }
 
+    /**
+     * When a player has gone bankrupt.
+     */
     function resolveBankruptcy() {
         throw new BgaUserException(self::_("BANKRUPTCY!"));
     }
@@ -851,17 +861,15 @@ class ForEx extends Table
         $conL = $contract['contract'];
         $players = self::loadPlayersBasicInfos();
         $player_name = $players[$player_id]['player_name'];
-        $loans = $this->getAllLoans($player_id, $conL);
+        $loans = $this->getLoansOnContract($player_id, $conL);
         // can the player pay them all off?
         foreach ($loans as $curr => $amt) {
             if ($amt > $this->getMonies($player_id, $curr)) {
                 // BANKRUPT!
                 $this->resolveBankruptcy();
-            } else {
-                $this->adjustMonies($player_id, $curr, -$amt);
             }
         }
-
+        // we're good, so resolve it
         self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
             'player_id' => $player_id,
             'player_name' => $player_name,
@@ -869,6 +877,11 @@ class ForEx extends Table
             'location' => $contract['location'], // note we are sending the original location in queue
             'conL' => $conL,
         ));
+        foreach ($loans as $curr => $amt) {
+            $this->adjustMonies($player_id, $curr, -$amt);
+        }
+        // clear the contract
+        $this->clearContract($conL);
     }
 
     //////////////////////////////////////////////////////////////////////////////
