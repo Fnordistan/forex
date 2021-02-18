@@ -108,9 +108,9 @@ var jstpl_player_monies = '<div id="${curr}_${type}_${id}_container" class="frx_
                         </div>';
 
 // An individual contract card
-var jstpl_contract_card = '<span class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
+var jstpl_contract_card = '<span class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom; --scale: ${scale};"></span>';
 // for when we need ids
-var jstpl_contract_card_wid = '<span id="${id}" class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom;--scale: ${scale};"></span>';
+var jstpl_contract_card_wid = '<span id="${id}" class="frx_contract_card frx_${contract}" style="display: inline-block; vertical-align: bottom; --scale: ${scale};"></span>';
 
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\

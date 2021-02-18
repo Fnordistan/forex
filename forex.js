@@ -718,7 +718,6 @@ function (dojo, declare) {
             counter.setValue(amt);
         },
 
-
         /**
          * Place a contract on the player board
          * @param {Object} contract 
@@ -1811,8 +1810,8 @@ function (dojo, declare) {
         getAvailableContract: function() {
             const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
             for (const cl of letters) {
-                var cards = document.getElementsByClassName("frx_"+cl);
-                if (cards.length == 1) {
+                var cards = document.getElementById('contract_queue_container').getElementsByClassName("frx_"+cl);
+                if (cards.length == 0) {
                     return cl;
                 }
             }
