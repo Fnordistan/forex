@@ -636,8 +636,7 @@ function (dojo, declare) {
             var C = contract.contract;
             var curr = (type == CURRENCY_TYPE.PAY) ? contract.promise : contract.payout;
             var amt = (type == CURRENCY_TYPE.PAY) ? contract.promise_amt : contract.payout_amt;
-            var stack = (type == CURRENCY_TYPE.PAY) ? "promise" : "payout";
-            this.createCurrencyStack(C, stack, curr, amt);
+            this.createCurrencyStack(C, type, curr, amt);
         },
 
         /**
@@ -645,39 +644,61 @@ function (dojo, declare) {
          * @param {Object} contract 
          */
         populateLoan: function(contract) {
-            var loans = contract.loans;
-            debugger;
+            let loans = contract.loans;
+            let shift = 1;
             for (const curr in loans) {
-                var amt = loans[curr];
-                this.createCurrencyStack(contract.contract, 'promise', curr, amt)
-                debugger;
+                let amt = loans[curr];
+                this.createCurrencyStack(contract.contract, CURRENCY_TYPE.PAY, curr, amt, shift++);
             }
         },
 
         /**
          * Creates an actual stack of Notes next to a Contract.
          * @param {string} C contract letter
-         * @param {string} stack "promise" or "payout"
+         * @param {enum} type CURRENCY_TYPE
          * @param {string} curr 
-         * @param {int} amt 
+         * @param {int} amt
+         * @param {int} shift stack number within container
          */
-        createCurrencyStack: function(C, stack, curr, amt) {
-            var id = 'contract_'+stack+'_'+C;
+        createCurrencyStack: function(C, type, curr, amt, shift = 1) {
+            let stack = (type == CURRENCY_TYPE.PAY) ? "promise" : "payout";
+            let stack_container_id = 'contract_'+stack+'_'+C;
+            let stack_id = stack_container_id+'_'+curr;
+            let stack_div = '<div id=\"'+stack_id+'\"></div>';
+            let stack_div_el = dojo.place(stack_div, stack_container_id);
+            if (shift > 1) {
+                let off = this.dvdwidth * -shift;
+                stack_div_el.style.transform = 'translateX('+off+'px)';
+            }
             // holds Notes
             for (let i = 0; i < amt; i++) {
-                var off = 2*i;
-                var offset = "0px";
-                if (stack == "promise") {
+                let off = 2*i;
+                let offset = "0px";
+                if (type == CURRENCY_TYPE.PAY) {
                     offset = -off+"px";
                 } else {
                     offset = -off+"px "+off+"px";
                 }
-                var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "margin": offset});
-                dojo.place(note, id, i);
+                let note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "margin": offset});
+                dojo.place(note, stack_id, i);
             }
             // put the counter on top of the last Note
-            this.putCounterOnStack(C, curr, id, amt);
+            this.putCounterOnStack(C, curr, stack_id, amt);
         },
+
+        moveToLoan: function(from, to, curr, amt) {
+            debugger;
+            let stack_container_from = 'contract_promise_'+from;
+            let stack_container_to = 'contract_promise_'+to;
+            let stack_from = stack_container_from+'_'+curr;
+            let stack_div = document.getElementById(stack_from);
+            while (stack_div.childNodes.length > 0) {
+                stack_div.firstChild.remove();
+            }
+            stack_div.remove();
+            this.createCurrencyStack(to, CURRENCY_TYPE.PAY, curr, amt, 2);
+        },
+
 
         /**
          * For when a new loan has been taken, and we are pushing a single buck onto the current promise stack.
@@ -685,30 +706,29 @@ function (dojo, declare) {
          * @param {string} curr 
          */
         pushLoanBuckOntoStack: function(C, curr, amt) {
-            var id = 'contract_promise_'+C;
-            var numnotes = document.getElementById(id).childElementCount;
-            var top_note = curr+'_'+C+'_'+(numnotes-1);
+            var stack_id = 'contract_promise_'+C+'_'+curr;
+            var numnotes = document.getElementById(stack_id).childElementCount;
             // put a new note on top of it
             var offset = -(2*numnotes)+"px";
             var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+numnotes, "curr": curr, "margin": offset});
-            var newtop = dojo.place(note, id, numnotes);
+            var newtop = dojo.place(note, stack_id, numnotes);
             // delete old counter and recreate
             var counter_id = curr+'_note_stack_ctr_'+C;
             document.getElementById(counter_id).remove();
-            this.putCounterOnStack(C, curr, id, amt);
+            this.putCounterOnStack(C, curr, stack_id, amt);
         },
 
         /**
          * On a currency stack, find the topmost note HTML div and put a counter on it.
          * @param {string} C 
          * @param {string} curr 
-         * @param {string} stack id of stack div
+         * @param {string} stack_id of stack div
          * @param {float} amt 
          */
-        putCounterOnStack: function(C, curr, stack, amt) {
+        putCounterOnStack: function(C, curr, stack_id, amt) {
             // put the counter on top of the last Note
             var counter = new forex.fcounter();
-            var top_note = document.getElementById(stack).lastChild;
+            var top_note = document.getElementById(stack_id).lastChild;
             var ctr_id = dojo.place(this.format_block('jstpl_stack_counter', {
                 "id": C,
                 "curr": curr,
@@ -2574,7 +2594,10 @@ function (dojo, declare) {
             var pay_curr = notif.args.payout;
             var pay_amt = parseFloat(notif.args.payout_amt);
             // this is the location before it is moved
-            var q = parseInt(notif.args.location); 
+            var q = parseInt(notif.args.location);
+
+            // move the new loan to stack next to the old one
+            this.moveToLoan(C, loanC, loan_curr, loan_amt);
 
         },
 
