@@ -33,7 +33,7 @@ define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
-define('LOAN', 'LOAN');
+define('LOAN', 'LN');
 
 class ForEx extends Table
 {
@@ -232,7 +232,7 @@ class ForEx extends Table
         foreach ($contracts as $conL => $contract) {
             if ($contract['promise'] == LOAN) {
                 $loans = $this->getLoansOnContract($contract['player_id'], $conL);
-                $result['contracts'][$conl]['loans'] = $loans;
+                $result['contracts'][$conL]['loans'] = $loans;
             }
         }
         // spot trade - may be null
@@ -257,12 +257,11 @@ class ForEx extends Table
     */
     function getGameProgression() {
         $dividends = self::getGameStateValue(DIVIDEND_COUNT);
-        // $div_loc = self::getUniqueValueFromDB("SELECT location FROM CONTRACTS WHERE contract =\"".DIVIDENDS."\"");
-        // // how many contracts ahead of it in queue?
-        // self::debug('div_loc', $div_loc);
-        // $ahead = self::getCollectionFromDb("SELECT COUNT(*) FROM CONTRACTS WHERE location > $div_loc");
-        // self::debug('ahead', $ahead);
-        $inc = 0; //10 - ($ahead * (1 + 2/3));
+        $div_loc = $this->getDividendLocation();
+        // how many contracts ahead of it in queue?
+        // can be 0 to 6
+        $ahead = self::getObjectListFromDB("SELECT contract FROM CONTRACTS WHERE location > $div_loc", true);
+        $inc = 10 - (count($ahead) * (1 + 2/3));
         return $inc + (5-$dividends)*20;
     }
 
@@ -706,18 +705,17 @@ class ForEx extends Table
      */
     function resolveContract($conL) {
         $contract = self::getNonEmptyObjectFromDB("SELECT * from CONTRACTS WHERE contract = \"".$conL."\"");
-    
-        $nextState = "nextPlayer";
+        $player_id = $contract['owner'];
+        $promise = $contract['promise'];
+        $promise_amt = $contract['promise_amt'];
 
+        $nextState = "nextPlayer";
         if ($promise == LOAN) {
             $this->resolveLoan($contract);
-        } else if ($promise_amt > $cash) {
+        } else if ($promise_amt > $this->getMonies($player_id, $promise)) {
             $this->createLoan($contract);
         } else {
             // pay the contract, get the payout
-            $player_id = $contract['owner'];
-            $promise = $contract['promise'];
-            $promise_amt = $contract['promise_amt'];
             $payout = $contract['payout'];
             $payout_amt = $contract['payout_amt'];
             $location = $contract['location'];
@@ -792,14 +790,14 @@ class ForEx extends Table
         $oldloan = self::getObjectFromDB("SELECT * FROM LOANS WHERE owner = $player_id");
         $promise_amt++;
         $x_loan = $this->create_X_monies_arg($promise_amt, $promise, NOTE);
-    if ($oldloan == null) {
+        if ($oldloan == null) {
             // turn this contract into a loan, enter it into LOANS table
             self::notifyAllPlayers("loanCreated", clienttranslate('${player_name} cannot pay Contract ${contract} - it is converted to a loan for ${x_loan}').'${conL}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
-                'promise' => $promise,
-                'promise_amt' => $promise_amt,
+                'loan_curr' => $promise,
+                'loan_amt' => $promise_amt,
                 'payout' => $payout,
                 'payout_amt' => $payout_amt,
                 'location' => $location,
@@ -809,7 +807,7 @@ class ForEx extends Table
             ));
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // enter it in the LOANS table
-            self::DbQuery("INSERT INTO LOANS (owner, contract, p1, p1_amt ) VALUES ($player_id, \"$conL\", \"$promise\", $promise_amt");
+            self::DbQuery("INSERT INTO LOANS (owner, contract, p1, p1_amt ) VALUES ($player_id, \"$conL\", \"$promise\", $promise_amt)");
             // mark the contract a LOAN
             self::DbQuery("UPDATE CONTRACTS SET promise = \"".LOAN."\", promise_amt = NULL, payout = NULL, payout_amt = NULL, location = 0 WHERE contract = \"$conL\"");
             $this->pushContractQueue();
@@ -820,13 +818,13 @@ class ForEx extends Table
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
-                'promise' => $promise,
-                'promise_amt' => $promise_amt,
+                'loan' => $loan_contract,
+                'loan_curr' => $promise,
+                'loan_amt' => $promise_amt,
                 'payout' => $payout,
                 'payout_amt' => $payout_amt,
                 'location' => $location,
                 'conL' => $conL,
-                'loan' => $loan_contract,
                 'x_loan' => $x_loan,
                 X_MONIES => array("x_loan" => $x_loan),
             ));

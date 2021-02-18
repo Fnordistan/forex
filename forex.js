@@ -87,7 +87,7 @@ const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science butt
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
 const X_MONIES = "arg_monies_string";
-const LOAN = "LOAN";
+const LOAN = "LN";
 // used as messages inserted in my turn message
 const SPOT_TRADE_MSG = "spot_trade_txt";
 const CONTRACT_MSG = "contract_txt";
@@ -645,8 +645,11 @@ function (dojo, declare) {
          * @param {Object} contract 
          */
         populateLoan: function(contract) {
-            let loans = contract.loans;
-            for (const c of loans) {
+            var loans = contract.loans;
+            debugger;
+            for (const curr in loans) {
+                var amt = loans[curr];
+                this.createCurrencyStack(contract.contract, 'promise', curr, amt)
                 debugger;
             }
         },
@@ -661,7 +664,6 @@ function (dojo, declare) {
         createCurrencyStack: function(C, stack, curr, amt) {
             var id = 'contract_'+stack+'_'+C;
             // holds Notes
-            var last_id;
             for (let i = 0; i < amt; i++) {
                 var off = 2*i;
                 var offset = "0px";
@@ -671,18 +673,51 @@ function (dojo, declare) {
                     offset = -off+"px "+off+"px";
                 }
                 var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+i, "curr": curr, "margin": offset});
-                last_id = dojo.place(note, id, i);
+                dojo.place(note, id, i);
             }
             // put the counter on top of the last Note
+            this.putCounterOnStack(C, curr, id, amt);
+        },
+
+        /**
+         * For when a new loan has been taken, and we are pushing a single buck onto the current promise stack.
+         * @param {string} C contract letter
+         * @param {string} curr 
+         */
+        pushLoanBuckOntoStack: function(C, curr, amt) {
+            var id = 'contract_promise_'+C;
+            var numnotes = document.getElementById(id).childElementCount;
+            var top_note = curr+'_'+C+'_'+(numnotes-1);
+            // put a new note on top of it
+            var offset = -(2*numnotes)+"px";
+            var note = this.format_block('jstpl_bank_note_stacked', {"id": curr+'_'+C+'_'+numnotes, "curr": curr, "margin": offset});
+            var newtop = dojo.place(note, id, numnotes);
+            // delete old counter and recreate
+            var counter_id = curr+'_note_stack_ctr_'+C;
+            document.getElementById(counter_id).remove();
+            this.putCounterOnStack(C, curr, id, amt);
+        },
+
+        /**
+         * On a currency stack, find the topmost note HTML div and put a counter on it.
+         * @param {string} C 
+         * @param {string} curr 
+         * @param {string} stack id of stack div
+         * @param {float} amt 
+         */
+        putCounterOnStack: function(C, curr, stack, amt) {
+            // put the counter on top of the last Note
             var counter = new forex.fcounter();
+            var top_note = document.getElementById(stack).lastChild;
             var ctr_id = dojo.place(this.format_block('jstpl_stack_counter', {
                 "id": C,
                 "curr": curr,
-                "type": "note"
-            }), last_id);
+                "type": CURRENCY_TYPE.NOTE
+            }), top_note);
             counter.create(ctr_id);
             counter.setValue(amt);
         },
+
 
         /**
          * Place a contract on the player board
@@ -1777,7 +1812,6 @@ function (dojo, declare) {
             const letters = ['A', 'B', 'C', 'D', 'E', 'F'];
             for (const cl of letters) {
                 var cards = document.getElementsByClassName("frx_"+cl);
-                console.log(cl+" instances: " + cards.length);
                 if (cards.length == 1) {
                     return cl;
                 }
@@ -2502,19 +2536,22 @@ function (dojo, declare) {
         },
 
         /**
-         * Player must take a loan.
+         * Player must take a loan. This is the first loan for this player.
          * @param {Object} notif 
          */
         notif_loanCreated: function(notif) {
             var player_id = notif.args.player_id;
             var C = notif.args.conL;
-            var prom_curr = notif.args.promise;
+            var loan_curr = notif.args.loan_curr;
+            var loan_amt = parseFloat(notif.args.loan_amt);
             var pay_curr = notif.args.payout;
             var pay_amt = parseFloat(notif.args.payout_amt);
             // this is the location before it is moved
             var q = parseInt(notif.args.location); 
-            // add 1 to promise
-            this.slideNotesToStack(C, 'promise', prom_curr, 1);
+
+            // move 1 note from bank to promise stack
+            this.slideNotesToStack(C, 'promise', loan_curr, 1);
+            this.pushLoanBuckOntoStack(C, loan_curr, loan_amt);
             // move notes from payout stack to player's board
             this.moveContractNotes(C, pay_curr, pay_amt, player_id);
             // push Contract to back of queue
@@ -2528,6 +2565,17 @@ function (dojo, declare) {
          * @param {Object} notif 
          */
         notif_loanMerged: function(notif) {
+            debugger;
+            var player_id = notif.args.player_id;
+            // this is the consilidated loan Contract
+            var C = notif.args.conL;
+            var loanC = notif.args.loan;
+            var loan_curr = notif.args.loan_curr;
+            var loan_amt = parseFloat(notif.args.loan_amt);
+            var pay_curr = notif.args.payout;
+            var pay_amt = parseFloat(notif.args.payout_amt);
+            // this is the location before it is moved
+            var q = parseInt(notif.args.location); 
 
         },
 

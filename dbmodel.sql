@@ -32,9 +32,9 @@ CREATE TABLE IF NOT EXISTS `CERTIFICATES` (
 CREATE TABLE IF NOT EXISTS `CONTRACTS` (
     `contract` varchar(9) NOT NULL COMMENT 'A-F, Dividends',
     `owner` varchar(16) COMMENT 'player_id or null',
-    `promise` varchar(3) COMMENT 'currency',
+    `promise` varchar(4) COMMENT 'currency or LN',
     `promise_amt` FLOAT(8),
-    `payout` varchar(4) COMMENT 'currency or LOAN',
+    `payout` varchar(3) COMMENT 'currency or LN',
     `payout_amt` FLOAT(8),
     `location` TINYINT COMMENT 'queue position or NULL',
     PRIMARY KEY (`contract`)
