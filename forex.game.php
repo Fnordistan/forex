@@ -488,7 +488,7 @@ class ForEx extends Table
         self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_changed}'), array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'adj' => $amt < 0 ? self::_("spends") : self::_("gains"),
+            'adj' => $amt < 0 ? self::_("pays") : self::_("receives"),
             'amt' => $amt,
             'curr' => $curr,
             'x_changed' => $x_monies,
@@ -874,6 +874,7 @@ class ForEx extends Table
             'contract' => $conL,
             'location' => $contract['location'], // note we are sending the original location in queue
             'conL' => $conL,
+            'loans' => $loans
         ));
         foreach ($loans as $curr => $amt) {
             $this->adjustMonies($player_id, $curr, -$amt);

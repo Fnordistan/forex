@@ -446,15 +446,25 @@ function (dojo, declare) {
         /**
          * Find all Contract Cards of this letter and decorate them with loan class,
          * @param {string} C 
+         * @param {isOn} bRemove take it off
          */
-        decorateLoans: function(C) {
-            var loandocs = document.getElementsByClassName("frx_"+C);
-            for (let i = 0; i < loandocs.length; i++) {
-                loandocs[i].classList.add("frx_loan");
-                var loan = document.createElement("span");
-                loan.innerHTML = "LOAN";
-                loan.classList.add("frx_loan_text");
-                dojo.place(loan, loandocs[i]);
+        decorateLoans: function(C, bRemove = false) {
+            var loan_containers = ["player_boards", "contracts_div"];
+            for (lc of loan_containers) {
+                var loandocs = document.getElementById(lc).getElementsByClassName("frx_"+C);
+                for (let i = 0; i < loandocs.length; i++) {
+                    loandocs[i].classList.toggle("frx_loan");
+                    if (bRemove) {
+                        while (loandocs[i].childNodes.length > 0) {
+                            loandocs[i].firstChild.remove();
+                        }
+                    } else {
+                        var loan = document.createElement("span");
+                        loan.innerHTML = "LOAN";
+                        loan.classList.add("frx_loan_text");
+                        dojo.place(loan, loandocs[i]);
+                    }
+                }
             }
         },
 
@@ -1047,10 +1057,9 @@ function (dojo, declare) {
          * For moving money off a Contract Display, to bank or player board.
          * @param {string} contract letter
          * @param {string} curr currency type
-         * @param {float} amt
          * @param {player_id} optional if null then it's going from promise to bank, otherwise from payout to player
          */
-        moveContractNotes: function(contract, curr, amt, player_id) {
+        moveContractNotes: function(contract, curr, player_id) {
             var parent_id = 'contract_'+contract;
             var from = 'contract_promise_'+contract;
             var to = 'bank_'+curr;
@@ -2548,13 +2557,13 @@ function (dojo, declare) {
             var prom_curr = notif.args.promise;
             var prom_amt = parseFloat(notif.args.promise_amt);
             var pay_curr = notif.args.payout;
-            var pay_amt = parseFloat(notif.args.payout_amt);
-            var q = notif.args.location; 
+            var q = parseInt(notif.args.location); 
             // move notes from promise stack and player's board to bank
             this.moveBankNotes(player_id, prom_curr, -prom_amt);
-            this.moveContractNotes(C, prom_curr, prom_amt);
+            this.moveContractNotes(C, prom_curr);
+            this.moveContractNotes(C, pay_curr, player_id);
             // clear the rest
-            this.clearContract(C, pay_curr, pay_amt, player_id, q);
+            this.clearContract(C, player_id, q);
         },
 
         /**
@@ -2575,7 +2584,7 @@ function (dojo, declare) {
             this.slideNotesToStack(C, 'promise', loan_curr, 1);
             this.pushLoanBuckOntoStack(C, loan_curr, loan_amt);
             // move notes from payout stack to player's board
-            this.moveContractNotes(C, pay_curr, pay_amt, player_id);
+            this.moveContractNotes(C, pay_curr, player_id);
             // push Contract to back of queue
             this.pushContractQueue();
             this.slideContractQueue(q+1, 1);
@@ -2587,7 +2596,6 @@ function (dojo, declare) {
          * @param {Object} notif 
          */
         notif_loanMerged: function(notif) {
-            debugger;
             var player_id = notif.args.player_id;
             // this is the consilidated loan Contract
             var C = notif.args.conL;
@@ -2595,27 +2603,48 @@ function (dojo, declare) {
             var loan_curr = notif.args.loan_curr;
             var loan_amt = parseFloat(notif.args.loan_amt);
             var pay_curr = notif.args.payout;
-            var pay_amt = parseFloat(notif.args.payout_amt);
             // this is the location before it is moved
             var q = parseInt(notif.args.location);
 
             // move the new loan to stack next to the old one
             this.moveToLoan(C, loanC, loan_curr, loan_amt);
-            // 
-            this.clearContract(C, pay_curr, pay_amt, player_id, q);
+            // move payoff to player's board
+            this.moveContractNotes(C, pay_curr, player_id);
+            // do all the other cleanup
+            this.clearContract(C, player_id, q);
+        },
+
+        /**
+         * Player paid off a loan.
+         * @param {Object} notif 
+         */
+        notif_loanResolved: function(notif) {
+            var player_id = notif.args.player_id;
+            // this is the consilidated loan Contract
+            var C = notif.args.conL;
+            // this is the location before it is moved
+            var q = parseInt(notif.args.location);
+            var loans = notif.args.loans;
+
+            // move notes from promise stack and player's board to bank
+            debugger;
+            for (curr in loans) {
+                let amt = parseFloat(loans[curr]);
+                this.moveBankNotes(player_id, curr, -amt);
+                this.moveContractNotes(C, curr);
+            }
+
+            this.clearContract(C, player_id, q);
+            this.decorateLoans(C, true);
         },
 
         /**
          * Clear a contract by moving all its payment notes to the player, and taking it off the queue and player boards.
          * @param {string} C 
-         * @param {string} curr 
-         * @param {float} amt 
          * @param {integer} player_id 
          * @param {integer} q 
          */
-        clearContract: function(C, curr, amt, player_id, q) {
-            // move notes from payout stack to player's board
-            this.moveContractNotes(C, curr, amt, player_id);
+        clearContract: function(C, player_id, q) {
             // move Contract from player's board to Contract Display
             this.moveContract(C, 'player_board_'+player_id, 'player_board_'+player_id);
             // remove contract from player board
@@ -2625,14 +2654,6 @@ function (dojo, declare) {
             // delete the contract from the queue
             var qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
-        },
-
-        /**
-         * Player paid off a loan.
-         * @param {Object} notif 
-         */
-        notif_loanResolved: function(notif) {
-
         },
 
     });
