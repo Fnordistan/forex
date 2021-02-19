@@ -665,7 +665,10 @@ function (dojo, declare) {
             let stack_container_id = 'contract_'+stack+'_'+C;
             let stack_id = stack_container_id+'_'+curr;
             let stack_div = '<div id=\"'+stack_id+'\"></div>';
-            let stack_div_el = dojo.place(stack_div, stack_container_id);
+            let stack_div_el = document.getElementById(stack_div);
+            if (stack_div_el == null) {
+                stack_div_el = dojo.place(stack_div, stack_container_id);
+            }
             if (shift > 1) {
                 let off = this.dvdwidth * -shift;
                 stack_div_el.style.transform = 'translateX('+off+'px)';
@@ -686,6 +689,13 @@ function (dojo, declare) {
             this.putCounterOnStack(C, curr, stack_id, amt);
         },
 
+        /**
+         * When a second loan must be moved to the previous loan.
+         * @param {string} from letter of Contract being turned into 2nd loan
+         * @param {string} to letter of existing loan Contract
+         * @param {string} curr 
+         * @param {float} amt 
+         */
         moveToLoan: function(from, to, curr, amt) {
             debugger;
             let stack_container_from = 'contract_promise_'+from;
@@ -694,6 +704,8 @@ function (dojo, declare) {
             let stack_div = document.getElementById(stack_from);
             while (stack_div.childNodes.length > 0) {
                 stack_div.firstChild.remove();
+                let note = this.format_block('jstpl_bank_note', {"curr": curr});
+                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 500 ).play();
             }
             stack_div.remove();
             this.createCurrencyStack(to, CURRENCY_TYPE.PAY, curr, amt, 2);
@@ -2541,17 +2553,8 @@ function (dojo, declare) {
             // move notes from promise stack and player's board to bank
             this.moveBankNotes(player_id, prom_curr, -prom_amt);
             this.moveContractNotes(C, prom_curr, prom_amt);
-            // move notes from payout stack to player's board
-            this.moveContractNotes(C, pay_curr, pay_amt, player_id);
-            // move Contract from player's board to Contract Display
-            this.moveContract(C, 'player_board_'+player_id, 'player_board_'+player_id);
-            // remove contract from player board
-            document.getElementById('contract_'+player_id+'_'+C).remove();
-            // move Contract from Contract Queue to Display
-            this.moveContract(C, 'contract_queue_display', 'queue_'+q);
-            // delete the contract from the queue
-            var qslot = document.getElementById('queue_'+q);
-            qslot.removeChild(qslot.firstChild);
+            // clear the rest
+            this.clearContract(C, pay_curr, pay_amt, player_id, q);
         },
 
         /**
@@ -2598,7 +2601,30 @@ function (dojo, declare) {
 
             // move the new loan to stack next to the old one
             this.moveToLoan(C, loanC, loan_curr, loan_amt);
+            // 
+            this.clearContract(C, pay_curr, pay_amt, player_id, q);
+        },
 
+        /**
+         * Clear a contract by moving all its payment notes to the player, and taking it off the queue and player boards.
+         * @param {string} C 
+         * @param {string} curr 
+         * @param {float} amt 
+         * @param {integer} player_id 
+         * @param {integer} q 
+         */
+        clearContract: function(C, curr, amt, player_id, q) {
+            // move notes from payout stack to player's board
+            this.moveContractNotes(C, curr, amt, player_id);
+            // move Contract from player's board to Contract Display
+            this.moveContract(C, 'player_board_'+player_id, 'player_board_'+player_id);
+            // remove contract from player board
+            document.getElementById('contract_'+player_id+'_'+C).remove();
+            // move Contract from Contract Queue to Display
+            this.moveContract(C, 'contract_queue_display', 'queue_'+q);
+            // delete the contract from the queue
+            var qslot = document.getElementById('queue_'+q);
+            qslot.removeChild(qslot.firstChild);
         },
 
         /**
