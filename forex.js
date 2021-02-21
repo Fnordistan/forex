@@ -455,9 +455,7 @@ function (dojo, declare) {
                 for (let i = 0; i < loandocs.length; i++) {
                     loandocs[i].classList.toggle("frx_loan");
                     if (bRemove) {
-                        while (loandocs[i].childNodes.length > 0) {
-                            loandocs[i].firstChild.remove();
-                        }
+                        this.removeAllChildren(loandocs[i]);
                     } else {
                         var loan = document.createElement("span");
                         loan.innerHTML = "LOAN";
@@ -533,7 +531,7 @@ function (dojo, declare) {
          */
         pushContractQueue: function() {
             // start with leftmost
-            for (let q = 6; q > 0; q--) {
+            for (let q = 7; q > 0; q--) {
                 this.slideContractQueue(q, q+1);
             }
         },
@@ -552,7 +550,7 @@ function (dojo, declare) {
             if (is_dividends) {
                 this.moveDividendsStack(end);
             } else {
-                while (div_q.childNodes.length > 0) {
+                while (div_q.firstChild) {
                     var c = div_q.firstChild;
                     // create a temp copy to slide
                     var temp_c = dojo.clone(c);
@@ -651,26 +649,55 @@ function (dojo, declare) {
 
         /**
          * This contract is a Loan, so get all the loans and stack them in the "promise" side.
-         * We assume we received them sorted smaller to larger stacks from getAllDatas
          * @param {Object} contract 
          */
         populateLoan: function(contract) {
-            let loans = contract.loans;
+            const loans = contract.loans;
             // this gets passed to the next stack
-            let stack_ct = Object.keys(loans).length;
-            let stack = stack_ct-1;
-            let shift = 0;
-            // iterate in reverse order to place bigger stacks first and to the left
-            for (const [curr, amt] of Object.entries(loans).reverse()) {
+            const stack_ct = Object.keys(loans).length;
+            let stack = 0;
+            // iterate in reverse order - biggest stacks first
+            for (const [curr, amt] of Object.entries(loans).sort((a,b) => b[1] - a[1])) {
                 let stack_div = this.createCurrencyStack(contract.contract, CURRENCY_TYPE.PAY, curr, amt);
                 //now we need to arrange this stack if there are multiple loans
                 if (stack_ct > 1) {
-                    let xoff = (-stack * this.cardwidth)-shift;
-                    stack_div.style.transform = 'translateX('+xoff+'px)';
-                    shift = amt;
-                    stack--;
+                    this.shiftLoanStack(stack, stack_ct, stack_div);
+                    stack++;
                 }
             }
+        },
+
+        /**
+         * With multiple stacks on one loan space, use transform
+         * to rearrange the stacks.
+         * @param {int} stack in order, tallest is 0
+         * @param {int} stack_ct total number of stacks
+         * @param {Object} stack_div element of the stack div
+         */
+        shiftLoanStack: function(stack, stack_ct, stack_div) {
+            // these matrixes are indexed by stack number x stack count
+            const xoff = [
+                [0, -1, -2, -1, -2, -2],
+                [null, 0, -1, -1, -1, -2],
+                [null, null, 0, 0, -1, -1],
+                [null, null, null, 0, 0, -1],
+                [null, null, null, null, 0, 0],
+                [null, null, null, null, null, 0]
+            ];
+            const yoff = [
+                [0, 0, 0, -1, 0, -1],
+                [null, 0, 0, 0, -1, 0],
+                [null, null, 0, -1, 0, -1],
+                [null, null, null, 0, -1, 0],
+                [null, null, null, null, 0, -1],
+                [null, null, null, null, null, 0]
+            ];
+            // only varies by stack count
+            const scale = [1, 1, 0.75, 1, 0.75, 0.75];
+            let s = scale[stack_ct-1];
+            let w = this.cardwidth * s * xoff[stack][stack_ct-1];
+            let h = this.cardheight * s * yoff[stack][stack_ct-1];
+            stack_div.style.transform = 'scale('+s+') translate('+w+'px, '+h+'px)';
         },
 
         /**
@@ -711,24 +738,42 @@ function (dojo, declare) {
          * When a second loan must be moved to the previous loan.
          * @param {string} from letter of Contract being turned into 2nd loan
          * @param {string} to letter of existing loan Contract
-         * @param {string} curr 
-         * @param {float} amt 
+         * @param {string} curr new loan currency
+         * @param {float} amt new loan amount
          */
         moveToLoan: function(from, to, curr, amt) {
-            debugger;
             let stack_container_from = 'contract_promise_'+from;
             let stack_container_to = 'contract_promise_'+to;
             let stack_from = stack_container_from+'_'+curr;
             let stack_div = document.getElementById(stack_from);
-            while (stack_div.childNodes.length > 0) {
-                stack_div.firstChild.remove();
+            while (stack_div.firstChild) {
+                stack_div.removeChild(stack_div.lastChild);
                 let note = this.format_block('jstpl_bank_note', {"curr": curr});
                 this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 500 ).play();
             }
             stack_div.remove();
-            this.createCurrencyStack(to, CURRENCY_TYPE.PAY, curr, amt, 2);
+            // now repopulate the stacks
+            // first have to reconstruct the contract with all the loans
+            let loans = {};
+            loans[curr] = amt;
+            var destination_stack = document.getElementById(stack_container_to);
+            var oldloans = destination_stack.children;
+            for (let i in oldloans) {
+                if (oldloans[i].tagName == 'DIV') {
+                    let id = oldloans[i].id;
+                    let loancurr = id.substring(id.length-3);
+                    let loanamt = $(id).children.length;
+                    loans[loancurr] = loanamt;
+                }
+            }
+            contract = {
+                "contract": to,
+                "loans": loans
+            }
+            // clear the previous children
+            this.removeAllChildren(destination_stack);
+            this.populateLoan(contract);
         },
-
 
         /**
          * For when a new loan has been taken, and we are pushing a single buck onto the current promise stack.
@@ -856,6 +901,16 @@ function (dojo, declare) {
 
         ///////////////////////////////////////////////////
         //// Utility methods
+
+        /**
+         * Remove all children of this node.
+         * @param {Object} node 
+         */
+        removeAllChildren: function(node) {
+            while (node.firstChild) {
+                node.removeChild(node.lastChild);
+            }
+        },
 
         /**
          * Change the title banner.
@@ -1080,7 +1135,7 @@ function (dojo, declare) {
             while (stack.firstChild) {
                 let note_html = this.format_block('jstpl_bank_note', {"curr": curr});
                 this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
-                stack.removeChild(stack.firstChild);
+                stack.removeChild(stack.lastChild);
             }
         },
 
@@ -2593,9 +2648,19 @@ function (dojo, declare) {
             this.pushLoanBuckOntoStack(C, loan_curr, loan_amt);
             // move notes from payout stack to player's board
             this.moveContractNotes(C, pay_curr, player_id);
+            // for special case when the loan is at the end of the queue
+            // need to create a temporary q8 slot
+            if (q == 7) {
+                let q8 = '<div id="queue_8" class="frx_contract_queue_slot"></div>';
+                dojo.place(q8, 'contract_queue_container');
+                this.slideContractQueue(7, 8);
+            }
             // push Contract to back of queue
             this.pushContractQueue();
             this.slideContractQueue(q+1, 1);
+            if (q == 7) {
+                $('queue_8').remove();
+            }
             this.decorateLoans(C);
         },
 
@@ -2635,7 +2700,6 @@ function (dojo, declare) {
             var loans = notif.args.loans;
 
             // move notes from promise stack and player's board to bank
-            debugger;
             for (curr in loans) {
                 let amt = parseFloat(loans[curr]);
                 this.moveBankNotes(player_id, curr, -amt);

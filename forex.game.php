@@ -232,8 +232,6 @@ class ForEx extends Table
         foreach ($contracts as $conL => $contract) {
             if ($contract['promise'] == LOAN) {
                 $loans = $this->getLoansOnContract($contract['player_id'], $conL);
-                // make sure smaller stacks are first
-                asort($loans);
                 $result['contracts'][$conL]['loans'] = $loans;
             }
         }

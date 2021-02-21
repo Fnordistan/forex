@@ -143,7 +143,6 @@
     width: calc(var(--scale) * var(--currency_w));
     height: calc(var(--scale) * var(--currency_h));
     margin: 5px;
-    transform: translateX()
 }
 
 .frx_cert_cntr {
