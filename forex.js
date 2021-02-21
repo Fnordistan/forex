@@ -650,15 +650,26 @@ function (dojo, declare) {
         },
 
         /**
-         * This contract is a Loan, so get all the loans and stack them in the "promise" side
+         * This contract is a Loan, so get all the loans and stack them in the "promise" side.
+         * We assume we received them sorted smaller to larger stacks from getAllDatas
          * @param {Object} contract 
          */
         populateLoan: function(contract) {
             let loans = contract.loans;
-            let shift = 1;
-            for (const curr in loans) {
-                let amt = loans[curr];
-                this.createCurrencyStack(contract.contract, CURRENCY_TYPE.PAY, curr, amt, shift++);
+            // this gets passed to the next stack
+            let stack_ct = Object.keys(loans).length;
+            let stack = stack_ct-1;
+            let shift = 0;
+            // iterate in reverse order to place bigger stacks first and to the left
+            for (const [curr, amt] of Object.entries(loans).reverse()) {
+                let stack_div = this.createCurrencyStack(contract.contract, CURRENCY_TYPE.PAY, curr, amt);
+                //now we need to arrange this stack if there are multiple loans
+                if (stack_ct > 1) {
+                    let xoff = (-stack * this.cardwidth)-shift;
+                    stack_div.style.transform = 'translateX('+xoff+'px)';
+                    shift = amt;
+                    stack--;
+                }
             }
         },
 
@@ -668,9 +679,9 @@ function (dojo, declare) {
          * @param {enum} type CURRENCY_TYPE
          * @param {string} curr 
          * @param {int} amt
-         * @param {int} shift stack number within container
+         * @returns the stack div element
          */
-        createCurrencyStack: function(C, type, curr, amt, shift = 1) {
+        createCurrencyStack: function(C, type, curr, amt) {
             let stack = (type == CURRENCY_TYPE.PAY) ? "promise" : "payout";
             let stack_container_id = 'contract_'+stack+'_'+C;
             let stack_id = stack_container_id+'_'+curr;
@@ -678,10 +689,6 @@ function (dojo, declare) {
             let stack_div_el = document.getElementById(stack_div);
             if (stack_div_el == null) {
                 stack_div_el = dojo.place(stack_div, stack_container_id);
-            }
-            if (shift > 1) {
-                let off = this.dvdwidth * -shift;
-                stack_div_el.style.transform = 'translateX('+off+'px)';
             }
             // holds Notes
             for (let i = 0; i < amt; i++) {
@@ -697,6 +704,7 @@ function (dojo, declare) {
             }
             // put the counter on top of the last Note
             this.putCounterOnStack(C, curr, stack_id, amt);
+            return stack_div_el;
         },
 
         /**
