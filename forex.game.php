@@ -32,6 +32,7 @@ define('X_MONIES', 'arg_monies_string'); // matches js
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
 define('BANKRUPT_PLAYER', 'bankrupt_player');
+define('SCORING_CURRENCY', 'scoring_currency');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
 define('LOAN', 'LN');
@@ -57,7 +58,8 @@ class ForEx extends Table
             SPOT_DONE => 25,
             DIVEST_CURRENCY => 30,
             DIVEST_PLAYER => 31,
-            BANKRUPT_PLAYER => 32
+            BANKRUPT_PLAYER => 32,
+            SCORING_CURRENCY => 40,
         ));
 
         $this->certificates = self::getNew("module.common.deck");
@@ -114,6 +116,7 @@ class ForEx extends Table
         self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
         self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
         self::setGameStateInitialValue( BANKRUPT_PLAYER, 0 );
+        self::setGameStateInitialValue( SCORING_CURRENCY, 0 );
 
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
@@ -588,9 +591,10 @@ class ForEx extends Table
         $stronger = self::getObjectListFromDB("SELECT stronger from CURRENCY_PAIRS", true);
         $pair_strg = array();
         $max = 0;
+        // count how many times each appears
         foreach($stronger as $curr) {
             if (isset($pair_strg[$curr])) {
-                $pair_strg[$curr] = $pair_strg[$curr]+1;
+                $pair_strg[$curr] += 1;
             } else {
                 $pair_strg[$curr] = 1;
             }
@@ -1193,6 +1197,19 @@ class ForEx extends Table
         $this->gamestate->nextState($nextState);
     }
 
+    /**
+     * The currency the player chose will be the one used for scoring.
+     */
+    function chooseStrongestCurrency($curr) {
+        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chose ${currency} for final scoring'), array(
+            'i18n' => array ('currency'),
+            'player_name' => self::getActivePlayerName(),
+            'currency' => $curr,
+        ));
+        self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum($curr));
+        $this->gamestate->nextState("scoring");
+    }
+
 //////////////////////////////////////////////////////////////////////////////
 //////////// Game state arguments
 ////////////
@@ -1238,6 +1255,16 @@ class ForEx extends Table
             "curr" => $curr,
             "currency" => $currency
         );
+    }
+
+    /**
+     * Arguments for player to choose the final currency for scoring.
+     */
+    function argsChooseCurrency() {
+        $candidates = $this->getStrongestCurrency();
+        return array(
+            "currencies" => $candidates
+        )
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1317,11 +1344,15 @@ class ForEx extends Table
         if ($bankrupt == 0) {
             // resolve all remaining contracts
         }
+        $nextState = "scoring";
         // now choose currency
         $strongest = $this->getStrongestCurrency();
         if (count($strongest) > 1) {
-            
+            $nextState = "chooseStrongest";
+        } else {
+            self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum($strongest[0]));
         }
+        $this->gamestate->nextState($nextState);
     }
 
 //////////////////////////////////////////////////////////////////////////////

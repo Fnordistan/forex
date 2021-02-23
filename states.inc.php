@@ -117,15 +117,15 @@ $machinestates = array(
         "description" => "",
         "type" => "game",
         "action" => "stLastResolve",
-        "transitions" => array( "chooseCurrency" => CHOOSE_CURRENCY, "scoring" => SCORING )
+        "transitions" => array( "chooseStrongest" => CHOOSE_CURRENCY, "scoring" => SCORING )
     ),
 
     CHOOSE_CURRENCY => array(
         "name" => "strongestCurrency",
-        "description" => clienttranslate( '${actplayer} must choose the strongest Currency for final scoring (${tied_curr})' ),
-        "descriptionmyturn" => clienttranslate( '${you} must choose the strongest Currency for final scoring (${tied_curr})' ),
+        "description" => clienttranslate( '${actplayer} must choose the strongest Currency for final scoring' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose the strongest Currency for final scoring' ),
         "type" => "activeplayer",
-        "args" => "argChooseCurrency",
+        "args" => "argsChooseCurrency",
         "possibleactions" => array( "chooseStrongestCurrency" ),
         "transitions" => array( "" => SCORING )
     ),

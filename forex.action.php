@@ -135,4 +135,15 @@
       $this->game->chooseCurrencyToStrengthen($curr);
       self::ajaxResponse();
     }
+
+    /**
+     * Choose the currency to be used for final scoring.
+     */
+     public function chooseStrongestCurrency() {
+      self::setAjaxMode();
+      $curr = self::getArg("curr", AT_alphanum, true);
+      $this->game->chooseStrongestCurrency($curr);
+      self::ajaxResponse();
+    }
+
 }

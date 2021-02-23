@@ -895,6 +895,9 @@ function (dojo, declare) {
                 case 'strengthenCurrency':
                     this.addCurrenciesStrengthen();
                     break;
+                case 'strongestCurrency':
+                    this.addCurrenciesChooseScoring();
+                    break;
                 }
             }
         },
