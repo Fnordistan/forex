@@ -31,6 +31,7 @@ define('X_MONIES', 'arg_monies_string'); // matches js
 // match js and css vars
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
+define('BANKRUPT_PLAYER', 'bankrupt_player');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
 define('LOAN', 'LN');
@@ -55,7 +56,8 @@ class ForEx extends Table
             SPOT_REQUEST => 24,
             SPOT_DONE => 25,
             DIVEST_CURRENCY => 30,
-            DIVEST_PLAYER => 31
+            DIVEST_PLAYER => 31,
+            BANKRUPT_PLAYER => 32
         ));
 
         $this->certificates = self::getNew("module.common.deck");
@@ -111,7 +113,8 @@ class ForEx extends Table
         self::setGameStateInitialValue( SPOT_DONE, 0 );
         self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
         self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
-        
+        self::setGameStateInitialValue( BANKRUPT_PLAYER, 0 );
+
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
         //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
@@ -575,11 +578,35 @@ class ForEx extends Table
         return $amt."_".$curr."_".$type;
     }
 
+
     /**
-     * Wrapper that puts the endarg in final ${} at end of notif message.
+     * At endgame, find the strongest Currency.
+     * Returns array of strongest currencies (may be only one).
      */
-    function create_log_arg($notif_str, $endarg) {
-        return $notif_str.'${'.$endarg.'}';
+    function getStrongestCurrency() {
+        // first count the number of currency pairs for which each currency is strongest
+        $stronger = self::getObjectListFromDB("SELECT stronger from CURRENCY_PAIRS", true);
+        $pair_strg = array();
+        $max = 0;
+        foreach($stronger as $curr) {
+            if (isset($pair_strg[$curr])) {
+                $pair_strg[$curr] = $pair_strg[$curr]+1;
+            } else {
+                $pair_strg[$curr] = 1;
+            }
+            $max = max($max, $pair_strg[$curr]);
+        }
+        $strongest = array();
+        foreach ($pair_strg as $curr => $ct) {
+            if ($ct == $max) {
+                $strongest[] = $curr;
+            }
+        }
+        if (count($strongest) > 1) {
+            // next tiebreaker is most certificates in hand
+            $strongest = $this->countHeldCertificates($strongest);
+        }
+        return $strongest;
     }
 
     /**
@@ -604,12 +631,13 @@ class ForEx extends Table
 
     /**
      * Determine how many certs are held in hands.
-     * Returns an array of the currency(s) with the MOST Certs in player hands.
+     * Given an indexed array of currencies,
+     * returns an array of the currency(s) with the MOST Certs in player hands.
      */
-    function countHeldCertificates() {
+    function countHeldCertificates($currencies) {
         $players = self::loadPlayersBasicInfos();
         $curr_ct = array();
-        foreach($this->currencies as $c => $curr) {
+        foreach(array_keys($currencies) as $curr) {
             $curr_ct[$curr] = 0;
             foreach($players as $player_id => $player) {
                 $certs = $this->getCertificates($player_id, $curr);
@@ -680,7 +708,7 @@ class ForEx extends Table
             }
         }
         // the currency held by most players is strengthened
-        $mostHeld = $this->countHeldCertificates();
+        $mostHeld = $this->countHeldCertificates($this->currency_enum);
         $chooseCurrency = false;
         // could be 0 or >1
         if (count($mostHeld) != 1) {
@@ -711,7 +739,7 @@ class ForEx extends Table
 
         $nextState = "nextPlayer";
         if ($promise == LOAN) {
-            $this->resolveLoan($contract);
+            $nextState = $this->resolveLoan($contract);
         } else if ($promise_amt > $this->getMonies($player_id, $promise)) {
             $this->createLoan($contract);
         } else {
@@ -844,13 +872,6 @@ class ForEx extends Table
     }
 
     /**
-     * When a player has gone bankrupt.
-     */
-    function resolveBankruptcy() {
-        throw new BgaUserException(self::_("BANKRUPTCY!"));
-    }
-
-    /**
      * This is a Contract marked as a loan.
      * It must be paid.
      */
@@ -860,27 +881,40 @@ class ForEx extends Table
         $players = self::loadPlayersBasicInfos();
         $player_name = $players[$player_id]['player_name'];
         $loans = $this->getLoansOnContract($player_id, $conL);
+        $nextState = "nextPlayer";
         // can the player pay them all off?
         foreach ($loans as $curr => $amt) {
             if ($amt > $this->getMonies($player_id, $curr)) {
                 // BANKRUPT!
-                $this->resolveBankruptcy();
+                self::setGameStateValue(BANKRUPT_PLAYER, $player_id);
+                break;
             }
         }
-        // we're good, so resolve it
-        self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
-            'player_id' => $player_id,
-            'player_name' => $player_name,
-            'contract' => $conL,
-            'location' => $contract['location'], // note we are sending the original location in queue
-            'conL' => $conL,
-            'loans' => $loans
-        ));
-        foreach ($loans as $curr => $amt) {
-            $this->adjustMonies($player_id, $curr, -$amt);
+        if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
+            // we're good, so resolve it
+            self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'contract' => $conL,
+                'conL' => $conL,
+                'location' => $contract['location'], // note we are sending the original location in queue
+                'loans' => $loans
+            ));
+            foreach ($loans as $curr => $amt) {
+                $this->adjustMonies($player_id, $curr, -$amt);
+            }
+            // clear the contract
+            $this->clearContract($conL);
+        } else {
+            self::notifyAllPlayers("bankruptcy", clienttranslate('BANKRUPTCY! ${player_name} cannot pay loan on Contract ${contract}').'${conL}', array(
+                'player_id' => $player_id,
+                'player_name' => $player_name,
+                'contract' => $conL,
+                'conL' => $conL
+            ));
+            $nextState = "endGame";
         }
-        // clear the contract
-        $this->clearContract($conL);
+        return $nextState;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -1117,7 +1151,8 @@ class ForEx extends Table
     }
 
     /**
-     * Get the next Contract or Dividends and resolve it
+     * Get the next Contract or Dividends and resolve it.
+     * Advances state.
      */
     function resolve() {
         $player_id = self::getActivePlayerId();
@@ -1271,6 +1306,22 @@ class ForEx extends Table
         self::giveExtraTime( $player_id );
 
         $this->gamestate->nextState();        
+    }
+
+    /**
+     * Endgame.
+     */
+    function stLastResolve() {
+        // is this a bankruptcy or last dividend was paid?
+        $bankrupt = self::getGameStateValue(BANKRUPT_PLAYER);
+        if ($bankrupt == 0) {
+            // resolve all remaining contracts
+        }
+        // now choose currency
+        $strongest = $this->getStrongestCurrency();
+        if (count($strongest) > 1) {
+            
+        }
     }
 
 //////////////////////////////////////////////////////////////////////////////

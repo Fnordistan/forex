@@ -2443,7 +2443,7 @@ function (dojo, declare) {
             dojo.subscribe( 'loanMerged', this, "notif_loanMerged");
             this.notifqueue.setSynchronous( 'notif_loanMerged', 500 );
             dojo.subscribe( 'loanResolved', this, "notif_loanResolved");
-            this.notifqueue.setSynchronous( 'notif_loanResolved', 500 );
+            this.notifqueue.setSynchronous( "notif_loanResolved", 500 );
         },
 
         /**
