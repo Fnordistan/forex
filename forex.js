@@ -2447,6 +2447,8 @@ function (dojo, declare) {
             this.notifqueue.setSynchronous( 'notif_loanMerged', 500 );
             dojo.subscribe( 'loanResolved', this, "notif_loanResolved");
             this.notifqueue.setSynchronous( "notif_loanResolved", 500 );
+            dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
+            this.notifqueue.setSynchronous( "notif_currencyScored", 500 );
         },
 
         /**
@@ -2711,6 +2713,21 @@ function (dojo, declare) {
 
             this.clearContract(C, player_id, q);
             this.decorateLoans(C, true);
+        },
+
+        /**
+         * Sent for each currency converted for each player during scoring.
+         * @param {Object} notif 
+         */
+        notif_currencyScored: function(notif) {
+            var player_id = notif.args.player_id;
+            var score_curr = notif.args.score_curr;
+            var score_amt = parseFloat(notif.args.score_amt);
+            var convert_curr = notif.args.convert_curr;
+            var convert_amt = parseFloat(notif.args.convert_amt);
+            var player_notes = convert_curr+'_note_counter_icon_'+player_id;
+            var score_color = COLORS[score_curr];
+            this.displayScoring( player_notes, score_color, score_amt, 500, 0, 0 );
         },
 
         /**

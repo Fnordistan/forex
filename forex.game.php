@@ -1264,7 +1264,7 @@ class ForEx extends Table
         $candidates = $this->getStrongestCurrency();
         return array(
             "currencies" => $candidates
-        )
+        );
     }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -1350,9 +1350,57 @@ class ForEx extends Table
         if (count($strongest) > 1) {
             $nextState = "chooseStrongest";
         } else {
-            self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum($strongest[0]));
+            self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum[$strongest[0]]);
         }
         $this->gamestate->nextState($nextState);
+    }
+
+    /**
+     * Convert everyone's currency to the scoring currency, count it up.
+     */
+    function stScoring() {
+        $players = self::loadPlayersBasicInfos();
+        $c = self::getGameStateValue(SCORING_CURRENCY);
+        $currency = $this->currencies[$c];
+        foreach ($players as $player_id => $player) {
+            $score = 0;
+            if (self::getGameStateValue(BANKRUPT_PLAYER) != $player_id) {
+                $monies = $this->getMonies($player_id, $currency);
+                foreach ($this->currencies as $c => $curr) {
+                    if ($curr != $currency) {
+                        $base_amt = $this->getMonies($player_id, $curr);
+                        $pair = self::getObjectFromDB("SELECT position, stronger FROM CURRENCY_PAIRS WHERE (curr1 = \"$currency\" AND curr2 = \"$curr\") OR (curr1 = \"$curr\" AND curr2 = \"$currency\")");
+                        $xchg = $this->exchange[$pair['position']];
+                        $conv_amt = 0;
+                        if ($pair['stronger'] == $currency) {
+                            // converting weaker to the stronger currency
+                            $conv_amt = floor($base_amt/$xchg);
+                        } else {
+                            // converting stronger to the weaker currency
+                            $conv_amt = floor($base_amt * $xchg);
+                        }
+                        $x_convert = $this->create_X_monies_arg($conv_amt, $curr, NOTE);
+                        $x_score = $this->create_X_monies_arg($base_amt, $currency, NOTE);
+                        $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_convert} worth ${x_score}'), array(
+                            'i18n' => array ('currency'),
+                            'player_name' => self::getActivePlayerName(),
+                            'x_convert' => $x_convert,
+                            'x_score' => $x_score,
+                            'score_curr' => $currency,
+                            'score_amt' => $conv_amt,
+                            'convert_curr' => $curr,
+                            'convert_amt' => $base_amt,
+                            X_MONIES => array('x_convert' => $x_convert, 'x_score' => $x_score)
+                        ));
+                        $monies += $conv_amt;
+                    }
+                }
+                $score = $monies;
+            }
+            self::DbQuery( "UPDATE player SET player_score=$score WHERE player_id=$player_id" );
+        }
+
+        $this->gamestate->nextState("");
     }
 
 //////////////////////////////////////////////////////////////////////////////
