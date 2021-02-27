@@ -1398,24 +1398,26 @@ class ForEx extends Table
                 foreach ($this->currencies as $c => $base) {
                     if ($base != $currency) {
                         $base_amt = $this->getMonies($player_id, $base);
-                        $conv_amt = $this->convertCurrency($base, $base_amt, $currency);
-                        $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
-                        $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
-                        $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_base} worth ${x_score}'), array(
-                            'i18n' => array ('currency'),
-                            'player_id' => $player_id,
-                            'player_name' => self::getActivePlayerName(),
-                            'x_base' => $x_base,
-                            'x_score' => $x_score,
-                            'score_curr' => $currency,
-                            'score_amt' => $conv_amt,
-                            'base_curr' => $base,
-                            'base_amt' => $base_amt,
-                            X_MONIES => array('x_base' => $x_base, 'x_score' => $x_score)
-                        ));
-                        $monies += $conv_amt;
-                        $this->adjustMonies($player_id, $base, -$base_amt);
-                        $this->adjustMonies($player_id, $currency, $conv_amt);
+                        if ($base_amt > 0) {
+                            $conv_amt = $this->convertCurrency($base, $base_amt, $currency);
+                            $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
+                            $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
+                            $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_base} worth ${x_score}'), array(
+                                'i18n' => array ('currency'),
+                                'player_id' => $player_id,
+                                'player_name' => self::getActivePlayerName(),
+                                'x_base' => $x_base,
+                                'x_score' => $x_score,
+                                'score_curr' => $currency,
+                                'score_amt' => $conv_amt,
+                                'base_curr' => $base,
+                                'base_amt' => $base_amt,
+                                X_MONIES => array('x_base' => $x_base, 'x_score' => $x_score)
+                            ));
+                            $monies += $conv_amt;
+                            $this->adjustMonies($player_id, $base, -$base_amt);
+                            $this->adjustMonies($player_id, $currency, $conv_amt);
+                        }
                     }
                 }
                 $score = $monies;
