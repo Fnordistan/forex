@@ -1181,12 +1181,12 @@ function (dojo, declare) {
 
         /**
          * Animates moving notes between players in spot trades
-         * @param {*} off_player who made the offer 
-         * @param {*} to_player accepted the offer
-         * @param {*} off_curr 
-         * @param {*} req_curr 
-         * @param {*} off_amt 
-         * @param {*} req_amt 
+         * @param {int} off_player who made the offer 
+         * @param {int} to_player accepted the offer
+         * @param {string} off_curr 
+         * @param {string} req_curr 
+         * @param {float} off_amt 
+         * @param {float} req_amt 
          */
         tradeBankeNotes: function(off_player, req_player, off_curr, req_curr, off_amt, req_amt) {
             var off_player_notes = off_curr+'_note_counter_icon_'+off_player;
@@ -1206,6 +1206,26 @@ function (dojo, declare) {
             });
             for (var j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
                 this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 500 ).play();
+            }
+        },
+
+        /**
+         * Move notes from player's base stack to the converted stack (final scoring).
+         * @param {integer*} player_id 
+         * @param {curr} base_curr 
+         * @param {curr} conv_curr 
+         * @param {float} amt
+         */
+        moveBaseNotes: function(player_id, base_curr, conv_curr, amt) {
+            var base_notes = base_curr+'_note_counter_icon_'+player_id;
+            var conv_notes = conv_curr+'_note_counter_icon_'+player_id;
+            var parent_id = base_curr+'_note_'+player_id+'_container';
+            // animate currency going from base to converted
+            var base_note_html = this.format_block('jstpl_bank_note', {
+                "curr": base_curr
+            });
+            for (var i = 0; i < Math.ceil(amt); i++) {
+                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 500 ).play();
             }
         },
 
@@ -2723,9 +2743,10 @@ function (dojo, declare) {
             var player_id = notif.args.player_id;
             var score_curr = notif.args.score_curr;
             var score_amt = parseFloat(notif.args.score_amt);
-            var convert_curr = notif.args.convert_curr;
-            var convert_amt = parseFloat(notif.args.convert_amt);
-            var player_notes = convert_curr+'_note_counter_icon_'+player_id;
+            var base_curr = notif.args.base_curr;
+            // animate moving money from the player's base pile to the winning currency pile
+            this.moveBaseNotes(player_id, score_curr, base_curr, score_amt);
+            var player_notes = base_curr+'_note_counter_icon_'+player_id;
             var score_color = COLORS[score_curr];
             this.displayScoring( player_notes, score_color, score_amt, 500, 0, 0 );
         },

@@ -587,30 +587,59 @@ class ForEx extends Table
      * Returns array of strongest currencies (may be only one).
      */
     function getStrongestCurrency() {
-        // first count the number of currency pairs for which each currency is strongest
-        $stronger = self::getObjectListFromDB("SELECT stronger from CURRENCY_PAIRS", true);
-        $pair_strg = array();
-        $max = 0;
-        // count how many times each appears
-        foreach($stronger as $curr) {
-            if (isset($pair_strg[$curr])) {
-                $pair_strg[$curr] += 1;
-            } else {
-                $pair_strg[$curr] = 1;
-            }
-            $max = max($max, $pair_strg[$curr]);
-        }
         $strongest = array();
-        foreach ($pair_strg as $curr => $ct) {
-            if ($ct == $max) {
+        // first count the number of currency pairs for which each currency is strongest
+        $max = 0;
+        foreach ($this->currencies as $c => $curr) {
+            $stronger = self::getObjectListFromDB("SELECT curr1 from CURRENCY_PAIRS WHERE stronger = \"$curr\"", true);
+            $ct = count($stronger);
+            if ($ct > $max) {
+                $strongest = array($curr);
+                $max = $ct;
+            } elseif ($ct == $max) {
                 $strongest[] = $curr;
             }
         }
-        if (count($strongest) > 1) {
+
+        if (count($strongest) == 1) {
+            $this->notifyAllPlayers("currencyChosen", clienttranslate('${currency} is strongest in most pairs'), array(
+                'i18n' => array ('currency'),
+                'currency' => $strongest[0],
+            ));
+        } else {
             // next tiebreaker is most certificates in hand
             $strongest = $this->countHeldCertificates($strongest);
+            if (count($strongest) == 1) {
+                $this->notifyAllPlayers("currencyChosen", clienttranslate('${currency} has most Certificates in hand'), array(
+                    'i18n' => array ('currency'),
+                    'currency' => $strongest[0],
+                ));
+            }
         }
         return $strongest;
+    }
+
+    /**
+     * For final scoring: convert the $base currency into $curr.
+     * Rounds fractions down
+     */
+    function convertCurrency($base, $base_amt, $curr) {
+        $conv = $base_amt;
+        if ($base != $curr) {
+            $pair = self::getObjectFromDB("SELECT position, stronger FROM CURRENCY_PAIRS WHERE (curr1 = \"$base\" AND curr2 = \"$curr\") OR (curr1 = \"$curr\" AND curr2 = \"$base\")");
+            $pos = $pair['position'];
+            // stronger is equal to xchg * weaker
+            $xchg = $this->exchange[$pos];
+            if ($pair['stronger'] == $curr) {
+                // converting weaker to the stronger currency
+                $conv = floor($base_amt/$xchg);
+            } else {
+                // converting stronger to the weaker currency
+                $conv = floor($base_amt * $xchg);
+            }
+
+        }
+        return $conv;
     }
 
     /**
@@ -1201,7 +1230,7 @@ class ForEx extends Table
      * The currency the player chose will be the one used for scoring.
      */
     function chooseStrongestCurrency($curr) {
-        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chose ${currency} for final scoring'), array(
+        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses ${currency} for final scoring'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
@@ -1366,33 +1395,27 @@ class ForEx extends Table
             $score = 0;
             if (self::getGameStateValue(BANKRUPT_PLAYER) != $player_id) {
                 $monies = $this->getMonies($player_id, $currency);
-                foreach ($this->currencies as $c => $curr) {
-                    if ($curr != $currency) {
-                        $base_amt = $this->getMonies($player_id, $curr);
-                        $pair = self::getObjectFromDB("SELECT position, stronger FROM CURRENCY_PAIRS WHERE (curr1 = \"$currency\" AND curr2 = \"$curr\") OR (curr1 = \"$curr\" AND curr2 = \"$currency\")");
-                        $xchg = $this->exchange[$pair['position']];
-                        $conv_amt = 0;
-                        if ($pair['stronger'] == $currency) {
-                            // converting weaker to the stronger currency
-                            $conv_amt = floor($base_amt/$xchg);
-                        } else {
-                            // converting stronger to the weaker currency
-                            $conv_amt = floor($base_amt * $xchg);
-                        }
-                        $x_convert = $this->create_X_monies_arg($conv_amt, $curr, NOTE);
-                        $x_score = $this->create_X_monies_arg($base_amt, $currency, NOTE);
-                        $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_convert} worth ${x_score}'), array(
+                foreach ($this->currencies as $c => $base) {
+                    if ($base != $currency) {
+                        $base_amt = $this->getMonies($player_id, $base);
+                        $conv_amt = $this->convertCurrency($base, $base_amt, $currency);
+                        $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
+                        $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
+                        $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_base} worth ${x_score}'), array(
                             'i18n' => array ('currency'),
+                            'player_id' => $player_id,
                             'player_name' => self::getActivePlayerName(),
-                            'x_convert' => $x_convert,
+                            'x_base' => $x_base,
                             'x_score' => $x_score,
                             'score_curr' => $currency,
                             'score_amt' => $conv_amt,
-                            'convert_curr' => $curr,
-                            'convert_amt' => $base_amt,
-                            X_MONIES => array('x_convert' => $x_convert, 'x_score' => $x_score)
+                            'base_curr' => $base,
+                            'base_amt' => $base_amt,
+                            X_MONIES => array('x_base' => $x_base, 'x_score' => $x_score)
                         ));
                         $monies += $conv_amt;
+                        $this->adjustMonies($player_id, $base, -$base_amt);
+                        $this->adjustMonies($player_id, $currency, $conv_amt);
                     }
                 }
                 $score = $monies;
