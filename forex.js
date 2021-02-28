@@ -385,7 +385,19 @@ function (dojo, declare) {
                 var currdiv = dojo.place(curr_pr, 'currency_board');
                 var posi = currency_pairs[c]['position']-1;
                 this.currencyPairZones[CURRENCY[curr1]-1][posi].placeInZone(currdiv.id);
+                this.decorateCurrencyPair(currdiv.id, curr1, curr2, posi);
             }
+        },
+
+        /**
+         * Adds "BASESPOT N" tooltip to currency pair.
+         * @param {string} id 
+         * @param {string} curr1 
+         * @param {string} curr2 
+         * @param {int} pos 
+         */
+        decorateCurrencyPair: function(id, curr1, curr2, pos) {
+            this.addTooltip(id, curr1+curr2+' '+EXCHANGE_RATE[pos], 0);
         },
 
         /**
@@ -415,6 +427,7 @@ function (dojo, declare) {
         },
 
         /**
+         * Setup only.
          * Creates the Contract Queue, puts all Contracts in it 
          * AND the matching stacks in the Contract Display
          * AND on the player board
@@ -432,15 +445,23 @@ function (dojo, declare) {
         },
 
         /**
-         * Any Contract that is a loan should be decorated as one.
+         * Called only during setup.
+         * Add tooltips to Contracts, decorate loans, add listeners.
          */
         setupContracts: function() {
+            let available = [];
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
                 if (contract.contract == DIVIDENDS) {
                     this.decorateDividendStack();
                 } else {
                     this.decorateContract(contract);
+                    available.push(contract.contract);
+                }
+            }
+            for (const a in CONTRACT) {
+                if (!available.includes(a)) {
+                    this.decorateAvailableContract(a);
                 }
             }
         },
@@ -468,32 +489,26 @@ function (dojo, declare) {
          */
         decorateContract: function(contract) {
             var contract_containers = ["player_boards", "contracts_div"];
-            
-
-            let owner  = contract.player_id;
-            let owner_name = this.gamedatas.players[owner].name;
-            var contract_txt = "";
-            if (contract.promise == LOAN) {
-                contract_txt = " Loan for ";
-                const loans = contract.loans;
-                // iterate in reverse order - biggest stacks first
-                for (const [curr, amt] of Object.entries(loans)) {
-                    contract_txt += this.createMoniesXstr(amt, curr, CURRENCY_TYPE.NOTE)+"<br/>";
-                }
-                this.decorateLoan(contract.contract);
-            } else {
-                contract_txt = this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
-                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
-            }
-            var tooltip ="<h3>"+_("Contract ")+contract.contract+"</h3>";
-            tooltip += contract_txt;
-            tooltip += "<h3>("+owner_name+")</h3>";
+            let tooltip = this.getContractHelpHtml(contract);
             for (cc of contract_containers) {
                 var concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
                 for (let i = 0; i < concards.length; i++) {
                     this.addTooltip( concards[i].id, tooltip, '');
                 }
             }
+            if (contract.promise == LOAN) {
+                this.decorateLoan(contract.contract);
+            }
+        },
+
+        /**
+         * Given a slot, this clears the previous tooltip for that Contract letter and notes it is available.
+         * @param {string} C letter
+         */
+        decorateAvailableContract: function(C) {
+            let tooltip = '<h3>Contract '+C+'</h3>';
+            tooltip += '<span style="width: 100%; text-align: center">Available</span>';
+            this.addTooltipHtml($("contract_card_"+C).id, tooltip, 0);
         },
 
         /**
@@ -517,6 +532,25 @@ function (dojo, declare) {
                     }
                 }
             }
+        },
+
+        /**
+         * Create the tooltip HTML for a Contract (regular or loan).
+         * @param {Object} contract 
+         */
+        getContractHelpHtml: function(contract) {
+            var contract_txt ="<h3>"+_("Contract ")+contract.contract+" ("+ this.spanPlayerName(contract.player_id)+ ")</h3>";
+            if (contract.promise == LOAN) {
+                contract_txt += " Loan for ";
+                const loans = contract.loans;
+                for (const [curr, amt] of Object.entries(loans)) {
+                    contract_txt += this.createMoniesXstr(amt, curr, CURRENCY_TYPE.NOTE)+"<br/>";
+                }
+            } else {
+                contract_txt += this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
+                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+            }
+            return contract_txt;
         },
 
         /**
@@ -556,12 +590,11 @@ function (dojo, declare) {
             this.dividendCounter.setValue(items.length);
         },
 
-
         /**
          * Takes the existing Dividends stack and moves all the items to a new position.
          * @param {int} q
          */
-        moveDividendsStack: function(q) {
+        moveDividendStack: function(q) {
             var q_id = 'queue_'+q;
             // create the new zone
             var new_stack = new ebg.zone();
@@ -575,8 +608,9 @@ function (dojo, declare) {
                 new_stack.placeInZone(d);
                 last_d = d;
             });
-            this.divstack = new_stack;
             // counter automatically moves
+            this.divstack = new_stack;
+            this.decorateDividendStack();
         },
 
         /**
@@ -601,7 +635,7 @@ function (dojo, declare) {
             var div_q2 = document.getElementById(q2);
             var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
             if (is_dividends) {
-                this.moveDividendsStack(end);
+                this.moveDividendStack(end);
             } else {
                 while (div_q.firstChild) {
                     var c = div_q.firstChild;
@@ -666,25 +700,6 @@ function (dojo, declare) {
                 this.populateContractCurrencyStack(contract, CURRENCY_TYPE.PAY);
                 this.populateContractCurrencyStack(contract, CURRENCY_TYPE.RECEIVE);
             }
-        },
-
-        /**
-         * Add tooltips to all instances of a contract
-         * @param {Object} contract 
-         */
-        getContractHelpHtml: function(contract) {
-            var helpstr = "<b>"+("Contract ")+contract.contract+"</b></br>";
-            if (contract.player_id) {
-                var player = this.gamedatas.players[contract.player_id];
-                var name = player.name;
-                helpstr += name+" Pays"+this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
-                if (contract.promise == LOAN) {
-                    helpstr += _("(LOAN)");
-                } else {
-                    helpstr += _("for")+this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
-                }
-            }
-            return helpstr;
         },
 
         /**
@@ -1403,8 +1418,10 @@ function (dojo, declare) {
         shiftCounter: function(pair, dir) {
             var zone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1];
             var destZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][pair['position']-1+dir];
-            this.moveCounter(pair, zone, destZone);
+            var pair_id = this.moveCounter(pair, zone, destZone);
             pair['position'] = parseInt(pair['position'])+dir;
+            var weaker = pair['stronger'] == pair['curr1'] ? pair['curr2'] : pair['curr1'];
+            this.decorateCurrencyPair(pair_id, pair['stronger'], weaker, pair['position']-1);
         },
 
         /**
@@ -1414,7 +1431,8 @@ function (dojo, declare) {
          * @param {Object} pair 
          */
         flipPair: function(pair) {
-            var curr = (pair['stronger'] == pair['curr1']) ? pair['curr2'] : pair['curr1'];
+            var curr = pair['stronger'] == pair['curr1'] ? pair['curr2'] : pair['curr1'];
+            var curr2 = pair['curr1'] == curr ? pair['curr2'] : pair['curr1'];
             var startZone = this.currencyPairZones[CURRENCY[pair['stronger']]-1][0];
             var destZone = this.currencyPairZones[CURRENCY[curr]-1][0];
             var pair_id = this.moveCounter(pair, startZone, destZone);
@@ -1422,6 +1440,7 @@ function (dojo, declare) {
             $(pair_id).classList.toggle("flip");
             pair['stronger'] = curr;
             pair['position'] = 1;
+            this.decorateCurrencyPair(pair_id, curr, curr2, 0);
         },
 
         /**
@@ -1441,22 +1460,6 @@ function (dojo, declare) {
             startZone.removeFromZone(pair_id, false, endZone.id);
             endZone.placeInZone(pair_id);
             return pair_id;
-        },
-
-        /**
-         * Animation for flipping, then removing the flip classes
-         * @param {string} old_stronger
-         * @param {string} new_stronger
-         */
-        flipCounter: function(old_stronger, new_stronger) {
-            var flipping_ctr = this.format_block('jstpl_flip_counter', {
-                curr1: new_stronger,
-                curr2: old_stronger
-            });
-            // alert("flipping "+old_stronger+" to "+new_stronger);
-            var flipped = dojo.place(flipping_ctr, new_stronger+'_1');
-            flipped.classList.toggle("flip");
-            return flipped;
         },
 
         /**
@@ -2650,40 +2653,27 @@ function (dojo, declare) {
             }
         },
 
+
         /**
          * When a player takes a Contract.
          * @param {Object} notif 
          */
         notif_contractTaken: function( notif ) {
-            var player_id = notif.args.player_id;
-            var C = notif.args.conL;
-            var promise = notif.args.promise_curr;
-            var payout = notif.args.payout_curr;
-            var promise_amt = parseFloat(notif.args.promise_amt);
-            var payout_amt = parseFloat(notif.args.payout_amt);
-            var position = parseInt(notif.args.position);
             // put Contract in Queue
-            var contract = {
-                "contract": C,
-                "location": position,
-                "promise": promise,
-                "promise_amt": promise_amt,
-                "payout": payout,
-                "payout_amt": payout_amt,
-                "player_id": player_id,
-            };
+            let contract = this.createContractFromNotif(notif);
             // slide existing Contracts in Queue to left
             this.pushContractQueue();
-            var contract_card = this.format_block('jstpl_contract_card', {"contract": C, "scale": 0.5});
+            var contract_card = this.format_block('jstpl_contract_card', {"contract": contract.contract, "scale": 0.5});
             // slide contract to Queue
-            this.slideTemporaryObject( contract_card, 'contract_'+C, 'contract_card_'+C, 'queue_'+position, 500 ).play();
+            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'queue_'+contract.location, 500 ).play();
             // slide contract to player board
-            this.slideTemporaryObject( contract_card, 'contract_'+C, 'contract_card_'+C, 'player_board_'+player_id, 500 ).play();
+            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'player_board_'+contract.player_id, 500 ).play();
             // slide notes from bank to contract display
-            this.slideNotesToStack(C, 'promise', promise, promise_amt);
-            this.slideNotesToStack(C, 'payout', payout, payout_amt);
+            this.slideNotesToStack(contract.contract, 'promise', contract.promise, contract.promise_amt);
+            this.slideNotesToStack(contract.contract, 'payout', contract.payout, contract.payout_amt);
             // now put the contract in queue, on display, and on player boards
             this.placeContract(contract);
+            this.decorateContract(contract);
         },
 
         /**
@@ -2695,7 +2685,7 @@ function (dojo, declare) {
             this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contracts_div');
             this.addDividendsCounter();
             this.pushContractQueue();
-            this.moveDividendsStack(1);
+            this.moveDividendStack(1);
         },
 
         /**
@@ -2758,7 +2748,7 @@ function (dojo, declare) {
          */
         notif_loanMerged: function(notif) {
             var player_id = notif.args.player_id;
-            // this is the consilidated loan Contract
+            // this is the consolidated loan Contract
             var C = notif.args.conL;
             var loanC = notif.args.loan;
             var loan_curr = notif.args.loan_curr;
@@ -2773,6 +2763,7 @@ function (dojo, declare) {
             this.moveContractNotes(C, pay_curr, player_id);
             // do all the other cleanup
             this.clearContract(C, player_id, q);
+            this.decorateLoan(loanC);
         },
 
         /**
@@ -2830,6 +2821,32 @@ function (dojo, declare) {
             // delete the contract from the queue
             var qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
+            this.decorateAvailableContract(C);
+        },
+
+        /**
+         * Given a notif arg with enough to reconstruct a Contract, create one.
+         * @param {Object} notif 
+         */
+        createContractFromNotif: function(notif) {
+            var player_id = parseInt(notif.args.player_id);
+            var C = notif.args.conL;
+            var promise = notif.args.promise_curr;
+            var payout = notif.args.payout_curr;
+            var promise_amt = parseFloat(notif.args.promise_amt);
+            var payout_amt = parseFloat(notif.args.payout_amt);
+            var position = parseInt(notif.args.position);
+            // put Contract in Queue
+            var contract = {
+                "contract": C,
+                "location": position,
+                "promise": promise,
+                "promise_amt": promise_amt,
+                "payout": payout,
+                "payout_amt": payout_amt,
+                "player_id": player_id,
+            };
+            return contract;
         },
 
     });
