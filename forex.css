@@ -92,9 +92,9 @@
 
 /* marks a Contract as a loan */
 .frx_loan {
-    outline: red;
-    outline-style: dashed;
-    outline-width: 2px;
+    border: red;
+    border-style: dashed;
+    border-width: 2px;
 }
 
 .frx_loan_text {

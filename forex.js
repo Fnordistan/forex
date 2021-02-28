@@ -494,10 +494,44 @@ function (dojo, declare) {
                 var concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
                 for (let i = 0; i < concards.length; i++) {
                     this.addTooltip( concards[i].id, tooltip, '');
+                    concards[i].addEventListener('mouseenter', () => {
+                        this.highlightContracts(contract, true);
+                    });
+                    concards[i].addEventListener('mouseleave', () => {
+                        this.highlightContracts(contract, false);
+                    });
                 }
             }
             if (contract.promise == LOAN) {
                 this.decorateLoan(contract.contract);
+            }
+        },
+
+        /**
+         * When hovering or unhovering a Contract, highlight all the instances on player and contract display.
+         * @param {Object} contract
+         * @param {boolean} bOn
+         */
+        highlightContracts: function(contract, bOn) {
+            const conL = contract.contract;
+            const player = this.gamedatas.players[contract.player_id];
+            const pcolor = player.color;
+            let highlightstyle = bOn ? {
+                "outline": '#'+pcolor,
+                "outline-style": "dotted",
+                "outline-width": "4px"
+            } :
+            {
+                "outline": "none",
+                "outline-style": "none",
+                "outline-width": "none"
+            };
+            const contract_containers = ["player_boards", "contracts_div"];
+            for (cc of contract_containers) {
+                let allcontracts = document.getElementById(cc).getElementsByClassName("frx_"+conL);
+                for (const c of allcontracts) {
+                    dojo.setStyle(c.id, highlightstyle);
+                };
             }
         },
 
@@ -595,6 +629,7 @@ function (dojo, declare) {
          * @param {int} q
          */
         moveDividendStack: function(q) {
+            debugger;
             var q_id = 'queue_'+q;
             // create the new zone
             var new_stack = new ebg.zone();
@@ -2534,7 +2569,7 @@ function (dojo, declare) {
             dojo.subscribe( 'loanResolved', this, "notif_loanResolved");
             this.notifqueue.setSynchronous( "notif_loanResolved", 500 );
             dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
-            this.notifqueue.setSynchronous( "notif_currencyScored", 500 );
+            this.notifqueue.setSynchronous( "notif_currencyScored", 1000 );
         },
 
         /**
@@ -2712,20 +2747,19 @@ function (dojo, declare) {
          * @param {Object} notif 
          */
         notif_loanCreated: function(notif) {
-            var player_id = notif.args.player_id;
-            var C = notif.args.conL;
+            var contract = this.createContractFromNotif(notif);
+
             var loan_curr = notif.args.loan_curr;
             var loan_amt = parseFloat(notif.args.loan_amt);
-            var pay_curr = notif.args.payout;
-            var pay_amt = parseFloat(notif.args.payout_amt);
             // this is the location before it is moved
-            var q = parseInt(notif.args.location); 
+            var q = parseInt(contract.location); 
+            debugger;
 
             // move 1 note from bank to promise stack
-            this.slideNotesToStack(C, 'promise', loan_curr, 1);
-            this.pushLoanBuckOntoStack(C, loan_curr, loan_amt);
+            this.slideNotesToStack(contract.contract, 'promise', loan_curr, 1);
+            this.pushLoanBuckOntoStack(contract.contract, loan_curr, loan_amt);
             // move notes from payout stack to player's board
-            this.moveContractNotes(C, pay_curr, player_id);
+            this.moveContractNotes(contract.contract, contract.payout, contract.player_id);
             // for special case when the loan is at the end of the queue
             // need to create a temporary q8 slot
             if (q == 7) {
@@ -2739,7 +2773,7 @@ function (dojo, declare) {
             if (q == 7) {
                 $('queue_8').remove();
             }
-            this.decorateLoan(C);
+            this.decorateContract(contract);
         },
 
         /**
@@ -2802,7 +2836,7 @@ function (dojo, declare) {
             this.moveBaseNotes(player_id, score_curr, base_curr, score_amt);
             var player_notes = base_curr+'_note_counter_icon_'+player_id;
             var score_color = COLORS[score_curr];
-            this.displayScoring( player_notes, score_color, score_amt, 500, 0, 0 );
+            this.displayScoring( player_notes, score_color, score_amt, 1000, 0, 0 );
         },
 
         /**
