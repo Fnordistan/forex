@@ -225,7 +225,7 @@ function (dojo, declare) {
             this.createAvailableCertificates();
             this.placeCertificates();
             this.createContractQueue();
-            this.markLoans();
+            this.setupContracts();
 
             // Setup game notifications to handle (see "setupNotifications" method below)
             this.setupNotifications();
@@ -270,7 +270,7 @@ function (dojo, declare) {
                             let scale = 0.25;
                             args.contract = this.format_block('jstpl_dividend_card', {
                                 "div_num" : div_num,
-                                "offset": -(5-div_num) * DIVIDEND_BASE_W*scale,
+                                "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
                                 "scale": scale
                             });
                         } else {
@@ -434,11 +434,64 @@ function (dojo, declare) {
         /**
          * Any Contract that is a loan should be decorated as one.
          */
-        markLoans: function() {
+        setupContracts: function() {
             for (const c in this.gamedatas.contracts) {
                 var contract = this.gamedatas.contracts[c];
-                if (contract.promise == LOAN) {
-                    this.decorateLoans(contract.contract);
+                if (contract.contract == DIVIDENDS) {
+                    this.decorateDividendStack();
+                } else {
+                    this.decorateContract(contract);
+                }
+            }
+        },
+
+        /**
+         * Add tooltip to Dividends stack.
+         */
+        decorateDividendStack: function() {
+            let divcards = this.divstack.getAllItems();
+            let topdiv = divcards[divcards.length-1];
+            let div_num = this.dividendCounter.getValue();
+            let scale = 1;
+            let tooltip = this.format_block('jstpl_dividend_card', {
+                "div_num" : div_num,
+                "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
+                "scale": scale
+            });
+
+            this.addTooltipHtml( $(topdiv), tooltip, 0 ); 
+        },
+
+        /**
+         * Add tooltips to Contracts, and mark loans.
+         * @param {Object} contract 
+         */
+        decorateContract: function(contract) {
+            var contract_containers = ["player_boards", "contracts_div"];
+            
+
+            let owner  = contract.player_id;
+            let owner_name = this.gamedatas.players[owner].name;
+            var contract_txt = "";
+            if (contract.promise == LOAN) {
+                contract_txt = " Loan for ";
+                const loans = contract.loans;
+                // iterate in reverse order - biggest stacks first
+                for (const [curr, amt] of Object.entries(loans)) {
+                    contract_txt += this.createMoniesXstr(amt, curr, CURRENCY_TYPE.NOTE)+"<br/>";
+                }
+                this.decorateLoan(contract.contract);
+            } else {
+                contract_txt = this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
+                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+            }
+            var tooltip ="<h3>"+_("Contract ")+contract.contract+"</h3>";
+            tooltip += contract_txt;
+            tooltip += "<h3>("+owner_name+")</h3>";
+            for (cc of contract_containers) {
+                var concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
+                for (let i = 0; i < concards.length; i++) {
+                    this.addTooltip( concards[i].id, tooltip, '');
                 }
             }
         },
@@ -448,7 +501,7 @@ function (dojo, declare) {
          * @param {string} C 
          * @param {isOn} bRemove take it off
          */
-        decorateLoans: function(C, bRemove = false) {
+        decorateLoan: function(C, bRemove = false) {
             var loan_containers = ["player_boards", "contracts_div"];
             for (lc of loan_containers) {
                 var loandocs = document.getElementById(lc).getElementsByClassName("frx_"+C);
@@ -596,9 +649,8 @@ function (dojo, declare) {
             // first place in queue
             var q = contract.location;
             var q_div = 'queue_'+q;
-            var contract_div = this.format_block('jstpl_contract_card', {"contract" : contract.contract, "scale": 0.5 });
+            var contract_div = this.format_block('jstpl_contract_card_wid', {"id": "contract_"+contract.contract+"_"+q, "contract" : contract.contract, "scale": 0.5 });
             var contract_card = dojo.place(contract_div, q_div);
-            // this.addTooltipHtml(contract_card, this.getContractHelpHtml(contract), 0);
             // to fit in zone box
             contract_card.style.margin = "0px";
         },
@@ -2153,11 +2205,22 @@ function (dojo, declare) {
          */
         divestCurrency: function(evt) {
             if (this.checkAction('divestCurrency', true)) {
-                this.removeActionButtons();
-                this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: DIVEST_MSG});
-                this.addDivestActions();
-                this.addConfirmButton(ACTIONS.DIVEST);
-                this.addCancelButton();
+                let hasCerts = false;
+                Object.keys(CURRENCY).forEach(curr => {
+                    let certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
+                    if (certs > 0) {
+                        hasCerts = true;
+                    }
+                });
+                if (hasCerts) {
+                    this.removeActionButtons();
+                    this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: DIVEST_MSG});
+                    this.addDivestActions();
+                    this.addConfirmButton(ACTIONS.DIVEST);
+                    this.addCancelButton();
+                } else {
+                    this.showMessage(_("You have no Certificates to sell"), 'info');
+                }
             }
         },
 
@@ -2196,10 +2259,10 @@ function (dojo, declare) {
                 var contract_div;
                 if (contract == DIVIDENDS) {
                     var div_num = this.dividendCounter.getValue();
-                    let scale = 0.5;
+                    let scale = 0.25;
                     contract_div = this.format_block('jstpl_dividend_card', {
                         "div_num" : div_num,
-                        "offset": -(5-div_num) * DIVIDEND_BASE_W*scale,
+                        "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
                         "scale": scale
                     });
                 } else {
@@ -2686,7 +2749,7 @@ function (dojo, declare) {
             if (q == 7) {
                 $('queue_8').remove();
             }
-            this.decorateLoans(C);
+            this.decorateLoan(C);
         },
 
         /**
@@ -2732,7 +2795,7 @@ function (dojo, declare) {
             }
 
             this.clearContract(C, player_id, q);
-            this.decorateLoans(C, true);
+            this.decorateLoan(C, true);
         },
 
         /**

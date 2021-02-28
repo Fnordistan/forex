@@ -31,7 +31,6 @@ define('X_MONIES', 'arg_monies_string'); // matches js
 // match js and css vars
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
-define('BANKRUPT_PLAYER', 'bankrupt_player');
 define('SCORING_CURRENCY', 'scoring_currency');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
@@ -58,7 +57,6 @@ class ForEx extends Table
             SPOT_DONE => 25,
             DIVEST_CURRENCY => 30,
             DIVEST_PLAYER => 31,
-            BANKRUPT_PLAYER => 32,
             SCORING_CURRENCY => 40,
         ));
 
@@ -115,7 +113,6 @@ class ForEx extends Table
         self::setGameStateInitialValue( SPOT_DONE, 0 );
         self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
         self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
-        self::setGameStateInitialValue( BANKRUPT_PLAYER, 0 );
         self::setGameStateInitialValue( SCORING_CURRENCY, 0 );
 
         // Init game statistics
@@ -750,11 +747,9 @@ class ForEx extends Table
             $this->strengthen($mostHeld[0]);
         }
         self::incGameStateValue(DIVIDEND_COUNT, -1);
-        if (self::getGameStateValue(DIVIDEND_COUNT) > 0) {
-            // push Dividends to back of queue
-            self::DBQuery("UPDATE CONTRACTS SET location = 0 WHERE contract = \"".DIVIDENDS."\"");
-            $this->pushContractQueue();
-        }
+        // push Dividends to back of queue
+        self::DBQuery("UPDATE CONTRACTS SET location = 0 WHERE contract = \"".DIVIDENDS."\"");
+        $this->pushContractQueue();
         self::notifyAllPlayers("dividendsStackPopped", clienttranslate('${dividends} Dividend Certificates left'), array(
             'dividends' => self::getGameStateValue(DIVIDEND_COUNT),
         ));
@@ -763,9 +758,10 @@ class ForEx extends Table
 
     /**
      * Resolve a Contract.
+     * Returns state: "nextPlayer" or "endGame" if owner goes bankrupt.
      */
     function resolveContract($conL) {
-        $contract = self::getNonEmptyObjectFromDB("SELECT * from CONTRACTS WHERE contract = \"".$conL."\"");
+        $contract = self::getNonEmptyObjectFromDB("SELECT * from CONTRACTS WHERE contract = \"$conL\"");
         $player_id = $contract['owner'];
         $promise = $contract['promise'];
         $promise_amt = $contract['promise_amt'];
@@ -907,6 +903,7 @@ class ForEx extends Table
     /**
      * This is a Contract marked as a loan.
      * It must be paid.
+     * Returns state "nextPlayer" unless player goes bankrupt, in which case "endGame"
      */
     function resolveLoan($contract) {
         $player_id = $contract['owner'];
@@ -916,14 +913,16 @@ class ForEx extends Table
         $loans = $this->getLoansOnContract($player_id, $conL);
         $nextState = "nextPlayer";
         // can the player pay them all off?
+        $bBankrupt = false;
         foreach ($loans as $curr => $amt) {
             if ($amt > $this->getMonies($player_id, $curr)) {
                 // BANKRUPT!
-                self::setGameStateValue(BANKRUPT_PLAYER, $player_id);
+                self::DBQuery("UPDATE player SET bankrupt = TRUE where player_id=$player_id");
+                $bBankrupt = true;
                 break;
             }
         }
-        if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
+        if (!$bBankrupt) {
             // we're good, so resolve it
             self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
                 'player_id' => $player_id,
@@ -949,6 +948,14 @@ class ForEx extends Table
         }
         return $nextState;
     }
+
+    /**
+     * Get array of all bankrupt players (empty if none)
+     */
+    function getBankruptPlayers() {
+        return self::getObjectListFromDB("SELECT player_id FROM player WHERE bankrupt = TRUE", true);
+    }
+
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Player actions
@@ -1216,7 +1223,7 @@ class ForEx extends Table
      * Strengthen the currency the player chose.
      */
     function chooseCurrencyToStrengthen($curr) {
-        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses to strengthen ${currency}'), array(
+        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} strengthens ${currency}'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
@@ -1369,9 +1376,17 @@ class ForEx extends Table
      */
     function stLastResolve() {
         // is this a bankruptcy or last dividend was paid?
-        $bankrupt = self::getGameStateValue(BANKRUPT_PLAYER);
-        if ($bankrupt == 0) {
-            // resolve all remaining contracts
+        $bankrupt = $this->getBankruptPlayers();
+        if (count($bankrupt) == 0) {
+            // last dividend - resolve remaining contracts
+            $contract_queue = self::getObjectListFromDB("SELECT contract FROM CONTRACTS WHERE (location IS NOT NULL AND contract != \"".DIVIDENDS."\") ORDER BY location DESC", true);
+            foreach ($contract_queue as $conL) {
+                $state = $this->resolveContract($conL);
+                if ($state == "endGame") {
+                    // someone went bankrupt - no further contracts are resolved
+                    break;
+                }
+            }
         }
         $nextState = "scoring";
         // now choose currency
@@ -1391,9 +1406,10 @@ class ForEx extends Table
         $players = self::loadPlayersBasicInfos();
         $c = self::getGameStateValue(SCORING_CURRENCY);
         $currency = $this->currencies[$c];
+        $bankrupt = $this->getBankruptPlayers();
         foreach ($players as $player_id => $player) {
             $score = 0;
-            if (self::getGameStateValue(BANKRUPT_PLAYER) != $player_id) {
+            if (!in_array($player_id, $bankrupt)) {
                 $monies = $this->getMonies($player_id, $currency);
                 foreach ($this->currencies as $c => $base) {
                     if ($base != $currency) {

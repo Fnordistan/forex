@@ -263,6 +263,15 @@
     height: calc(var(--scale) * var(--contract_h));
 }
 
+.frx_dividend_lg {
+    background-size: calc(5 * var(--contract_w) * var(--scale) * 2) calc(var(--contract_h) * var(--scale) * 2);
+    background-image: url(img/forex_dividends_lg.jpg);
+    background-repeat: no-repeat;
+    border: 1px solid black;
+    width: calc(var(--scale) * var(--contract_w) * 2);
+    height: calc(var(--scale) * var(--contract_h) * 2);
+}
+
 .frx_mon_container {
     display: inline-block;
     width: 100%;
