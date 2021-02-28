@@ -629,7 +629,6 @@ function (dojo, declare) {
          * @param {int} q
          */
         moveDividendStack: function(q) {
-            debugger;
             var q_id = 'queue_'+q;
             // create the new zone
             var new_stack = new ebg.zone();
@@ -637,11 +636,9 @@ function (dojo, declare) {
             new_stack.setPattern('verticalfit');
 
             var dividends = this.divstack.getAllItems();
-            var last_d;
             dividends.forEach(d => {
                 this.divstack.removeFromZone(d, false, q_id);
                 new_stack.placeInZone(d);
-                last_d = d;
             });
             // counter automatically moves
             this.divstack = new_stack;
@@ -670,7 +667,9 @@ function (dojo, declare) {
             var div_q2 = document.getElementById(q2);
             var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
             if (is_dividends) {
-                this.moveDividendStack(end);
+                if (end < 8) {
+                    this.moveDividendStack(end);
+                }
             } else {
                 while (div_q.firstChild) {
                     var c = div_q.firstChild;
@@ -2717,7 +2716,7 @@ function (dojo, declare) {
          */
         notif_dividendsPopped: function(notif) {
             var div_items = this.divstack.getAllItems();
-            this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contracts_div');
+            this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contract_queue_display');
             this.addDividendsCounter();
             this.pushContractQueue();
             this.moveDividendStack(1);
@@ -2748,12 +2747,16 @@ function (dojo, declare) {
          */
         notif_loanCreated: function(notif) {
             var contract = this.createContractFromNotif(notif);
-
+            debugger;
             var loan_curr = notif.args.loan_curr;
             var loan_amt = parseFloat(notif.args.loan_amt);
+
+            contract.promise = LOAN;
+            contract.loans = {};
+            contract.loans[loan_curr] = loan_amt;
+
             // this is the location before it is moved
             var q = parseInt(contract.location); 
-            debugger;
 
             // move 1 note from bank to promise stack
             this.slideNotesToStack(contract.contract, 'promise', loan_curr, 1);
@@ -2865,15 +2868,15 @@ function (dojo, declare) {
         createContractFromNotif: function(notif) {
             var player_id = parseInt(notif.args.player_id);
             var C = notif.args.conL;
-            var promise = notif.args.promise_curr;
-            var payout = notif.args.payout_curr;
+            var promise = notif.args.promise;
+            var payout = notif.args.payout;
             var promise_amt = parseFloat(notif.args.promise_amt);
             var payout_amt = parseFloat(notif.args.payout_amt);
-            var position = parseInt(notif.args.position);
+            var location = parseInt(notif.args.location);
             // put Contract in Queue
             var contract = {
                 "contract": C,
-                "location": position,
+                "location": location,
                 "promise": promise,
                 "promise_amt": promise_amt,
                 "payout": payout,
