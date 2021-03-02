@@ -31,6 +31,7 @@ define('X_MONIES', 'arg_monies_string'); // matches js
 // match js and css vars
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
+define('BANKRUPT_PLAYER', 'bankrupt_player');
 define('SCORING_CURRENCY', 'scoring_currency');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
@@ -57,6 +58,7 @@ class ForEx extends Table
             SPOT_DONE => 25,
             DIVEST_CURRENCY => 30,
             DIVEST_PLAYER => 31,
+            BANKRUPT_PLAYER => 32,
             SCORING_CURRENCY => 40,
         ));
 
@@ -113,6 +115,7 @@ class ForEx extends Table
         self::setGameStateInitialValue( SPOT_DONE, 0 );
         self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
         self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
+        self::setGameStateInitialValue( BANKRUPT_PLAYER, 0 );
         self::setGameStateInitialValue( SCORING_CURRENCY, 0 );
 
         // Init game statistics
@@ -913,16 +916,14 @@ class ForEx extends Table
         $loans = $this->getLoansOnContract($player_id, $conL);
         $nextState = "nextPlayer";
         // can the player pay them all off?
-        $bBankrupt = false;
         foreach ($loans as $curr => $amt) {
             if ($amt > $this->getMonies($player_id, $curr)) {
                 // BANKRUPT!
-                self::DBQuery("UPDATE player SET bankrupt = TRUE where player_id=$player_id");
-                $bBankrupt = true;
+                self::setGameStateValue(BANKRUPT_PLAYER, $player_id);
                 break;
             }
         }
-        if (!$bBankrupt) {
+        if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
             // we're good, so resolve it
             self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
                 'player_id' => $player_id,
@@ -948,14 +949,6 @@ class ForEx extends Table
         }
         return $nextState;
     }
-
-    /**
-     * Get array of all bankrupt players (empty if none)
-     */
-    function getBankruptPlayers() {
-        return self::getObjectListFromDB("SELECT player_id FROM player WHERE bankrupt = TRUE", true);
-    }
-
 
     //////////////////////////////////////////////////////////////////////////////
     //////////// Player actions
@@ -1376,13 +1369,12 @@ class ForEx extends Table
      */
     function stLastResolve() {
         // is this a bankruptcy or last dividend was paid?
-        $bankrupt = $this->getBankruptPlayers();
-        if (count($bankrupt) == 0) {
+        if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
             // last dividend - resolve remaining contracts
             $contract_queue = self::getObjectListFromDB("SELECT contract FROM CONTRACTS WHERE (location IS NOT NULL AND contract != \"".DIVIDENDS."\") ORDER BY location DESC", true);
             foreach ($contract_queue as $conL) {
-                $state = $this->resolveContract($conL);
-                if ($state == "endGame") {
+                $this->resolveContract($conL);
+                if (self::getGameStateValue(BANKRUPT_PLAYER) != 0) {
                     // someone went bankrupt - no further contracts are resolved
                     break;
                 }
@@ -1406,10 +1398,9 @@ class ForEx extends Table
         $players = self::loadPlayersBasicInfos();
         $c = self::getGameStateValue(SCORING_CURRENCY);
         $currency = $this->currencies[$c];
-        $bankrupt = $this->getBankruptPlayers();
         foreach ($players as $player_id => $player) {
             $score = 0;
-            if (!in_array($player_id, $bankrupt)) {
+            if ($player_id != self::getGameStateValue(BANKRUPT_PLAYER)) {
                 $monies = $this->getMonies($player_id, $currency);
                 foreach ($this->currencies as $c => $base) {
                     if ($base != $currency) {
