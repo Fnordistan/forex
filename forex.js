@@ -129,14 +129,14 @@ const CURRENCY_TYPE = {
 }
 
 define([
-    "dojo","dojo/_base/declare",
+    "dojo","dojo/_base/declare", "dojo/on",
     "ebg/core/gamegui",
     "ebg/counter",
     "ebg/stock",
     "ebg/zone",
     g_gamethemeurl + "modules/fcounter.js"
 ],
-function (dojo, declare) {
+function (dojo, declare, on) {
     return declare("bgagame.forex", [
         ebg.core.gamegui,
         forex.fcounter
@@ -218,6 +218,7 @@ function (dojo, declare) {
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
+            this.contractListeners = {};
 
             this.addMonies();
             this.createCurrencyZones();
@@ -449,18 +450,18 @@ function (dojo, declare) {
          * Add tooltips to Contracts, decorate loans, add listeners.
          */
         setupContracts: function() {
-            let available = [];
+            let taken = [];
             for (const c in this.gamedatas.contracts) {
-                var contract = this.gamedatas.contracts[c];
+                const contract = this.gamedatas.contracts[c];
                 if (contract.contract == DIVIDENDS) {
                     this.decorateDividendStack();
                 } else {
                     this.decorateContract(contract);
-                    available.push(contract.contract);
+                    taken.push(contract.contract);
                 }
             }
             for (const a in CONTRACT) {
-                if (!available.includes(a)) {
+                if (!taken.includes(a)) {
                     this.decorateAvailableContract(a);
                 }
             }
@@ -488,16 +489,17 @@ function (dojo, declare) {
          * @param {Object} contract 
          */
         decorateContract: function(contract) {
-            var contract_containers = ["player_boards", "contracts_div"];
-            let tooltip = this.getContractHelpHtml(contract);
+            const contract_containers = ["player_boards", "contracts_div"];
+            const tooltip = this.getContractHelpHtml(contract);
+
             for (cc of contract_containers) {
-                var concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
+                const concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
                 for (let i = 0; i < concards.length; i++) {
                     this.addTooltip( concards[i].id, tooltip, '');
-                    concards[i].addEventListener('mouseenter', () => {
+                    document.getElementById(concards[i].id).addEventListener('mouseenter', () => {
                         this.highlightContracts(contract, true);
                     });
-                    concards[i].addEventListener('mouseleave', () => {
+                    document.getElementById(concards[i].id).addEventListener('mouseleave', () => {
                         this.highlightContracts(contract, false);
                     });
                 }
@@ -516,7 +518,7 @@ function (dojo, declare) {
             const conL = contract.contract;
             const player = this.gamedatas.players[contract.player_id];
             const pcolor = player.color;
-            let highlightstyle = bOn ? {
+            const highlightstyle = bOn ? {
                 "outline": '#'+pcolor,
                 "outline-style": "dotted",
                 "outline-width": "4px"
@@ -527,8 +529,8 @@ function (dojo, declare) {
                 "outline-width": "none"
             };
             const contract_containers = ["player_boards", "contracts_div"];
-            for (cc of contract_containers) {
-                let allcontracts = document.getElementById(cc).getElementsByClassName("frx_"+conL);
+            for (const cc of contract_containers) {
+                const allcontracts = document.getElementById(cc).getElementsByClassName("frx_"+conL);
                 for (const c of allcontracts) {
                     dojo.setStyle(c.id, highlightstyle);
                 };
@@ -542,7 +544,14 @@ function (dojo, declare) {
         decorateAvailableContract: function(C) {
             let tooltip = '<h3>Contract '+C+'</h3>';
             tooltip += '<span style="width: 100%; text-align: center">Available</span>';
-            this.addTooltipHtml($("contract_card_"+C).id, tooltip, 0);
+            const clear_style = {
+                "outline": "none",
+                "outline-style": "none",
+                "outline-width": "none"
+            };
+            dojo.setStyle("contract_card_"+C, clear_style);
+            
+            this.addTooltipHtml("contract_card_"+C, tooltip, 0);
         },
 
         /**
@@ -2858,6 +2867,8 @@ function (dojo, declare) {
             // delete the contract from the queue
             var qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
+            // remove previous event listeners
+
             this.decorateAvailableContract(C);
         },
 
