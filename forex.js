@@ -119,6 +119,8 @@ const SPOT_TRANSACTION = "spot_transaction";
 const SPOT_DONE = "spot_trade_done";
 // label for currency to sell
 const DIVEST_CURRENCY = "divest_currency";
+// ms used to set synchronous delay between scoring currencies in endgame
+const SCORING_DELAY = 3000;
 
 // used to fill in HTML elements
 const CURRENCY_TYPE = {
@@ -489,20 +491,21 @@ function (dojo, declare, on) {
          * @param {Object} contract 
          */
         decorateContract: function(contract) {
-            const contract_containers = ["player_boards", "contracts_div"];
             const tooltip = this.getContractHelpHtml(contract);
-
-            for (cc of contract_containers) {
-                const concards = document.getElementById(cc).getElementsByClassName("frx_"+contract.contract);
-                for (let i = 0; i < concards.length; i++) {
-                    this.addTooltip( concards[i].id, tooltip, '');
-                    document.getElementById(concards[i].id).addEventListener('mouseenter', () => {
-                        this.highlightContracts(contract, true);
-                    });
-                    document.getElementById(concards[i].id).addEventListener('mouseleave', () => {
-                        this.highlightContracts(contract, false);
-                    });
-                }
+            for (const id of this.getContractDivs(contract)) {
+                this.addTooltip( id, tooltip, '');
+                // $(id).addEventListener('mouseenter', () => {
+                //     this.highlightContracts(contract, true);
+                // });
+                this.connect($(id), 'mouseenter', () => {
+                    this.highlightContracts(contract, true);
+                });
+                // $(id).addEventListener('mouseleave', () => {
+                //     this.highlightContracts(contract, false);
+                // });
+                this.connect($(id), 'mouseleave', () => {
+                    this.highlightContracts(contract, false);
+                });
             }
             if (contract.promise == LOAN) {
                 this.decorateLoan(contract.contract);
@@ -515,7 +518,6 @@ function (dojo, declare, on) {
          * @param {boolean} bOn
          */
         highlightContracts: function(contract, bOn) {
-            const conL = contract.contract;
             const player = this.gamedatas.players[contract.player_id];
             const pcolor = player.color;
             const highlightstyle = bOn ? {
@@ -528,12 +530,8 @@ function (dojo, declare, on) {
                 "outline-style": "none",
                 "outline-width": "none"
             };
-            const contract_containers = ["player_boards", "contracts_div"];
-            for (const cc of contract_containers) {
-                const allcontracts = document.getElementById(cc).getElementsByClassName("frx_"+conL);
-                for (const c of allcontracts) {
-                    dojo.setStyle(c.id, highlightstyle);
-                };
+            for (const id of this.getContractDivs(contract)) {
+                dojo.setStyle(id, highlightstyle);
             }
         },
 
@@ -542,15 +540,8 @@ function (dojo, declare, on) {
          * @param {string} C letter
          */
         decorateAvailableContract: function(C) {
-            let tooltip = '<h3>Contract '+C+'</h3>';
-            tooltip += '<span style="width: 100%; text-align: center">Available</span>';
-            const clear_style = {
-                "outline": "none",
-                "outline-style": "none",
-                "outline-width": "none"
-            };
-            dojo.setStyle("contract_card_"+C, clear_style);
-            
+            let tooltip = '<h3>Contract '+C+'</h3>\
+                            <span style="width: 100%; text-align: center">Available</span>';
             this.addTooltipHtml("contract_card_"+C, tooltip, 0);
         },
 
@@ -594,6 +585,22 @@ function (dojo, declare, on) {
                 contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
             }
             return contract_txt;
+        },
+
+        /**
+         * Get an array of Contract elements associated with a letter.
+         * @param {Object} contract
+         * @returns array of ids
+         */
+        getContractDivs: function(contract) {
+            var contract_divs = [];
+            contract_divs.push('contract_'+contract.player_id+'_'+contract.contract);
+            contract_divs.push('contract_card_'+contract.contract);
+            let q_div = document.getElementById('contract_queue_container').getElementsByClassName("frx_"+contract.contract);
+            if (q_div.length != 0) {
+                contract_divs.push(q_div[0].id);
+            }
+            return contract_divs;
         },
 
         /**
@@ -2577,7 +2584,7 @@ function (dojo, declare, on) {
             dojo.subscribe( 'loanResolved', this, "notif_loanResolved");
             this.notifqueue.setSynchronous( "notif_loanResolved", 500 );
             dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
-            this.notifqueue.setSynchronous( "notif_currencyScored", 1000 );
+            this.notifqueue.setSynchronous( "notif_currencyScored", SCORING_DELAY );
         },
 
         /**
@@ -2756,7 +2763,6 @@ function (dojo, declare, on) {
          */
         notif_loanCreated: function(notif) {
             var contract = this.createContractFromNotif(notif);
-            debugger;
             var loan_curr = notif.args.loan_curr;
             var loan_amt = parseFloat(notif.args.loan_amt);
 
@@ -2840,15 +2846,16 @@ function (dojo, declare, on) {
          * @param {Object} notif 
          */
         notif_currencyScored: function(notif) {
-            var player_id = notif.args.player_id;
-            var score_curr = notif.args.score_curr;
-            var score_amt = parseFloat(notif.args.score_amt);
-            var base_curr = notif.args.base_curr;
+            const player_id = notif.args.player_id;
+            const score_curr = notif.args.score_curr;
+            const score_amt = parseFloat(notif.args.score_amt);
+            const base_curr = notif.args.base_curr;
+            const animation_duration = SCORING_DELAY;
             // animate moving money from the player's base pile to the winning currency pile
             this.moveBaseNotes(player_id, score_curr, base_curr, score_amt);
-            var player_notes = base_curr+'_note_counter_icon_'+player_id;
-            var score_color = COLORS[score_curr];
-            this.displayScoring( player_notes, score_color, score_amt, 1000, 0, 0 );
+            const player_notes = base_curr+'_note_counter_icon_'+player_id;
+            const score_color = COLORS[score_curr];
+            this.displayScoring( player_notes, score_color, score_amt, animation_duration, 0, 0 );
         },
 
         /**
@@ -2868,6 +2875,15 @@ function (dojo, declare, on) {
             var qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
             // remove previous event listeners
+            const contract = {
+                "contract": C,
+                "player_id": player_id
+            }
+            debugger;
+            for (const id of this.getContractDivs(contract)) {
+                this.disconnect($(id), 'mouseenter');
+                this.disconnect($(id), 'mouseleave');
+            }
 
             this.decorateAvailableContract(C);
         },
