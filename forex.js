@@ -494,21 +494,22 @@ function (dojo, declare, on) {
             const tooltip = this.getContractHelpHtml(contract);
             for (const id of this.getContractDivs(contract)) {
                 this.addTooltip( id, tooltip, '');
-                // $(id).addEventListener('mouseenter', () => {
-                //     this.highlightContracts(contract, true);
-                // });
                 this.connect($(id), 'mouseenter', () => {
                     this.highlightContracts(contract, true);
                 });
-                // $(id).addEventListener('mouseleave', () => {
-                //     this.highlightContracts(contract, false);
-                // });
                 this.connect($(id), 'mouseleave', () => {
                     this.highlightContracts(contract, false);
                 });
             }
+            // add tooltips to the stacks
+            const promise_id = 'contract_promise_'+contract.contract+'_'+contract.promise;
+            this.addTooltip(promise_id, this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE, true));
+            
             if (contract.promise == LOAN) {
-                this.decorateLoan(contract.contract);
+                this.decorateLoan(contract);
+            } else {
+                const payout_id = 'contract_payout_'+contract.contract+'_'+contract.payout;
+                this.addTooltip(payout_id, this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE, true));
             }
         },
 
@@ -540,30 +541,27 @@ function (dojo, declare, on) {
          * @param {string} C letter
          */
         decorateAvailableContract: function(C) {
-            let tooltip = '<h3>Contract '+C+'</h3>\
+            const tooltip = '<h3>Contract '+C+'</h3>\
                             <span style="width: 100%; text-align: center">Available</span>';
             this.addTooltipHtml("contract_card_"+C, tooltip, 0);
         },
 
         /**
          * Find all Contract Cards of this letter and decorate them with loan class,
-         * @param {string} C 
+         * @param {Object} contract 
          * @param {isOn} bRemove take it off
          */
-        decorateLoan: function(C, bRemove = false) {
-            var loan_containers = ["player_boards", "contracts_div"];
-            for (lc of loan_containers) {
-                var loandocs = document.getElementById(lc).getElementsByClassName("frx_"+C);
-                for (let i = 0; i < loandocs.length; i++) {
-                    loandocs[i].classList.toggle("frx_loan");
-                    if (bRemove) {
-                        this.removeAllChildren(loandocs[i]);
-                    } else {
-                        var loan = document.createElement("span");
-                        loan.innerHTML = "LOAN";
-                        loan.classList.add("frx_loan_text");
-                        dojo.place(loan, loandocs[i]);
-                    }
+        decorateLoan: function(contract, bRemove = false) {
+            for (const id of this.getContractDivs(contract)) {
+                const c_div = document.getElementById(id);
+                c_div.classList.toggle("frx_loan");
+                if (bRemove) {
+                    this.removeAllChildren(c_div);
+                } else {
+                    var loan = document.createElement("span");
+                    loan.innerHTML = "LOAN";
+                    loan.classList.add("frx_loan_text");
+                    dojo.place(loan, c_div);
                 }
             }
         },
@@ -596,7 +594,7 @@ function (dojo, declare, on) {
             var contract_divs = [];
             contract_divs.push('contract_'+contract.player_id+'_'+contract.contract);
             contract_divs.push('contract_card_'+contract.contract);
-            let q_div = document.getElementById('contract_queue_container').getElementsByClassName("frx_"+contract.contract);
+            const q_div = document.getElementById('contract_queue_container').getElementsByClassName("frx_"+contract.contract);
             if (q_div.length != 0) {
                 contract_divs.push(q_div[0].id);
             }
@@ -608,20 +606,20 @@ function (dojo, declare, on) {
          * @param {int} q
          */
         createDividendsStack: function(q) {
-            var div_el = 'queue_'+q;
+            const div_el = 'queue_'+q;
             this.divstack = new ebg.zone();
             this.divstack.create(this, div_el, this.dvdwidth, this.dvdheight);
             this.divstack.setPattern('verticalfit');
             // put each remaining dividend in stack, last first
             var dividends = parseInt(this.gamedatas.dividends);
-            for (var i = 0; i < dividends; i++) {
-                var div_num = 4-i;
-                var dividend = this.format_block('jstpl_dividend', {
+            for (let i = 0; i < dividends; i++) {
+                const div_num = 4-i;
+                const dividend = this.format_block('jstpl_dividend', {
                     "div_num" : div_num,
                     "offset": -div_num * this.dvdwidth,
                     "margin": i
                 });
-                var divcard = dojo.place(dividend, 'contract_queue_container');
+                const divcard = dojo.place(dividend, 'contract_queue_container');
                 this.divstack.placeInZone(divcard.id);
             }
             // we put the counter on top of the last Dividend
@@ -633,8 +631,8 @@ function (dojo, declare, on) {
          */
         addDividendsCounter() {
             this.dividendCounter = new ebg.counter();
-            var items = this.divstack.getAllItems();
-            var last_id = items[items.length-1];
+            const items = this.divstack.getAllItems();
+            const last_id = items[items.length-1];
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
             this.dividendCounter.setValue(items.length);
@@ -645,13 +643,13 @@ function (dojo, declare, on) {
          * @param {int} q
          */
         moveDividendStack: function(q) {
-            var q_id = 'queue_'+q;
+            const q_id = 'queue_'+q;
             // create the new zone
-            var new_stack = new ebg.zone();
+            const new_stack = new ebg.zone();
             new_stack.create(this, q_id, this.dvdwidth, this.dvdheight);
             new_stack.setPattern('verticalfit');
 
-            var dividends = this.divstack.getAllItems();
+            const dividends = this.divstack.getAllItems();
             dividends.forEach(d => {
                 this.divstack.removeFromZone(d, false, q_id);
                 new_stack.placeInZone(d);
@@ -677,21 +675,21 @@ function (dojo, declare, on) {
          * @param {int} end 
          */
         slideContractQueue: function(start, end) {
-            var q = 'queue_'+start;
-            var q2 = 'queue_'+end;
-            var div_q = document.getElementById(q);
-            var div_q2 = document.getElementById(q2);
-            var is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
+            const q = 'queue_'+start;
+            const q2 = 'queue_'+end;
+            const div_q = document.getElementById(q);
+            const div_q2 = document.getElementById(q2);
+            const is_dividends = (div_q.childNodes.length > 0 && div_q.firstChild.classList.contains("frx_dividend"));
             if (is_dividends) {
                 if (end < 8) {
                     this.moveDividendStack(end);
                 }
             } else {
                 while (div_q.firstChild) {
-                    var c = div_q.firstChild;
+                    const c = div_q.firstChild;
                     // create a temp copy to slide
-                    var temp_c = dojo.clone(c);
-                    var child = div_q.removeChild(c);
+                    const temp_c = dojo.clone(c);
+                    const child = div_q.removeChild(c);
                     // show movement
                     this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
                     div_q2.appendChild(child);
@@ -708,7 +706,7 @@ function (dojo, declare, on) {
          */
         slideNotesToStack: function(contract, type, curr, amt) {
             for (let p = 0; p < amt; p++) {
-                var note = this.format_block('jstpl_bank_note', {"curr": curr});
+                const note = this.format_block('jstpl_bank_note', {"curr": curr});
                 this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500 ).play();
             }
         },
@@ -1348,7 +1346,7 @@ function (dojo, declare, on) {
 
         /**
          * Create a string for the X_MONIES arg in logs
-         * @param {int} num 
+         * @param {float} num 
          * @param {string} curr 
          * @param {enum} type defaults to note
          * @param {bool} no_icon (optional) if true, displays only # curr, not icon
@@ -2815,7 +2813,8 @@ function (dojo, declare, on) {
             this.moveContractNotes(C, pay_curr, player_id);
             // do all the other cleanup
             this.clearContract(C, player_id, q);
-            this.decorateLoan(loanC);
+            const contract = this.createContractFromNotif(notif);
+            this.decorateLoan(contract);
         },
 
         /**
@@ -2838,7 +2837,8 @@ function (dojo, declare, on) {
             }
 
             this.clearContract(C, player_id, q);
-            this.decorateLoan(C, true);
+            const contract = this.createContractFromNotif(notif);
+            this.decorateLoan(contract, true);
         },
 
         /**
@@ -2872,14 +2872,13 @@ function (dojo, declare, on) {
             // move Contract from Contract Queue to Display
             this.moveContract(C, 'contract_queue_display', 'queue_'+q);
             // delete the contract from the queue
-            var qslot = document.getElementById('queue_'+q);
+            const qslot = document.getElementById('queue_'+q);
             qslot.removeChild(qslot.firstChild);
             // remove previous event listeners
             const contract = {
                 "contract": C,
                 "player_id": player_id
             }
-            debugger;
             for (const id of this.getContractDivs(contract)) {
                 this.disconnect($(id), 'mouseenter');
                 this.disconnect($(id), 'mouseleave');
