@@ -220,7 +220,6 @@ function (dojo, declare, on) {
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
-            this.contractListeners = {};
 
             this.addMonies();
             this.createCurrencyZones();
@@ -235,7 +234,7 @@ function (dojo, declare, on) {
             // may be null
             if (this.gamedatas[SPOT_TRANSACTION]) {
                 this.SPOT_TRANSACTION = this.createSpotTransactionFromDatas();
-           } else {
+            } else {
                 this.SPOT_TRANSACTION = null;
             }
             this.SPOT_DONE = this.gamedatas[SPOT_DONE];
@@ -268,18 +267,18 @@ function (dojo, declare, on) {
                         args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE, true);
                     }
                     if (args.contract) {
+                        const scale = 0.25;
                         if (args.contract == DIVIDENDS) {
                             let div_num = this.dividendCounter.getValue();
-                            let scale = 0.25;
                             args.contract = this.format_block('jstpl_dividend_card', {
                                 "div_num" : div_num,
                                 "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
-                                "scale": scale
+                                "scale": scale*0.5
                             });
                         } else {
                             args.contract = this.format_block('jstpl_contract_card', {
                                 "contract": args.contract,
-                                "scale": 0.25
+                                "scale": scale
                             });
                         }
                         // hack because we inserted ${conL}
@@ -410,7 +409,7 @@ function (dojo, declare, on) {
         placeCertificates: function() {
             var certificates = this.gamedatas.certificates;
             for (const c in certificates) {
-                var cert = certificates[c];
+                const cert = certificates[c];
                 if (cert.loc == 'available') {
                     this.placeAvailableCertificate(cert);
                 } else if (cert.loc != 'discard') {
@@ -422,9 +421,8 @@ function (dojo, declare, on) {
         /**
          * Adds a Certificate to its appropriate available pile, incrementing the counter.
          * @param {Object} certificate
-         * @param {string} from html id it's coming from
          */
-        placeAvailableCertificate: function(certificate, from) {
+        placeAvailableCertificate: function(certificate) {
             this.availableCertificates[CURRENCY[certificate.curr]-1].addToStockWithId(certificate.curr, certificate.id);
             this.availableCertCounters[CURRENCY[certificate.curr]-1].incValue(1);
         },
@@ -452,7 +450,7 @@ function (dojo, declare, on) {
          * Add tooltips to Contracts, decorate loans, add listeners.
          */
         setupContracts: function() {
-            let taken = [];
+            const taken = [];
             for (const c in this.gamedatas.contracts) {
                 const contract = this.gamedatas.contracts[c];
                 if (contract.contract == DIVIDENDS) {
@@ -473,16 +471,15 @@ function (dojo, declare, on) {
          * Add tooltip to Dividends stack.
          */
         decorateDividendStack: function() {
-            let divcards = this.divstack.getAllItems();
-            let topdiv = divcards[divcards.length-1];
-            let div_num = this.dividendCounter.getValue();
-            let scale = 1;
-            let tooltip = this.format_block('jstpl_dividend_card', {
+            const divcards = this.divstack.getAllItems();
+            const topdiv = divcards[divcards.length-1];
+            const div_num = this.dividendCounter.getValue();
+            const scale = 1;
+            const tooltip = this.format_block('jstpl_dividend_card', {
                 "div_num" : div_num,
                 "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
                 "scale": scale
             });
-
             this.addTooltipHtml( $(topdiv), tooltip, 0 ); 
         },
 
@@ -502,14 +499,18 @@ function (dojo, declare, on) {
                 });
             }
             // add tooltips to the stacks
-            const promise_id = 'contract_promise_'+contract.contract+'_'+contract.promise;
-            this.addTooltip(promise_id, this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE, true));
-            
             if (contract.promise == LOAN) {
                 this.decorateLoan(contract);
+                for (const curr in contract.loans) {
+                    const amt = contract.loans[curr];
+                    const loan_id = 'contract_promise_'+contract.contract+'_'+curr;
+                    this.addTooltip(loan_id, this.createMoniesXstr(amt, curr, CURRENCY_TYPE.NOTE, true), '');
+                }
             } else {
+                const promise_id = 'contract_promise_'+contract.contract+'_'+contract.promise;
+                this.addTooltip(promise_id, this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE, true), '');
                 const payout_id = 'contract_payout_'+contract.contract+'_'+contract.payout;
-                this.addTooltip(payout_id, this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE, true));
+                this.addTooltip(payout_id, this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE, true), '');
             }
         },
 
@@ -532,7 +533,7 @@ function (dojo, declare, on) {
                 "outline-width": "none"
             };
             for (const id of this.getContractDivs(contract)) {
-                dojo.setStyle(id, highlightstyle);
+                Object.assign($(id).style, highlightstyle);
             }
         },
 
