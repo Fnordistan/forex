@@ -27,7 +27,6 @@ define('SPOT_TO', 'spot_trade_to');
 define('SPOT_OFFER', 'spot_offer');
 define('SPOT_REQUEST', 'spot_request');
 define('SPOT_DONE', 'spot_trade_done');
-define('X_MONIES', 'arg_monies_string'); // matches js
 // match js and css vars
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
@@ -457,16 +456,19 @@ class ForEx extends Table
         $req_amt = $spot[1];
 
         $players = self::loadPlayersBasicInfos();
-        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${off_amt} ${spot_offer} for ${req_amt} ${spot_request}'), array(
+        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             'i18n' => array ('from_player_name', 'to_player_name', 'off_curr', 'req_curr'),
             SPOT_TO => $to_player,
-            'to_player_name' => self::getActivePlayerName(),
+            'to_player_name' => $players[$to_player]['player_name'],
             SPOT_FROM => $from_player,
             'from_player_name' => $players[$from_player]['player_name'],
             SPOT_OFFER => $off_curr,
             'off_amt' => $off_amt,
             SPOT_REQUEST => $req_curr,
             'req_amt' => $req_amt,
+            'x_monies1' => $off_amt.'_'.$off_curr,
+            'x_monies2' => $req_amt.'_'.$req_curr,
+            'x_monies' => 2,
         ));
         $this->adjustMonies($from_player, $off_curr, -$off_amt);
         $this->adjustMonies($to_player, $off_curr, $off_amt);
@@ -489,16 +491,16 @@ class ForEx extends Table
         $players = self::loadPlayersBasicInfos();
         self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = \"$curr\"");
 
-        $x_monies = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
+        $x_adj = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
-        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_changed}'), array(
+        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_monies1}').'${x_monies}', array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
             'adj' => $amt < 0 ? self::_("pays") : self::_("receives"),
             'amt' => $amt,
             'curr' => $curr,
-            'x_changed' => $x_monies,
-            X_MONIES => array('x_changed' => $x_monies)
+            'x_monies1' => $x_adj,
+            'x_monies' => 1
         ));
     }
 
@@ -728,11 +730,11 @@ class ForEx extends Table
                             $monies = $certs * $mult;
                             $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
                             $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
-                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends of ${x_notes} for ${x_certs}'), array(
+                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
                                 'player_name' => $player['player_name'],
-                                'x_notes' => $paid_str,
-                                'x_certs' => $cert_str,
-                                X_MONIES => array('x_notes' => $paid_str, 'x_certs' => $cert_str)
+                                'x_monies1' => $paid_str,
+                                'x_monies2' => $cert_str,
+                                'x_monies' => 2
                             ));
                             $this->adjustMonies($player_id, $curr, $monies);
                         }
@@ -852,7 +854,7 @@ class ForEx extends Table
         $x_loan = $this->create_X_monies_arg($promise_amt, $promise, NOTE);
         if ($oldloan == null) {
             // turn this contract into a loan, enter it into LOANS table
-            self::notifyAllPlayers("loanCreated", clienttranslate('${player_name} cannot pay Contract ${contract} - it is converted to a loan for ${x_loan}').'${conL}', array(
+            self::notifyAllPlayers("loanCreated", clienttranslate('${player_name} cannot pay Contract ${contract} - it is converted to a loan for ${x_monies1}').'${conL}${x_monies}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
@@ -862,8 +864,8 @@ class ForEx extends Table
                 'payout_amt' => $payout_amt,
                 'location' => $location,
                 'conL' => $conL,
-                'x_loan' => $x_loan,
-                X_MONIES => array("x_loan" => $x_loan),
+                'x_monies1' => $x_loan,
+                'x_monies' => 1,
             ));
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // enter it in the LOANS table
@@ -874,7 +876,7 @@ class ForEx extends Table
         } else {
             // add this contract's loan to previous loan
             $loan_contract = $oldloan['contract'];
-            self::notifyAllPlayers("loanMerged", clienttranslate('${player_name} cannot pay Contract ${contract} - it is added as loan for ${x_loan} to ${loan}').'${conL}', array(
+            self::notifyAllPlayers("loanMerged", clienttranslate('${player_name} cannot pay Contract ${contract} - it is added as loan for ${x_monies1} to ${loan}').'${conL}${x_monies}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
@@ -885,8 +887,8 @@ class ForEx extends Table
                 'payout_amt' => $payout_amt,
                 'location' => $location,
                 'conL' => $conL,
-                'x_loan' => $x_loan,
-                X_MONIES => array("x_loan" => $x_loan),
+                'x_monies1' => $x_loan,
+                'x_monies' => 1,
             ));
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // add to first available slot in old loan
@@ -988,7 +990,7 @@ class ForEx extends Table
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
         $x_request = $this->create_X_monies_arg($req_amt, $request, NOTE);
 
-        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${x_monies_offer} for ${x_monies_request}'), array(
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             'i18n' => array ('off_curr', 'req_curr'),
             SPOT_FROM => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -998,9 +1000,9 @@ class ForEx extends Table
             'off_amt' => $off_amt,
             SPOT_REQUEST => $request,
             'req_amt' => $req_amt,
-            'x_monies_offer' => $x_offer,
-            'x_monies_request' => $x_request,
-            X_MONIES => array('x_monies_offer' => $x_offer, 'x_monies_request' => $x_request)
+            'x_monies1' => $x_offer,
+            'x_monies2' => $x_request,
+            'x_monies' => 2
             ));
         $this->setSpotTradeValues($player_id, $to_player, $offer, $request);
 
@@ -1071,14 +1073,14 @@ class ForEx extends Table
             $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
 
             // movedeck for certificates
-            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_certs_bought} Certificate'), array (
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_monies1} Certificate').'${x_monies}', array (
                 'i18n' => array ('curr'),
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
                 'curr' => $curr,
                 'cert_id' => $cert['id'],
-                'x_certs_bought' => $x_certs,
-                X_MONIES => array('x_certs_bought' => $x_certs),
+                'x_monies1' => $x_certs,
+                'x_monies' => 1
             ));
 
             $this->strengthen($curr);
@@ -1131,15 +1133,15 @@ class ForEx extends Table
         $x_certs = $this->create_X_monies_arg($amt, $curr, CERTIFICATE);
         $x_notes = $this->create_X_monies_arg($cash, $curr, NOTE);
 
-        self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${x_certs_sold} for ${x_notes_gained}'), array(
+        self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             'i18n' => array (),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
             'curr' => $curr,
             'certs' => $divested_certs,
-            'x_certs_sold' => $x_certs,
-            'x_notes_gained' => $x_notes,
-            X_MONIES => array('x_certs_sold' => $x_certs, 'x_notes_gained' => $x_notes),
+            'x_monies1' => $x_certs,
+            'x_monies2' => $x_notes,
+            'x_monies' => 2,
         ));
         $this->weaken($curr, $amt);
     }
@@ -1164,7 +1166,7 @@ class ForEx extends Table
         $x_promise = $this->create_X_monies_arg($prom_amt, $prom_curr, NOTE);
         $x_payout = $this->create_X_monies_arg($pay_amt, $pay_curr, NOTE);
         // conL is hack to send separate message to notify than Contract, which gets interpolated
-        self::notifyAllPlayers("contractTaken", clienttranslate('${player_name} took Contract ${contract} to pay ${x_promise} for ${x_payout}').'${conL}', array(
+        self::notifyAllPlayers("contractTaken", clienttranslate('${player_name} takes Contract ${contract} to pay ${x_monies1} for ${x_monies2}').'${conL}${x_monies}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -1172,13 +1174,12 @@ class ForEx extends Table
             'promise_amt' => $prom_amt,
             'payout' => $pay_curr,
             'payout_amt' => $pay_amt,
-            'x_promise' => $x_promise,
-            'x_payout' => $x_payout,
             'contract' => $contract,
             'location' => $position,
             'conL' => $contract,
-            X_MONIES => array('x_promise' => $x_promise, 'x_payout' => $x_payout),
-
+            'x_monies1' => $x_promise,
+            'x_monies2' => $x_payout,
+            'x_monies' => 2,
         ));
         $this->gamestate->nextState("nextPlayer");
     }
@@ -1266,10 +1267,10 @@ class ForEx extends Table
             SPOT_TO => $to_player,
             'from_player_name' => $players[$from_player]['player_name'],
             'to_player_name' => $players[$to_player]['player_name'],
-            'x_monies_offer' => $x_offer,
-            'x_monies_request' => $x_request,
+            'x_monies1' => $x_offer,
+            'x_monies2' => $x_request,
             // this substitutes both of the above with some format_string_recursive trickery
-            X_MONIES => array('x_monies_offer' => $x_offer, 'x_monies_request' => $x_request)
+            'x_monies' => 2,
         );
     }
 
@@ -1409,17 +1410,17 @@ class ForEx extends Table
                             $conv_amt = $this->convertCurrency($base, $base_amt, $currency);
                             $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
                             $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
-                            $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_base} worth ${x_score}'), array(
+                            $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
                                 'i18n' => array ('currency'),
                                 'player_id' => $player_id,
                                 'player_name' => self::getActivePlayerName(),
-                                'x_base' => $x_base,
-                                'x_score' => $x_score,
                                 'score_curr' => $currency,
                                 'score_amt' => $conv_amt,
                                 'base_curr' => $base,
                                 'base_amt' => $base_amt,
-                                X_MONIES => array('x_base' => $x_base, 'x_score' => $x_score)
+                                'x_monies1' => $x_base,
+                                'x_monies2' => $x_score,
+                                'x_monies' => 2,
                             ));
                             $monies += $conv_amt;
                             $this->adjustMonies($player_id, $base, -$base_amt);

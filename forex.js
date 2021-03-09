@@ -86,7 +86,6 @@ const X_ACTION_BUTTONS = "x_action_buttons"; // div with additional science butt
 // matching args from forex.game.php
 const X_SPOT_TO = "spot_trade_to";
 const X_SPOT_FROM = "spot_trade_from";
-const X_MONIES = "arg_monies_string";
 const LOAN = "LN";
 // used as messages inserted in my turn message
 const SPOT_TRADE_MSG = "spot_trade_txt";
@@ -297,16 +296,18 @@ function (dojo, declare, on) {
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
-                    if (args[X_MONIES]) {
-                        for (const argm in args[X_MONIES]) {
-                            var mon_str = args[X_MONIES][argm];
-                            var monies = mon_str.split('_');
-                            var num = parseFloat(monies[0]);
-                            var curr = monies[1];
-                            var type = monies[2];
-                            var monies_span = this.createMoniesXstr(num, curr, type);
+                    if (args['x_monies']) {
+                        let n = parseInt(args['x_monies']);
+                        for (let i = 1; i <= n; i++) {
+                            let argm = 'x_monies'+i;
+                            let mon_str = args[argm];
+                            let monies = mon_str.split('_');
+                            let num = parseFloat(monies[0]);
+                            let curr = monies[1];
+                            var monies_span = (monies.length == 3) ? this.createMoniesXstr(num, curr, monies[2]) : this.createMoniesXstr(num, curr);
                             args[argm] = monies_span;
                         }
+                        log = log.replace('${x_monies}', '');
                     }
                 }
             } catch (e) {
@@ -577,11 +578,11 @@ function (dojo, declare, on) {
                 contract_txt += " Loan for ";
                 const loans = contract.loans;
                 for (const [curr, amt] of Object.entries(loans)) {
-                    contract_txt += this.createMoniesXstr(amt, curr, CURRENCY_TYPE.NOTE)+"<br/>";
+                    contract_txt += this.createMoniesXstr(amt, curr)+"<br/>";
                 }
             } else {
-                contract_txt += this.createMoniesXstr(contract.promise_amt, contract.promise, CURRENCY_TYPE.NOTE);
-                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE);
+                contract_txt += this.createMoniesXstr(contract.promise_amt, contract.promise);
+                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout);
             }
             return contract_txt;
         },
@@ -1346,13 +1347,13 @@ function (dojo, declare, on) {
         },
 
         /**
-         * Create a string for the X_MONIES arg in logs
+         * Create a string for the x_monies arg in logs
          * @param {float} num 
          * @param {string} curr 
          * @param {enum} type defaults to note
          * @param {bool} no_icon (optional) if true, displays only # curr, not icon
          */
-        createMoniesXstr: function(num, curr, type = 'note', no_icon) {
+        createMoniesXstr: function(num, curr, type = CURRENCY_TYPE.NOTE, no_icon = false) {
             var jstpl = 'jstpl_monies';
             if (no_icon) {
                 jstpl = 'jstpl_curr_ct';
@@ -1836,7 +1837,7 @@ function (dojo, declare, on) {
                     this.setMessageText(SPOT_TRADE_MSG, contract_txt);
                 } else {
                     if (payoff_curr != "") {
-                        this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
+                        this.createMoniesXstr("", payoff_curr);
                         var exchg_pair = this.createCurrencyPair(prom_curr, payoff_curr);
                         var prom_val = 1;
                         var pay_val = 1;
@@ -1863,7 +1864,7 @@ function (dojo, declare, on) {
                         this.RECEIVE_COUNTER.create('request_counter');
                         this.RECEIVE_COUNTER.setValue(pay_val);
                     } else {
-                        contract_txt += this.createMoniesXstr("?", prom_curr, CURRENCY_TYPE.NOTE);
+                        contract_txt += this.createMoniesXstr("?", prom_curr);
                         this.setMessageText(SPOT_TRADE_MSG, contract_txt);
                     }
                 }
@@ -2109,7 +2110,7 @@ function (dojo, declare, on) {
                 this.setMessageText(CONTRACT_MSG, "");
             } else {
                 if (payoff_curr != "") {
-                    this.createMoniesXstr("", payoff_curr, CURRENCY_TYPE.NOTE);
+                    this.createMoniesXstr("", payoff_curr);
                     var exchg_pair = this.createCurrencyPair(pay_curr, payoff_curr);
                     var prom_val = 1;
                     var pay_val = 1;
@@ -2147,7 +2148,7 @@ function (dojo, declare, on) {
                     this.RECEIVE_COUNTER.setValue(pay_val);
                     this.addContractButtons(pay_curr, exchg_pair);
                 } else {
-                    contract_txt = _("Pay ") +this.createMoniesXstr("?", pay_curr, CURRENCY_TYPE.NOTE);
+                    contract_txt = _("Pay ") +this.createMoniesXstr("?", pay_curr);
                     this.setMessageText(CONTRACT_MSG, contract_txt);
                 }
             }
@@ -2393,9 +2394,9 @@ function (dojo, declare, on) {
                     var request_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
                     var request_amt = this.RECEIVE_COUNTER.getValue();
                     if (this.getMonies(this.player_id, offer_curr, CURRENCY_TYPE.NOTE) < offer_amt) {
-                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(offer_amt, offer_curr, CURRENCY_TYPE.NOTE), 'info'));
+                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(offer_amt, offer_curr), 'info'));
                     } else if (this.getMonies(to, request_curr, CURRENCY_TYPE.NOTE) < request_amt) {
-                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(request_amt, request_curr, CURRENCY_TYPE.NOTE), 'info'));
+                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(request_amt, request_curr), 'info'));
                     } else {
                         this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                             to_player: to,
