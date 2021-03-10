@@ -247,8 +247,7 @@ function (dojo, declare, on) {
             try {
                 if (log && args && !args.processed) {
                     args.processed = true;
-
-                    // for Spot Trade offer
+                    // for Spot Trade offer banner
                     if (args[X_SPOT_FROM]) {
                         // am I the from player?
                         var from_player = (this.player_id == args[X_SPOT_FROM]) ? this.spanYou() : this.spanPlayerName(args[X_SPOT_FROM]);
@@ -257,6 +256,12 @@ function (dojo, declare, on) {
                     if (args[X_SPOT_TO]) {
                         var to_player = (this.player_id == args[X_SPOT_TO]) ? this.spanYou() : this.spanPlayerName(args[X_SPOT_TO]);
                         args.to_player_name = to_player;
+                    }
+                    if (args.from_player) {
+                        args.from_player = this.spanPlayerName(args.from_player);
+                    }
+                    if (args.to_player) {
+                        args.to_player = this.spanPlayerName(args.to_player);
                     }
                     if (args.you) {
                         log = log.replace("You", args.you);
@@ -2620,9 +2625,7 @@ function (dojo, declare, on) {
          * Show trade offer.
          */
         notif_spotTradeOffered: function( notif ) {
-            console.log( 'notif_spotTradeOffered' );
             var spot_trade = this.createSpotTransaction(notif.args[SPOT.FROM], notif.args[SPOT.TO], notif.args[SPOT.OFFER], notif.args[SPOT.REQUEST]);
-            console.log( spot_trade );
             this.SPOT_TRANSACTION = spot_trade;
         },    
 
@@ -2630,9 +2633,7 @@ function (dojo, declare, on) {
          * Notify active player cancelled their offer.
          */
         notif_spotTradeCanceled: function( notif ) {
-            console.log( 'notif_spotTradeCanceled' );
             this.SPOT_TRANSACTION = null;
-            console.log( notif );
         },    
 
         /**

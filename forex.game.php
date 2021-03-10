@@ -446,8 +446,8 @@ class ForEx extends Table
         // should have been set in OfferSpottrade
         $spot_trade = $this->getSpotTrade();
 
-        $to_player = $spot_trade[SPOT_TO];
         $from_player = $spot_trade[SPOT_FROM];
+        $to_player = $spot_trade[SPOT_TO];
         $off_curr = $this->currencies[$spot_trade[SPOT_OFFER]];
         $req_curr = $this->currencies[$spot_trade[SPOT_REQUEST]];
 
@@ -455,13 +455,11 @@ class ForEx extends Table
         $off_amt = $spot[0];
         $req_amt = $spot[1];
 
-        $players = self::loadPlayersBasicInfos();
-        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player_name} trades ${to_player_name} ${x_monies1} for ${x_monies2}').'${x_monies}', array(
-            'i18n' => array ('from_player_name', 'to_player_name', 'off_curr', 'req_curr'),
-            SPOT_TO => $to_player,
-            'to_player_name' => $players[$to_player]['player_name'],
+        self::notifyAllPlayers('spotTradeAccepted', clienttranslate('${from_player} trades ${to_player} ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             SPOT_FROM => $from_player,
-            'from_player_name' => $players[$from_player]['player_name'],
+            SPOT_TO => $to_player,
+            'from_player' => $from_player,
+            'to_player' => $to_player,
             SPOT_OFFER => $off_curr,
             'off_amt' => $off_amt,
             SPOT_REQUEST => $req_curr,
@@ -990,12 +988,11 @@ class ForEx extends Table
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
         $x_request = $this->create_X_monies_arg($req_amt, $request, NOTE);
 
-        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${player_name} offered a Spot Trade to ${to_player_name} of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
-            'i18n' => array ('off_curr', 'req_curr'),
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${from_player} offered a Spot Trade to ${to_player} of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             SPOT_FROM => $player_id,
-            'player_name' => self::getActivePlayerName(),
             SPOT_TO => $to_player,
-            'to_player_name' => $theirname,
+            'from_player' => $player_id,
+            'to_player' => $to_player,
             SPOT_OFFER => $offer,
             'off_amt' => $off_amt,
             SPOT_REQUEST => $request,
@@ -1269,7 +1266,6 @@ class ForEx extends Table
             'to_player_name' => $players[$to_player]['player_name'],
             'x_monies1' => $x_offer,
             'x_monies2' => $x_request,
-            // this substitutes both of the above with some format_string_recursive trickery
             'x_monies' => 2,
         );
     }
