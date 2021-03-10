@@ -95,6 +95,7 @@
     border: red;
     border-style: dashed;
     border-width: 2px;
+    position: relative;
 }
 
 .frx_loan_text {
@@ -102,7 +103,9 @@
     font-weight: 700;
     color: red;
     position: absolute;
-    transform: translate(-10%, 50%) rotate(-45deg);
+    width: 100%;
+    top: 50%;
+    transform: translateY(-50%) rotate(-45deg);
 }
 
 .frx_A {

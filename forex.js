@@ -529,14 +529,10 @@ function (dojo, declare, on) {
             const player = this.gamedatas.players[contract.player_id];
             const pcolor = player.color;
             const highlightstyle = bOn ? {
-                "outline": '#'+pcolor,
-                "outline-style": "dotted",
-                "outline-width": "4px"
+                "box-shadow": "2px 2px 6px 2px #"+pcolor
             } :
             {
-                "outline": "none",
-                "outline-style": "none",
-                "outline-width": "none"
+                "box-shadow": "none"
             };
             for (const id of this.getContractDivs(contract)) {
                 Object.assign($(id).style, highlightstyle);
