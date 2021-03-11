@@ -495,12 +495,12 @@ function (dojo, declare, on) {
          */
         decorateContract: function(contract) {
             const tooltip = this.getContractHelpHtml(contract);
-            for (const id of this.getContractDivs(contract)) {
-                this.addTooltip( id, tooltip, '');
-                this.connect($(id), 'mouseenter', () => {
+            for (const c_div of this.getContractDivs(contract)) {
+                this.addTooltip( c_div.id, tooltip, '');
+                this.connect(c_div, 'mouseenter', () => {
                     this.highlightContracts(contract, true);
                 });
-                this.connect($(id), 'mouseleave', () => {
+                this.connect(c_div, 'mouseleave', () => {
                     this.highlightContracts(contract, false);
                 });
             }
@@ -534,8 +534,8 @@ function (dojo, declare, on) {
             {
                 "box-shadow": "none"
             };
-            for (const id of this.getContractDivs(contract)) {
-                Object.assign($(id).style, highlightstyle);
+            for (const c_div of this.getContractDivs(contract)) {
+                Object.assign(c_div.style, highlightstyle);
             }
         },
 
@@ -547,6 +547,9 @@ function (dojo, declare, on) {
             const tooltip = '<h3>Contract '+C+'</h3>\
                             <span style="width: 100%; text-align: center">Available</span>';
             this.addTooltipHtml("contract_card_"+C, tooltip, 0);
+            // stub contract for clearing previous loan if any
+            const loan = {"contract": C, "player_id": 0};
+            this.decorateLoan(loan, true);
         },
 
         /**
@@ -555,12 +558,12 @@ function (dojo, declare, on) {
          * @param {isOn} bRemove take it off
          */
         decorateLoan: function(contract, bRemove = false) {
-            for (const id of this.getContractDivs(contract)) {
-                const c_div = document.getElementById(id);
-                c_div.classList.toggle("frx_loan");
+            for (const c_div of this.getContractDivs(contract)) {
                 if (bRemove) {
+                    c_div.classList.remove("frx_loan");
                     this.removeAllChildren(c_div);
                 } else {
+                    c_div.classList.add("frx_loan");
                     var loan = document.createElement("span");
                     loan.innerHTML = "LOAN";
                     loan.classList.add("frx_loan_text");
@@ -590,16 +593,23 @@ function (dojo, declare, on) {
 
         /**
          * Get an array of Contract elements associated with a letter.
+         * Checks that the element actually exists.
          * @param {Object} contract
-         * @returns array of ids
+         * @returns array of elements.
          */
         getContractDivs: function(contract) {
             var contract_divs = [];
-            contract_divs.push('contract_'+contract.player_id+'_'+contract.contract);
-            contract_divs.push('contract_card_'+contract.contract);
+            var player_contract = document.getElementById('contract_'+contract.player_id+'_'+contract.contract);
+            if (player_contract) {
+                contract_divs.push(player_contract);
+            }
+            var contract_displayed = document.getElementById('contract_card_'+contract.contract);
+            if (contract_displayed) {
+                contract_divs.push(contract_displayed);
+            }
             const q_div = document.getElementById('contract_queue_container').getElementsByClassName("frx_"+contract.contract);
             if (q_div.length != 0) {
-                contract_divs.push(q_div[0].id);
+                contract_divs.push(q_div[0]);
             }
             return contract_divs;
         },
@@ -881,7 +891,12 @@ function (dojo, declare, on) {
                     let id = oldloans[i].id;
                     let loancurr = id.substring(id.length-3);
                     let loanamt = $(id).children.length;
-                    loans[loancurr] = loanamt;
+                    if (loancurr == curr) {
+                        // previous loan of same currency
+                        loans[curr] += loanamt;
+                    } else {
+                        loans[loancurr] = loanamt;
+                    }
                 }
             }
             contract = {
@@ -2812,8 +2827,6 @@ function (dojo, declare, on) {
             this.moveContractNotes(C, pay_curr, player_id);
             // do all the other cleanup
             this.clearContract(C, player_id, q);
-            const contract = this.createContractFromNotif(notif);
-            this.decorateLoan(contract);
         },
 
         /**
@@ -2878,9 +2891,9 @@ function (dojo, declare, on) {
                 "contract": C,
                 "player_id": player_id
             }
-            for (const id of this.getContractDivs(contract)) {
-                this.disconnect($(id), 'mouseenter');
-                this.disconnect($(id), 'mouseleave');
+            for (const c_div of this.getContractDivs(contract)) {
+                this.disconnect(c_div, 'mouseenter');
+                this.disconnect(c_div, 'mouseleave');
             }
 
             this.decorateAvailableContract(C);

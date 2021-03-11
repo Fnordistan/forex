@@ -820,12 +820,13 @@ class ForEx extends Table
     }
 
     /**
-     * Get the first p slot in a loan that is not filled
+     * Get the first p slot in a loan that is not filled, or
+     * previous loan for the same currency.
      */
-    function getFirstLoanSlot($loan) {
+    function getFirstLoanSlot($loan, $curr) {
         for($p = 1; $p <= 6; $p++) {
             $prom = "p".$p;
-            if ($loan[$prom] == null) {
+            if ($loan[$prom] == null || $loan[$prom] == $curr) {
                 return $p;
             }
         }
@@ -890,14 +891,16 @@ class ForEx extends Table
             ));
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // add to first available slot in old loan
-            $p = $this->getFirstLoanSlot($oldloan);
+            $p = $this->getFirstLoanSlot($oldloan, $promise);
             if ($p == null) {
                 // should not happen!
                 throw new BgaVisibleSystemException("Contract $loan_contract has no unfilled Loan slots!");
             }
             $ploan = "p".$p;
             $p_amt = $ploan."_amt";
-            self::DbQuery("UPDATE LOANS SET $ploan = \"$promise\", $p_amt = $promise_amt WHERE contract = \"$loan_contract\"");
+            $new_loan_amt = $promise_amt;
+            $new_loan_amt += self::getUniqueValueFromDB("SELECT $p_amt FROM LOANS WHERE contract = \"$loan_contract\"") ?? 0;
+            self::DbQuery("UPDATE LOANS SET $ploan = \"$promise\", $p_amt = $new_loan_amt WHERE contract = \"$loan_contract\"");
             // clear current contract
             $this->clearContract($conL);
         }
