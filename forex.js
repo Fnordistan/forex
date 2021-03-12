@@ -868,6 +868,7 @@ function (dojo, declare, on) {
          * @param {string} to letter of existing loan Contract
          * @param {string} curr new loan currency
          * @param {float} amt new loan amount
+         * @return {Object} the new set of loans
          */
         moveToLoan: function(from, to, curr, amt) {
             let stack_container_from = 'contract_promise_'+from;
@@ -906,6 +907,7 @@ function (dojo, declare, on) {
             // clear the previous children
             this.removeAllChildren(destination_stack);
             this.populateLoan(contract);
+            return loans;
         },
 
         /**
@@ -2822,11 +2824,19 @@ function (dojo, declare, on) {
             var q = parseInt(notif.args.location);
 
             // move the new loan to stack next to the old one
-            this.moveToLoan(C, loanC, loan_curr, loan_amt);
+            const loans = this.moveToLoan(C, loanC, loan_curr, loan_amt);
             // move payoff to player's board
             this.moveContractNotes(C, pay_curr, player_id);
             // do all the other cleanup
             this.clearContract(C, player_id, q);
+            // update stack
+            const contract = {
+                "contract": loanC,
+                "promise": LOAN,
+                "player_id": player_id,
+                "loans": loans
+            };
+            this.decorateContract(contract);
         },
 
         /**

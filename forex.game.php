@@ -468,10 +468,10 @@ class ForEx extends Table
             'x_monies2' => $req_amt.'_'.$req_curr,
             'x_monies' => 2,
         ));
-        $this->adjustMonies($from_player, $off_curr, -$off_amt);
-        $this->adjustMonies($to_player, $off_curr, $off_amt);
-        $this->adjustMonies($from_player, $req_curr, $req_amt);
-        $this->adjustMonies($to_player, $req_curr, -$req_amt);
+        $this->adjustMonies($from_player, $off_curr, -$off_amt, false);
+        $this->adjustMonies($to_player, $off_curr, $off_amt, false);
+        $this->adjustMonies($from_player, $req_curr, $req_amt, false);
+        $this->adjustMonies($to_player, $req_curr, -$req_amt, false);
         self::setGameStateValue(SPOT_DONE, 1);
     }
 
@@ -485,13 +485,13 @@ class ForEx extends Table
     /**
      * Changes amount of money in player's bank
      */
-    function adjustMonies($player_id, $curr, $amt) {
+    function adjustMonies($player_id, $curr, $amt, $bLogMsg = true) {
         $players = self::loadPlayersBasicInfos();
         self::DBQuery("UPDATE BANK SET amt = amt+$amt WHERE player = $player_id AND curr = \"$curr\"");
 
         $x_adj = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
-        self::notifyAllPlayers('moniesChanged', clienttranslate('${player_name} ${adj} ${x_monies1}').'${x_monies}', array(
+        self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${adj} ${x_monies1}').'${x_monies}' : '', array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
             'adj' => $amt < 0 ? self::_("pays") : self::_("receives"),
@@ -1422,8 +1422,8 @@ class ForEx extends Table
                                 'x_monies' => 2,
                             ));
                             $monies += $conv_amt;
-                            $this->adjustMonies($player_id, $base, -$base_amt);
-                            $this->adjustMonies($player_id, $currency, $conv_amt);
+                            $this->adjustMonies($player_id, $base, -$base_amt, false);
+                            $this->adjustMonies($player_id, $currency, $conv_amt, false);
                         }
                     }
                 }
