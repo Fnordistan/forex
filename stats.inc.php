@@ -53,8 +53,8 @@ $stats_type = array(
     "table" => array(
 
         "turns_number" => array("id"=> 10,
-                    "name" => totranslate("Number of turns"),
-                    "type" => "int" ),
+        "name" => totranslate("Number of turns"),
+        "type" => "int" ),
 
 /*
         Examples:
@@ -69,18 +69,59 @@ $stats_type = array(
                                 "type" => "float" )
 */  
     ),
-    
+
     // Statistics existing for each player
     "player" => array(
 
-        "turns_number" => array("id"=> 10,
-                    "name" => totranslate("Number of turns"),
+        "GBP_bucks" => array("id"=> 21,
+                    "name" => totranslate("GBP Notes"),
+                    "type" => "float" ),
+        "EUR_bucks" => array("id"=> 22,
+                    "name" => totranslate("EUR Notes"),
+                    "type" => "float" ),
+        "USD_bucks" => array("id"=> 23,
+                    "name" => totranslate("USD Notes"),
+                    "type" => "float" ),
+        "CHF_bucks" => array("id"=> 24,
+                    "name" => totranslate("CHF Notes"),
+                    "type" => "float" ),
+        "JPY_bucks" => array("id"=> 25,
+                    "name" => totranslate("JPY Notes"),
+                    "type" => "float" ),
+        "CAD_bucks" => array("id"=> 26,
+                    "name" => totranslate("CAD Notes"),
+                    "type" => "float" ),
+        "CNY_bucks" => array("id"=> 27,
+                    "name" => totranslate("CNY Notes"),
+                    "type" => "float" ),
+
+        "GBP_certs" => array("id"=> 31,
+                    "name" => totranslate("GBP Certificates"),
                     "type" => "int" ),
-    
-/*
+        "EUR_certs" => array("id"=> 32,
+                    "name" => totranslate("EUR Certificates"),
+                    "type" => "int" ),
+        "USD_certs" => array("id"=> 33,
+                    "name" => totranslate("USD Certificates"),
+                    "type" => "int" ),
+        "CHF_certs" => array("id"=> 34,
+                    "name" => totranslate("CHF Certificates"),
+                    "type" => "int" ),
+        "JPY_certs" => array("id"=> 35,
+                    "name" => totranslate("JPY Certificates"),
+                    "type" => "int" ),
+        "CAD_certs" => array("id"=> 36,
+                    "name" => totranslate("CAD Certificates"),
+                    "type" => "int" ),
+        "CNY_certs" => array("id"=> 37,
+                    "name" => totranslate("CNY Certificates"),
+                    "type" => "int" ),
+
+
+
+                    /*
         Examples:    
-        
-        
+
         "player_teststat1" => array(   "id"=> 10,
                                 "name" => totranslate("player test stat 1"), 
                                 "type" => "int" ),

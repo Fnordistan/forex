@@ -1359,7 +1359,8 @@ class ForEx extends Table
         $player_id = self::activeNextPlayer();
         self::giveExtraTime( $player_id );
 
-        $this->gamestate->nextState();        
+        self::incStat(1, 'turns_number');
+        $this->gamestate->nextState();
     }
 
     /**
@@ -1452,7 +1453,7 @@ class ForEx extends Table
     function zombieTurn( $state, $active_player ) {
     	$statename = $state['name'];
         if ($statename == 'playerAction') {
-            // will always choose Resolve Contract
+            // will always choose Resolve
             $this->resolve();
             return;
         }
@@ -1476,6 +1477,7 @@ class ForEx extends Table
             return;
         }
         if ($statename == 'strongestCurrency') {
+            // choose randomly
             $candidates = $this->getStrongestCurrency();
             shuffle($candidates);
             $this->chooseStrongestCurrency($candidates[0]);
