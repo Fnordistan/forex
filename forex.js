@@ -582,7 +582,7 @@ function (dojo, declare, on) {
                 contract_txt += " Loan for ";
                 const loans = contract.loans;
                 for (const [curr, amt] of Object.entries(loans)) {
-                    contract_txt += this.createMoniesXstr(amt, curr)+"<br/>";
+                    contract_txt += this.createMoniesXstr(amt, curr);
                 }
             } else {
                 contract_txt += this.createMoniesXstr(contract.promise_amt, contract.promise);

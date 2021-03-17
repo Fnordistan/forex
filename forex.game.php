@@ -581,7 +581,6 @@ class ForEx extends Table
         return $amt."_".$curr."_".$type;
     }
 
-
     /**
      * At endgame, find the strongest Currency.
      * Returns array of strongest currencies (may be only one).
@@ -600,7 +599,6 @@ class ForEx extends Table
                 $strongest[] = $curr;
             }
         }
-
         if (count($strongest) == 1) {
             $this->notifyAllPlayers("currencyChosen", clienttranslate('${currency} is strongest in most pairs'), array(
                 'i18n' => array ('currency'),
@@ -664,13 +662,13 @@ class ForEx extends Table
 
     /**
      * Determine how many certs are held in hands.
-     * Given an indexed array of currencies,
+     * Given an array of currencies,
      * returns an array of the currency(s) with the MOST Certs in player hands.
      */
     function countHeldCertificates($currencies) {
         $players = self::loadPlayersBasicInfos();
         $curr_ct = array();
-        foreach(array_keys($currencies) as $curr) {
+        foreach($currencies as $curr) {
             $curr_ct[$curr] = 0;
             foreach($players as $player_id => $player) {
                 $certs = $this->getCertificates($player_id, $curr);
@@ -734,14 +732,14 @@ class ForEx extends Table
                                 'x_monies2' => $cert_str,
                                 'x_monies' => 2
                             ));
-                            $this->adjustMonies($player_id, $curr, $monies);
+                            $this->adjustMonies($player_id, $curr, $monies, false);
                         }
                     }
                 }
             }
         }
         // the currency held by most players is strengthened
-        $mostHeld = $this->countHeldCertificates($this->currency_enum);
+        $mostHeld = $this->countHeldCertificates(array_keys($this->currency_enum));
         $chooseCurrency = false;
         // could be 0 or >1
         if (count($mostHeld) != 1) {
@@ -1236,7 +1234,7 @@ class ForEx extends Table
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
         ));
-        self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum($curr));
+        self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum[$curr]);
         $this->gamestate->nextState("scoring");
     }
 
@@ -1452,24 +1450,36 @@ class ForEx extends Table
         you must _never_ use getCurrentPlayerId() or getCurrentPlayerName(), otherwise it will fail with a "Not logged" error message. 
     */
 
-    function zombieTurn( $state, $active_player )
-    {
+    function zombieTurn( $state, $active_player ) {
     	$statename = $state['name'];
-    	
-        if ($state['type'] === "activeplayer") {
-            switch ($statename) {
-                default:
-                    $this->gamestate->nextState( "zombiePass" );
-                	break;
-            }
-
+        if ($statename == 'playerAction') {
+            // will always choose Resolve Contract
+            $this->resolve();
             return;
         }
-
-        if ($state['type'] === "multipleactiveplayer") {
-            // Make sure player is in a non blocking status for role turn
-            $this->gamestate->setPlayerNonMultiactive( $active_player, '' );
-            
+        if ($statename == 'strengthenCurrency') {
+            // chooses randomly
+            $mostHeld = $this->countHeldCertificates(array_keys($this->currency_enum));
+            shuffle($mostHeld);
+            $this->chooseCurrencyToStrengthen($mostHeld[0]);
+            return;
+        }
+        if ($statename == 'offerResponse') {
+            // refuses offers
+            $this->respondSpotTrade(false);
+            return;
+        }
+        if ($statename == 'nextDivest') {
+            // never sells
+            $curr = self::getGameStateValue(DIVEST_CURRENCY);
+            $currency = $this->currencies[$curr];
+            $this->optDivestCurrency($currency, 0);
+            return;
+        }
+        if ($statename == 'strongestCurrency') {
+            $candidates = $this->getStrongestCurrency();
+            shuffle($candidates);
+            $this->chooseStrongestCurrency($candidates[0]);
             return;
         }
 
