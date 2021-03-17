@@ -1408,9 +1408,8 @@ class ForEx extends Table
                             $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
                             $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
                             $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
-                                'i18n' => array ('currency'),
                                 'player_id' => $player_id,
-                                'player_name' => self::getActivePlayerName(),
+                                'player_name' => $player['player_name'],
                                 'score_curr' => $currency,
                                 'score_amt' => $conv_amt,
                                 'base_curr' => $base,

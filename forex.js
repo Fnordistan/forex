@@ -1717,7 +1717,7 @@ function (dojo, declare, on) {
         createPlayerButton: function(player) {
             var player_id = player['id'];
             var player_name = player['name'];
-            var color = player.color;
+            var color = player.color == "" ? '000' : player.color;
             var color_bg = "";
             if (player.color_back) {
                 color_bg = player.color_back;
@@ -2025,7 +2025,7 @@ function (dojo, declare, on) {
          */
         insertSellButtons: function() {
             var curr = this.DIVEST_CURRENCY;
-            this.setDescriptionOnMyTurn(_("You may Divest ")+curr, {X_ACTION_TEXT: DIVEST_MSG});
+            this.setDescriptionOnMyTurn(_("You may sell ")+this.createMoniesXstr('', curr, CURRENCY_TYPE.NOTE, true), {X_ACTION_TEXT: DIVEST_MSG});
             this.createSellCounter(curr);
         },
 
