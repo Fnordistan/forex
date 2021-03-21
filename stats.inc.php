@@ -53,48 +53,18 @@ $stats_type = array(
     "table" => array(
 
         "turns_number" => array("id"=> 10,
-        "name" => totranslate("Number of turns"),
-        "type" => "int" ),
-
-/*
-        Examples:
-
-
-        "table_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("table test stat 1"), 
-                                "type" => "int" ),
-                                
-        "table_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("table test stat 2"), 
-                                "type" => "float" )
-*/  
+            "name" => totranslate("Number of turns"),
+            "type" => "int" ),
+        "strongest_currency" => array("id"=> 11,
+            "name" => totranslate("Strongest Currency"),
+            "type" => "int" ),
     ),
 
     // Statistics existing for each player
     "player" => array(
-
-        "GBP_bucks" => array("id"=> 21,
-                    "name" => totranslate("GBP Notes"),
-                    "type" => "float" ),
-        "EUR_bucks" => array("id"=> 22,
-                    "name" => totranslate("EUR Notes"),
-                    "type" => "float" ),
-        "USD_bucks" => array("id"=> 23,
-                    "name" => totranslate("USD Notes"),
-                    "type" => "float" ),
-        "CHF_bucks" => array("id"=> 24,
-                    "name" => totranslate("CHF Notes"),
-                    "type" => "float" ),
-        "JPY_bucks" => array("id"=> 25,
-                    "name" => totranslate("JPY Notes"),
-                    "type" => "float" ),
-        "CAD_bucks" => array("id"=> 26,
-                    "name" => totranslate("CAD Notes"),
-                    "type" => "float" ),
-        "CNY_bucks" => array("id"=> 27,
-                    "name" => totranslate("CNY Notes"),
-                    "type" => "float" ),
-
+        "Bankrupt" => array("id"=> 30,
+                    "name" => totranslate("Bankrupt"),
+                    "type" => "bool" ),
         "GBP_certs" => array("id"=> 31,
                     "name" => totranslate("GBP Certificates"),
                     "type" => "int" ),
@@ -116,21 +86,39 @@ $stats_type = array(
         "CNY_certs" => array("id"=> 37,
                     "name" => totranslate("CNY Certificates"),
                     "type" => "int" ),
+        "invested" => array("id"=> 40,
+                    "name" => totranslate("Certificates Bought"),
+                    "type" => "int" ),
+        "divested" => array("id"=> 41,
+                    "name" => totranslate("Certificates Sold"),
+                    "type" => "int" ),
+        "contracts_taken" => array("id"=> 42,
+                    "name" => totranslate("Contracts Taken"),
+                    "type" => "int" ),
+        "contracts_paid" => array("id"=> 43,
+                    "name" => totranslate("Contracts Paid"),
+                    "type" => "int" ),
+        "resolved" => array("id"=> 44,
+                    "name" => totranslate("Resolve Actions"),
+                    "type" => "int" ),
+        "loans" => array("id"=> 45,
+                    "name" => totranslate("Loans"),
+                    "type" => "int" ),
+        "spot_trades" => array("id"=> 46,
+                    "name" => totranslate("Spot Trades"),
+                    "type" => "int" ),
+        ),
 
-
-
-                    /*
-        Examples:    
-
-        "player_teststat1" => array(   "id"=> 10,
-                                "name" => totranslate("player test stat 1"), 
-                                "type" => "int" ),
-                                
-        "player_teststat2" => array(   "id"=> 11,
-                                "name" => totranslate("player test stat 2"), 
-                                "type" => "float" )
-
-*/    
-    )
+    "value_labels" => array(
+		11 => array( 
+            1 => totranslate('GBP'),
+            2 => totranslate('EUR'),
+            3 => totranslate('USD'),
+            4 => totranslate('CHF'),
+            5 => totranslate('JPY'),
+            6 => totranslate('CAD'),
+            7 => totranslate('CNY')
+        ),
+	)
 
 );

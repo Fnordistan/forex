@@ -527,7 +527,7 @@ function (dojo, declare, on) {
          */
         highlightContracts: function(contract, bOn) {
             const player = this.gamedatas.players[contract.player_id];
-            const pcolor = player.color;
+            const pcolor = player.color == "" ? '4871b6' : player.color;
             const highlightstyle = bOn ? {
                 "box-shadow": "2px 2px 6px 2px #"+pcolor
             } :
@@ -704,7 +704,7 @@ function (dojo, declare, on) {
                     const temp_c = dojo.clone(c);
                     const child = div_q.removeChild(c);
                     // show movement
-                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500 ).play();
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 1000 ).play();
                     div_q2.appendChild(child);
                 }
             }
@@ -720,7 +720,7 @@ function (dojo, declare, on) {
         slideNotesToStack: function(contract, type, curr, amt) {
             for (let p = 0; p < amt; p++) {
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500 ).play();
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 1000 ).play();
             }
         },
 
@@ -878,7 +878,7 @@ function (dojo, declare, on) {
             while (stack_div.firstChild) {
                 stack_div.removeChild(stack_div.lastChild);
                 let note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 500 ).play();
+                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 1000 ).play();
             }
             stack_div.remove();
             // now repopulate the stacks
@@ -1250,7 +1250,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < Math.abs(amt); i++) {
-                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 1000 ).play();
             }
         },
 
@@ -1272,7 +1272,7 @@ function (dojo, declare, on) {
             var stack = document.getElementById(from);
             while (stack.firstChild) {
                 let note_html = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note_html, parent_id, from, to, 500 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 1000 ).play();
                 stack.removeChild(stack.lastChild);
             }
         },
@@ -1289,7 +1289,7 @@ function (dojo, declare, on) {
                 "scale": 0.5
             });
             var to = 'contract_card_'+contract;
-            this.slideTemporaryObject( contract_html, parent_id, from, to, 500 ).play();
+            this.slideTemporaryObject( contract_html, parent_id, from, to, 1000 ).play();
         },
 
         /**
@@ -1309,7 +1309,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (var i = 0; i < amt; i++) {
-                this.slideTemporaryObject( cert_html, parent_id, from, to, 500 ).play();
+                this.slideTemporaryObject( cert_html, parent_id, from, to, 1000 ).play();
             }
 
         },
@@ -1333,14 +1333,14 @@ function (dojo, declare, on) {
                 "curr": off_curr
             });
             for (var i = 0; i < Math.ceil(Math.abs(off_amt)); i++) {
-                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, 500 ).play();
+                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, 1000 ).play();
             }
             // animate request currency going req_player -> from_player
             var req_note_html = this.format_block('jstpl_bank_note', {
                 "curr": req_curr
             });
             for (var j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
-                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 500 ).play();
+                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 1000 ).play();
             }
         },
 
@@ -1360,7 +1360,7 @@ function (dojo, declare, on) {
                 "curr": base_curr
             });
             for (var i = 0; i < Math.ceil(amt); i++) {
-                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 500 ).play();
+                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 1000 ).play();
             }
         },
 
@@ -2729,9 +2729,9 @@ function (dojo, declare, on) {
             this.pushContractQueue();
             var contract_card = this.format_block('jstpl_contract_card', {"contract": contract.contract, "scale": 0.5});
             // slide contract to Queue
-            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'queue_'+contract.location, 500 ).play();
+            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'queue_'+contract.location, 1000 ).play();
             // slide contract to player board
-            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'player_board_'+contract.player_id, 500 ).play();
+            this.slideTemporaryObject( contract_card, 'contract_'+contract.contract, 'contract_card_'+contract.contract, 'player_board_'+contract.player_id, 1000 ).play();
             // slide notes from bank to contract display
             this.slideNotesToStack(contract.contract, 'promise', contract.promise, contract.promise_amt);
             this.slideNotesToStack(contract.contract, 'payout', contract.payout, contract.payout_amt);
@@ -2877,7 +2877,7 @@ function (dojo, declare, on) {
             this.moveBaseNotes(player_id, score_curr, base_curr, score_amt);
             const player_notes = base_curr+'_note_counter_icon_'+player_id;
             const score_color = COLORS[score_curr];
-            this.displayScoring( player_notes, score_color, score_amt, animation_duration, 0, 0 );
+            this.displayScoring( player_notes, score_color, score_amt, animation_duration, 100, 0 );
         },
 
         /**

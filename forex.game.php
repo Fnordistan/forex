@@ -31,7 +31,7 @@ define('SPOT_DONE', 'spot_trade_done');
 define('DIVEST_CURRENCY', 'divest_currency');
 define('DIVEST_PLAYER', 'divest_player');
 define('BANKRUPT_PLAYER', 'bankrupt_player');
-define('SCORING_CURRENCY', 'scoring_currency');
+define('SCORING_CURRENCY', 'strongest_currency');
 define('NOTE', 'note');
 define('CERTIFICATE', 'cert');
 define('LOAN', 'LN');
@@ -58,12 +58,10 @@ class ForEx extends Table
             DIVEST_CURRENCY => 30,
             DIVEST_PLAYER => 31,
             BANKRUPT_PLAYER => 32,
-            SCORING_CURRENCY => 40,
         ));
 
         $this->certificates = self::getNew("module.common.deck");
         $this->certificates->init("CERTIFICATES");
-
 	}
 
     protected function getGameName( )
@@ -91,10 +89,20 @@ class ForEx extends Table
         // Note: if you added some extra field on "player" table in the database (dbmodel.sql), you can initialize it there.
         $sql = "INSERT INTO player (player_id, player_color, player_canal, player_name, player_avatar) VALUES ";
         $values = array();
-        foreach( $players as $player_id => $player )
-        {
+        foreach( $players as $player_id => $player ) {
             $color = array_shift( $default_colors );
             $values[] = "('".$player_id."','$color','".$player['player_canal']."','".addslashes( $player['player_name'] )."','".addslashes( $player['player_avatar'] )."')";
+            self::initStat( 'player', 'Bankrupt', false, $player_id );
+            self::initStat( 'player', 'invested', 0, $player_id );
+            self::initStat( 'player', 'divested', 0, $player_id );
+            self::initStat( 'player', 'contracts_taken', 0, $player_id );
+            self::initStat( 'player', 'contracts_paid', 0, $player_id );
+            self::initStat( 'player', 'resolved', 0, $player_id );
+            self::initStat( 'player', 'loans', 0, $player_id );
+            self::initStat( 'player', 'spot_trades', 0, $player_id );
+            foreach ($this->currencies as $c => $curr) {
+                self::initStat( 'player', $curr.'_certs', 0, $player_id );
+            }
         }
         $sql .= implode( $values, ',' );
         self::DbQuery( $sql );
@@ -115,12 +123,11 @@ class ForEx extends Table
         self::setGameStateInitialValue( DIVEST_CURRENCY, 0 );
         self::setGameStateInitialValue( DIVEST_PLAYER, 0 );
         self::setGameStateInitialValue( BANKRUPT_PLAYER, 0 );
-        self::setGameStateInitialValue( SCORING_CURRENCY, 0 );
 
         // Init game statistics
         // (note: statistics used in this file must be defined in your stats.inc.php file)
-        //self::initStat( 'table', 'table_teststat1', 0 );    // Init a table statistics
-        //self::initStat( 'player', 'player_teststat1', 0 );  // Init a player statistics (for all players)
+        self::initStat( 'table', 'turns_number', 1 );
+        self::initStat( 'table', SCORING_CURRENCY, 0 );
 
         // setup the initial game situation here
         $this->setupCertificates();
@@ -339,7 +346,7 @@ class ForEx extends Table
             $this->increase($curr, $pair);
         }
         self::notifyAllPlayers('currencyStrengthened', clienttranslate('${currency} is strengthened'), array (
-            'i18n' => array ('curr' ),
+            'i18n' => array ('currency' ),
             'player_id' => self::getActivePlayerId(),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
@@ -473,6 +480,8 @@ class ForEx extends Table
         $this->adjustMonies($from_player, $req_curr, $req_amt, false);
         $this->adjustMonies($to_player, $req_curr, -$req_amt, false);
         self::setGameStateValue(SPOT_DONE, 1);
+        self::incStat(1, 'spot_trades', $from_player);
+        self::incStat(1, 'spot_trades', $to_player);
     }
 
     /**
@@ -797,6 +806,7 @@ class ForEx extends Table
             $this->adjustMonies($player_id, $payout, $payout_amt);
             // clear the contract
             $this->clearContract($conL);
+            self::incStat(1, 'contracts_paid', $player_id);
         }
         return $nextState;
     }
@@ -902,6 +912,7 @@ class ForEx extends Table
             // clear current contract
             $this->clearContract($conL);
         }
+        self::incStat(1, 'loans', $player_id);
     }
 
     /**
@@ -946,6 +957,7 @@ class ForEx extends Table
                 'contract' => $conL,
                 'conL' => $conL
             ));
+            self::setStat(true, 'Bankrupt', $player_id);
             $nextState = "endGame";
         }
         return $nextState;
@@ -1082,6 +1094,7 @@ class ForEx extends Table
             ));
 
             $this->strengthen($curr);
+            self::incStat(1, 'invested', $player_id);
         }
 
         $this->gamestate->nextState("nextPlayer");
@@ -1141,6 +1154,9 @@ class ForEx extends Table
             'x_monies2' => $x_notes,
             'x_monies' => 2,
         ));
+
+        self::incStat($amt, 'divested', $player_id);
+
         $this->weaken($curr, $amt);
     }
 
@@ -1179,6 +1195,9 @@ class ForEx extends Table
             'x_monies2' => $x_payout,
             'x_monies' => 2,
         ));
+
+        self::incStat(1, 'contracts_taken', $player_id);
+
         $this->gamestate->nextState("nextPlayer");
     }
 
@@ -1208,6 +1227,8 @@ class ForEx extends Table
         } else {
             $nextState = $this->resolveContract($contract);
         }
+        self::incStat(1, 'resolved', $player_id);
+
         $this->gamestate->nextState($nextState);
     }
 
@@ -1234,7 +1255,7 @@ class ForEx extends Table
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
         ));
-        self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum[$curr]);
+        self::setStat($this->currency_enum[$curr], SCORING_CURRENCY);
         $this->gamestate->nextState("scoring");
     }
 
@@ -1385,7 +1406,7 @@ class ForEx extends Table
         if (count($strongest) > 1) {
             $nextState = "chooseStrongest";
         } else {
-            self::setGameStateValue(SCORING_CURRENCY, $this->currency_enum[$strongest[0]]);
+            self::setStat($this->currency_enum[$strongest[0]], SCORING_CURRENCY);
         }
         $this->gamestate->nextState($nextState);
     }
@@ -1395,23 +1416,30 @@ class ForEx extends Table
      */
     function stScoring() {
         $players = self::loadPlayersBasicInfos();
-        $c = self::getGameStateValue(SCORING_CURRENCY);
-        $currency = $this->currencies[$c];
+        $c_sc = self::getStat(SCORING_CURRENCY);
+        $score_currency = $this->currencies[$c_sc];
         foreach ($players as $player_id => $player) {
             $score = 0;
-            if ($player_id != self::getGameStateValue(BANKRUPT_PLAYER)) {
-                $monies = $this->getMonies($player_id, $currency);
+            if ($player_id == self::getGameStateValue(BANKRUPT_PLAYER)) {
+                foreach ($this->currencies as $cu => $currency) {
+                    $certsheld = $this->getCertificates($player_id, $currency);
+                    self::setStat(count($certsheld), $currency."_certs", $player_id);
+                }
+            } else {
+                $monies = $this->getMonies($player_id, $score_currency);
                 foreach ($this->currencies as $c => $base) {
-                    if ($base != $currency) {
+                    $certs = $this->getCertificates($player_id, $base);
+                    self::setStat(count($certs), $base."_certs", $player_id);
+                    if ($base != $score_currency) {
                         $base_amt = $this->getMonies($player_id, $base);
                         if ($base_amt > 0) {
-                            $conv_amt = $this->convertCurrency($base, $base_amt, $currency);
+                            $conv_amt = $this->convertCurrency($base, $base_amt, $score_currency);
                             $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
-                            $x_score = $this->create_X_monies_arg($conv_amt, $currency, NOTE);
+                            $x_score = $this->create_X_monies_arg($conv_amt, $score_currency, NOTE);
                             $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
                                 'player_id' => $player_id,
                                 'player_name' => $player['player_name'],
-                                'score_curr' => $currency,
+                                'score_curr' => $score_currency,
                                 'score_amt' => $conv_amt,
                                 'base_curr' => $base,
                                 'base_amt' => $base_amt,
@@ -1421,7 +1449,7 @@ class ForEx extends Table
                             ));
                             $monies += $conv_amt;
                             $this->adjustMonies($player_id, $base, -$base_amt, false);
-                            $this->adjustMonies($player_id, $currency, $conv_amt, false);
+                            $this->adjustMonies($player_id, $score_currency, $conv_amt, false);
                         }
                     }
                 }
