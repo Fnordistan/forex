@@ -44,15 +44,14 @@
     --color_note_CAD: #3C1F12;
     --color_note_CNY: #E63A25;
 
-    --board_h: 816px;
-    --board_w: 528px;
+    --board_h: 1632px;
+    --board_w: 1056px;
     --contract_w: 97.66px;
     --contract_h: 150px;
     --currency_w: 150px;
     --currency_h: 97.66px;
     --scale: 0.5;
 }
-
 
 .frx_col_hdr {
     font-family: 'DM Mono';
@@ -98,6 +97,7 @@
     position: relative;
 }
 
+/* "LOAN" text diagonally across Contract" */
 .frx_loan_text {
     font-family: 'Allerta Stencil';
     font-weight: 700;
@@ -108,6 +108,7 @@
     transform: translateY(-50%) rotate(-45deg);
 }
 
+/** "BANKRUPT" text diagonally across bankrupt player board */
 .frx_bankrupt_text {
     font-family: 'Allerta Stencil';
     font-weight: 700;
@@ -119,7 +120,6 @@
     left: 0;
     transform: translateY(-50%) rotate(-45deg);
 }
-
 
 .frx_A {
     background-position: 0px 0px;
@@ -202,7 +202,7 @@
     font-family: 'DM Mono';
     font-size: 24px;
     font-weight: bold;
-    vertical-align: 5px; /**calc(var(--scale)*var(--currency_h) * 0.5);*/
+    vertical-align: 5px;
     display: inline-block;
     width: 55px;
     text-shadow:
@@ -295,11 +295,6 @@
 }
 
 .frx_ctr_container {
-    display: inline-block;
-}
-
-/* holds an rr icon and counter */
-.frx_ctr_container {
     margin: 3px;
     display: inline-block;
 }
@@ -348,7 +343,6 @@
     background-repeat: no-repeat;
     height: 25px;
     width: 25px;
-    /* box-shadow: 1px 1px lightgray; */
 }
 
 .frx_pr_GBP {
@@ -449,9 +443,6 @@
 }
 .frx_player_btn:disabled {
     background-image: linear-gradient(45deg,lightgray 50%, darkgray 100%);
-}
-
-.frx_player_btn:disabled {
     color: gray;
 }
 
@@ -537,7 +528,7 @@
     flex-direction: row;
     flex-wrap: wrap;
     margin: 0 -5px;
-    height: calc(var(--board_h) + (var(--currency_h)*var(--scale)) + 20);
+    height: calc(var(--board_h)*0.5 + (var(--currency_h)*var(--scale)) + 20);
 }
 
 #cards_display {
@@ -547,11 +538,11 @@
 }
 
 #currency_board {
-    background-size: var(--board_w) var(--board_h);
-    background-image: url(img/forex_currency_board_lowres.jpg);
+    background-size: calc(var(--board_w)*0.5) calc(var(--board_h)*0.5);
+    background-image: url(img/forex_currency_board.jpg);
     background-repeat: no-repeat;
-    width: var(--board_w);
-    height: var(--board_h);
+    width: calc(var(--board_w)*0.5);
+    height: calc(var(--board_h)*0.5);
     margin: 0 5px;
 }
 
