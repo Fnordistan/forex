@@ -964,11 +964,11 @@ function (dojo, declare, on) {
 
         /**
          * Adds tooltip to a Certificate
-         * @param {string} card_div 
-         * @param {string} card_type 
+         * @param {string} card_div
+         * @param {string} curr
          */
-        setupCertificate: function(card_div, card_type) {
-            this.addTooltip( card_div.id, _(card_type+' Certificate'), '');
+        setupCertificate: function(card_div, curr) {
+            this.addTooltip( card_div.id, curr+_(' Certificate'), '');
         },
 
         ///////////////////////////////////////////////////
@@ -2383,9 +2383,9 @@ function (dojo, declare, on) {
                     const request_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
                     const request_amt = this.RECEIVE_COUNTER.getValue();
                     if (this.getMonies(this.player_id, offer_curr, CURRENCY_TYPE.NOTE) < offer_amt) {
-                        this.showMessage(_(this.spanYou()+" do not have "+this.createMoniesXstr(offer_amt, offer_curr), 'info'));
+                        this.showMessage(this.spanYou()+_(" do not have ")+this.createMoniesXstr(offer_amt, offer_curr), 'info');
                     } else if (this.getMonies(to, request_curr, CURRENCY_TYPE.NOTE) < request_amt) {
-                        this.showMessage(_(this.spanPlayerName(to)+" does not have "+this.createMoniesXstr(request_amt, request_curr), 'info'));
+                        this.showMessage(this.spanPlayerName(to)+_(" does not have ")+this.createMoniesXstr(request_amt, request_curr), 'info');
                     } else {
                         this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
                             to_player: to,

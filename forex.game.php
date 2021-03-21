@@ -535,7 +535,7 @@ class ForEx extends Table
         $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
-            throw new BgaUserException(self::_("You only have ${count} ${curr} Certificates"));
+            throw new BgaUserException(self::_("You only have $count $curr Certificates"));
         }
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
@@ -656,15 +656,15 @@ class ForEx extends Table
      function checkAvailableCerts($player_id, $curr) {
         $mybucks = $this->getMonies($player_id, $curr);
         if ($mybucks < 2) {
-            throw new BgaUserException(self::_("You do not have enough ${curr} to buy a Certificate"));
+            throw new BgaUserException(self::_("You do not have enough $curr to buy a Certificate"));
         }
         $mycerts = $this->getCertificates($player_id, $curr);
         if (count($mycerts) >= 4) {
-            throw new BgaUserException(self::_("You may not hold more than 4 ${curr} Certificates"));
+            throw new BgaUserException(self::_("You may not hold more than 4 $curr Certificates"));
         }
         $availablecerts = $this->getAvailableCertificates($curr);
         if (count($availablecerts) == 0) {
-            throw new BgaUserException(self::_("No ${curr} Certificates available for purchase"));
+            throw new BgaUserException(self::_("No $curr Certificates available for purchase"));
         }
         return $availablecerts;
     }
@@ -979,7 +979,7 @@ class ForEx extends Table
     function offerSpotTrade($to_player, $offer, $request) {
         self::checkAction( 'offerSpotTrade' );
         if (self::getGameStateValue(SPOT_DONE) != 0) {
-            throw new BgaVisibleSystemException("Spot Trade already performed; should not allow action again");
+            throw new BgaVisibleSystemException("Spot Trade already performed; should not allow action again");// NOI18N
         }
 
         $player_id = self::getActivePlayerId();
@@ -991,11 +991,11 @@ class ForEx extends Table
         $req_amt = $spot[1];
         $mybucks = $this->getMonies($player_id, $offer);
         if ($off_amt > $mybucks) {
-            throw new BgaUserException(self::_("You do not have ${off_amt} ${offer}"));
+            throw new BgaUserException(self::_("You do not have $off_amt $offer"));
         }
         $theirbucks = $this->getMonies($to_player, $request);
         if ($req_amt > $theirbucks) {
-            throw new BgaUserException(self::_("${theirname} does not have ${req_amt} ${request}"));
+            throw new BgaUserException(self::_("$theirname does not have $req_amt $request"));
         }
 
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
@@ -1101,6 +1101,7 @@ class ForEx extends Table
      * Sell one or more certificates
      */
     function divestCurrency($curr, $amt) {
+        self::checkAction( 'divestCurrency' );
         $player_id = self::getActivePlayerId();
 
         $this->divestAction($player_id, $curr, $amt);
@@ -1114,6 +1115,7 @@ class ForEx extends Table
      * When additional players have option to sell.
      */
     function optDivestCurrency($curr, $amt) {
+        self::checkAction( 'optDivestCurrency' );
         $player_id = self::getActivePlayerId();
         if ($amt == 0) {
             // player declined to sell
@@ -1160,6 +1162,8 @@ class ForEx extends Table
      * Create a contract.
      */
     function makeContract($prom_curr, $prom_amt, $pay_curr, $pay_amt) {
+        self::checkAction( 'makeContract' );
+
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE owner IS NULL AND contract != \"".DIVIDENDS."\" ORDER BY contract ASC LIMIT 1");
         if ($contract == NULL) {
@@ -1202,6 +1206,7 @@ class ForEx extends Table
      * Advances state.
      */
     function resolve() {
+        self::checkAction( 'resolve' );
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
         $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract Queue: ${contract}').'${conL}', array(
@@ -1232,6 +1237,7 @@ class ForEx extends Table
      * Strengthen the currency the player chose.
      */
     function chooseCurrencyToStrengthen($curr) {
+        self::checkAction( 'chooseCurrencyToStrengthen' );
         $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} strengthens ${currency}'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
@@ -1246,6 +1252,7 @@ class ForEx extends Table
      * The currency the player chose will be the one used for scoring.
      */
     function chooseStrongestCurrency($curr) {
+        self::checkAction( 'chooseStrongestCurrency' );
         $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses ${currency} for final scoring'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
