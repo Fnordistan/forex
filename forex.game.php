@@ -215,8 +215,7 @@ class ForEx extends Table
         _ when the game starts
         _ when a player refreshes the game page (F5)
     */
-    protected function getAllDatas()
-    {
+    protected function getAllDatas() {
         $result = array();
     
         $current_player_id = self::getCurrentPlayerId();    // !! We must only return informations visible by this player !!
@@ -226,7 +225,6 @@ class ForEx extends Table
         $sql = "SELECT player_id id, player_score score FROM player ";
         $result['players'] = self::getCollectionFromDb( $sql );
   
-        // TODO: Gather all information about current game situation (visible by player $current_player_id).
         $sql = "SELECT curr1, curr2, stronger, position FROM CURRENCY_PAIRS";
         $result['currency_pairs'] = self::getObjectListFromDB( $sql );
         // even though this is a Deck, we're going to pull directly from Db because all certs are public info
@@ -281,7 +279,7 @@ class ForEx extends Table
 
 //////////////////////////////////////////////////////////////////////////////
 //////////// Utility functions
-////////////    
+////////////
 
     /**
      * Return associative array for all pairs with this currency, with this currency as the key.
@@ -303,7 +301,7 @@ class ForEx extends Table
     /**
      * Create a SpotTrade associative array from the currency values, packed for the getAllDatas result
      */
-    function getSpotTrade() {
+     function getSpotTrade() {
         $to = self::getGameStateValue( SPOT_TO );
         $from = self::getGameStateValue( SPOT_FROM );
         $offer = self::getGameStateValue( SPOT_OFFER );
@@ -1003,7 +1001,7 @@ class ForEx extends Table
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
         $x_request = $this->create_X_monies_arg($req_amt, $request, NOTE);
 
-        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${from_player} offered a Spot Trade to ${to_player} of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
+        self::notifyAllPlayers('spotTradeOffered', clienttranslate('${from_player} offers Spot Trade to ${to_player} of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             SPOT_FROM => $player_id,
             SPOT_TO => $to_player,
             'from_player' => $player_id,
@@ -1037,7 +1035,6 @@ class ForEx extends Table
 
             // rejected
             self::notifyAllPlayers('spotTradeRejected', clienttranslate('${player_name} rejected trade'), array(
-                'i18n' => array ('player_name'),
                 SPOT_TO => $to_player,
                 'player_name' => $players[$to_player]['player_name'],
             ));
@@ -1053,7 +1050,6 @@ class ForEx extends Table
     function cancelSpotTrade() {
         self::checkAction( 'cancelSpotTrade' ); 
         self::notifyAllPlayers('spotTradeCanceled', clienttranslate('${player_name} canceled trade offer'), array(
-            'i18n' => array ('player_name'),
             'player_name' => self::getActivePlayerName(),
         ));
         // return action to the player who made the offer
@@ -1086,7 +1082,6 @@ class ForEx extends Table
 
             // movedeck for certificates
             self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_monies1} Certificate').'${x_monies}', array (
-                'i18n' => array ('curr'),
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
                 'curr' => $curr,
@@ -1122,7 +1117,7 @@ class ForEx extends Table
         $player_id = self::getActivePlayerId();
         if ($amt == 0) {
             // player declined to sell
-            self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} declined to sell ${currency}'), array(
+            self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} declines to sell ${currency}'), array(
                 'i18n' => array ('currency'),
                 'player_id' => $player_id,
                 'player_name' => self::getActivePlayerName(),
@@ -1146,7 +1141,7 @@ class ForEx extends Table
         $x_certs = $this->create_X_monies_arg($amt, $curr, CERTIFICATE);
         $x_notes = $this->create_X_monies_arg($cash, $curr, NOTE);
 
-        self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sold ${x_monies1} for ${x_monies2}').'${x_monies}', array(
+        self::notifyAllPlayers('certificatesSold', clienttranslate('${player_name} sells ${x_monies1} for ${x_monies2}').'${x_monies}', array(
             'i18n' => array (),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -1158,7 +1153,6 @@ class ForEx extends Table
         ));
 
         self::incStat($amt, 'divested', $player_id);
-
         $this->weaken($curr, $amt);
     }
 

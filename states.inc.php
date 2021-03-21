@@ -61,8 +61,8 @@ $machinestates = array(
 
     STRENGTHEN_CURRENCY => array(
         "name" => "strengthenCurrency",
-        "description" => clienttranslate( '${actplayer} must choose the currency to strengthen' ),
-        "descriptionmyturn" => clienttranslate( '${you} must choose the currency to strengthen' ),
+        "description" => clienttranslate( '${actplayer} must choose currency to strengthen' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose currency to strengthen' ),
         "type" => "activeplayer",
         "possibleactions" => array( "chooseCurrencyToStrengthen" ),
         "transitions" => array( "nextPlayer" => NEXT_PLAYER, "endGame" => LAST_RESOLVE)
@@ -122,8 +122,8 @@ $machinestates = array(
 
     CHOOSE_CURRENCY => array(
         "name" => "strongestCurrency",
-        "description" => clienttranslate( '${actplayer} must choose the strongest Currency for final scoring' ),
-        "descriptionmyturn" => clienttranslate( '${you} must choose the strongest Currency for final scoring' ),
+        "description" => clienttranslate( '${actplayer} must choose currency for final scoring' ),
+        "descriptionmyturn" => clienttranslate( '${you} must choose currency for final scoring' ),
         "type" => "activeplayer",
         "args" => "argsChooseCurrency",
         "possibleactions" => array( "chooseStrongestCurrency" ),
