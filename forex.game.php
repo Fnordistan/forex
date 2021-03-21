@@ -254,6 +254,8 @@ class ForEx extends Table
         $dcurr = self::getGameStateValue(DIVEST_CURRENCY);
         $result[DIVEST_CURRENCY] = ($dcurr == 0) ? null : $this->currencies[$dcurr];
 
+        $result['bankrupt'] = self::getGameStateValue(BANKRUPT_PLAYER);
+
         return $result;
     }
 

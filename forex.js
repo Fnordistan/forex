@@ -239,7 +239,9 @@ function (dojo, declare, on) {
             this.SPOT_DONE = this.gamedatas[SPOT_DONE];
             this.DIVEST_CURRENCY = this.gamedatas[DIVEST_CURRENCY];
 
-            console.log( "Ending game setup" );
+            if (this.gamedatas['bankrupt'] != 0) {
+                this.decorateBankrupt(this.gamedatas['bankrupt']);
+            }
         },
 
         /* @Override */
@@ -565,11 +567,25 @@ function (dojo, declare, on) {
                 } else {
                     c_div.classList.add("frx_loan");
                     var loan = document.createElement("span");
-                    loan.innerHTML = "LOAN";
+                    loan.innerHTML = _("LOAN");
                     loan.classList.add("frx_loan_text");
                     dojo.place(loan, c_div);
                 }
             }
+        },
+
+        /**
+         * Puts decoration on banktupt player.
+         * @param {*} player_id 
+         */
+        decorateBankrupt: function(player_id) {
+            const player_board_id = 'player_board_'+player_id;
+            const playboard = document.getElementById(player_board_id);
+            playboard.style.backgroundColor = 'red';
+            const bankrupt = document.createElement("span");
+            bankrupt.innerHTML = _("BANKRUPT");
+            bankrupt.classList.add("frx_bankrupt_text");
+            dojo.place(bankrupt, player_board_id);
         },
 
         /**
@@ -579,14 +595,14 @@ function (dojo, declare, on) {
         getContractHelpHtml: function(contract) {
             var contract_txt ="<h3>"+_("Contract ")+contract.contract+" ("+ this.spanPlayerName(contract.player_id)+ ")</h3>";
             if (contract.promise == LOAN) {
-                contract_txt += " Loan for ";
+                contract_txt += _(" Loan for ");
                 const loans = contract.loans;
                 for (const [curr, amt] of Object.entries(loans)) {
                     contract_txt += this.createMoniesXstr(amt, curr);
                 }
             } else {
                 contract_txt += this.createMoniesXstr(contract.promise_amt, contract.promise);
-                contract_txt += " for " + this.createMoniesXstr(contract.payout_amt, contract.payout);
+                contract_txt += _(" for ") + this.createMoniesXstr(contract.payout_amt, contract.payout);
             }
             return contract_txt;
         },
@@ -2603,6 +2619,7 @@ function (dojo, declare, on) {
             this.notifqueue.setSynchronous( "notif_loanResolved", 500 );
             dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
             this.notifqueue.setSynchronous( "notif_currencyScored", SCORING_DELAY );
+            dojo.subscribe( 'bankruptcy', this, "notif_bankruptcy");
         },
 
         /**
@@ -2878,6 +2895,15 @@ function (dojo, declare, on) {
             const player_notes = base_curr+'_note_counter_icon_'+player_id;
             const score_color = COLORS[score_curr];
             this.displayScoring( player_notes, score_color, score_amt, animation_duration, 100, 0 );
+        },
+
+        /**
+         * When a player goes bankrupt
+         * @param {Object*} notif 
+         */
+        notif_bankruptcy: function(notif) {
+            const player_id = notif.args.player_id;
+            this.decorateBankrupt(player_id);
         },
 
         /**

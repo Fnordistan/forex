@@ -108,6 +108,19 @@
     transform: translateY(-50%) rotate(-45deg);
 }
 
+.frx_bankrupt_text {
+    font-family: 'Allerta Stencil';
+    font-weight: 700;
+    font-size: 48px;
+    color: red;
+    position: absolute;
+    width: 100%;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+
 .frx_A {
     background-position: 0px 0px;
 }
