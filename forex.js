@@ -2376,25 +2376,30 @@ function (dojo, declare, on) {
          */
         submitSpotTrade: function() {
             if (this.checkAction('offerSpotTrade', true) && this.SPOT_TRANSACTION) {
+                let is_valid = false;
                 if (this.PAY_COUNTER && this.RECEIVE_COUNTER) {
                     const to = parseInt(this.SPOT_TRANSACTION[SPOT.TO]);
                     const offer_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
-                    const offer_amt = this.PAY_COUNTER.getValue();
                     const request_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
-                    const request_amt = this.RECEIVE_COUNTER.getValue();
-                    if (this.getMonies(this.player_id, offer_curr, CURRENCY_TYPE.NOTE) < offer_amt) {
-                        this.showMessage(this.spanYou()+_(" do not have ")+this.createMoniesXstr(offer_amt, offer_curr), 'info');
-                    } else if (this.getMonies(to, request_curr, CURRENCY_TYPE.NOTE) < request_amt) {
-                        this.showMessage(this.spanPlayerName(to)+_(" does not have ")+this.createMoniesXstr(request_amt, request_curr), 'info');
-                    } else {
-                        this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
-                            to_player: to,
-                            off_curr: offer_curr,
-                            req_curr: request_curr,
-                            lock: true 
-                        }, this, function( result ) {  }, function( is_error) { } );
+                    if (to != 0 && offer_curr != "" && request_curr != "") {
+                        is_valid = true;
+                        const offer_amt = this.PAY_COUNTER.getValue();
+                        const request_amt = this.RECEIVE_COUNTER.getValue();
+                        if (this.getMonies(this.player_id, offer_curr, CURRENCY_TYPE.NOTE) < offer_amt) {
+                            this.showMessage(this.spanYou()+_(" do not have ")+this.createMoniesXstr(offer_amt, offer_curr), 'info');
+                        } else if (this.getMonies(to, request_curr, CURRENCY_TYPE.NOTE) < request_amt) {
+                            this.showMessage(this.spanPlayerName(to)+_(" does not have ")+this.createMoniesXstr(request_amt, request_curr), 'info');
+                        } else {
+                            this.ajaxcall( "/forex/forex/offerSpotTrade.html", { 
+                                to_player: to,
+                                off_curr: offer_curr,
+                                req_curr: request_curr,
+                                lock: true 
+                            }, this, function( result ) {  }, function( is_error) { } );
+                        }
                     }
-                } else {
+                }
+                if (!is_valid) {
                     this.showMessage(_("You must select player to offer trade to, offered currency, and requested currency"), 'info');
                 }
             }
@@ -2489,19 +2494,24 @@ function (dojo, declare, on) {
          */
         takeContract: function() {
             if (this.checkAction('makeContract', true)) {
+                let is_valid = false;
                 if (this.PAY_COUNTER && this.RECEIVE_COUNTER) {
                     const prom_curr = this.getSelectedCurrency(CURRENCY_TYPE.PAY);
-                    const prom_amt = this.PAY_COUNTER.getValue();
                     const pay_curr = this.getSelectedCurrency(CURRENCY_TYPE.RECEIVE);
-                    const pay_amt = this.RECEIVE_COUNTER.getValue();
-                    this.ajaxcall( "/forex/forex/makeContract.html", { 
-                        promise: prom_curr,
-                        payout: pay_curr,
-                        promise_amt: prom_amt,
-                        payout_amt: pay_amt,
-                        lock: true
-                    }, this, function( result ) {  }, function( is_error) { } );
-                } else {
+                    if (prom_curr != "" && pay_curr != "") {
+                        const prom_amt = this.PAY_COUNTER.getValue();
+                        const pay_amt = this.RECEIVE_COUNTER.getValue();
+                        this.ajaxcall( "/forex/forex/makeContract.html", { 
+                            promise: prom_curr,
+                            payout: pay_curr,
+                            promise_amt: prom_amt,
+                            payout_amt: pay_amt,
+                            lock: true
+                        }, this, function( result ) {  }, function( is_error) { } );
+                        is_valid = true;
+                    }
+                }
+                if (!is_valid) {
                     this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');
                 }
             }
