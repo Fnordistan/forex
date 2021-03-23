@@ -89,6 +89,27 @@
     margin: 5px;
 }
 
+.frx_bank_row {
+    display: flex;
+    flex-direction: row;
+}
+
+.frx_curr_symbol {
+    font-family: 'DM Mono';
+    font-size: 32px;
+    font-weight: 700;
+    vertical-align: 5px;
+    text-shadow:
+        1px 1px 0 lightgray,
+        -1px -1px 0 lightgray,  
+        1px -1px 0 lightgray,
+        -1px 1px 0 lightgray,
+        1px 1px 0 lightgray;
+    vertical-align: middle;
+    float: right;
+    padding: 5px;
+}
+
 /* marks a Contract as a loan */
 .frx_loan {
     border: red;
@@ -582,4 +603,6 @@
 
 #bank_container {
     margin: 5px;
+    display: flex;
+    flex-direction: column;
 }

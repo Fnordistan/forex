@@ -25,6 +25,16 @@ const CURRENCY = {
     "CNY" : 7
 }
 
+const CURR_SYM = {
+    "GBP" : '&pound;',
+    "EUR" : '&euro;',
+    "USD" : '&dollar;',
+    "CHF" : 'CHf',
+    "JPY" : '&yen;',
+    "CAD" : 'C&#65284;',
+    "CNY" : '&#20803;'
+}
+
 const COLORS = {
     "GBP" : '#EC1C26',
     "EUR" : '#5156A5',
@@ -216,6 +226,7 @@ function (dojo, declare, on) {
             this.availableCertificates = [];
             this.availableCertCounters = [];
 
+            this.createBankStacks();
             this.addMonies();
             this.createCurrencyZones();
             this.placeCurrencyPairs();
@@ -312,6 +323,25 @@ function (dojo, declare, on) {
                 console.error(log, args, "Exception thrown", e.stack);
             }
             return this.inherited(arguments);
+        },
+
+        /**
+         * Creates bank stacks
+         */
+        createBankStacks: function() {
+            Object.keys(CURRENCY).forEach(curr => {
+                const stack_id = "bank_"+curr;
+                for (let i = 1; i < 10; i++) {
+                    const offset = -(2*i)+"px";
+                    const note = this.format_block('jstpl_bank_note_stacked', {"id": 'bank_'+curr+'_'+i, "curr": curr, "margin": offset});
+                    dojo.place(note, stack_id, i);
+                }
+                const curr_symbol = document.createElement("span");
+                curr_symbol.classList.add("frx_curr_symbol");
+                curr_symbol.style['color'] = COLORS[curr];
+                curr_symbol.innerHTML = CURR_SYM[curr];
+                dojo.place(curr_symbol, document.getElementById(stack_id).lastChild);
+            });
         },
 
         /**

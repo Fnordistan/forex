@@ -16,11 +16,6 @@
             <div id="{CURR}_{ZONE}" class="frx_curr_pr_zone" style="top: {T}px; left: {L}px;"></div>
             <!-- END CURRENCY_PAIRS_BLOCK -->
         </div>
-        <div id="bank_container">
-            <!-- BEGIN BANK_BLOCK -->
-            <div id="bank_{CURR}" class="frx_currency_card frx_note frx_{CURR}"></div>
-            <!-- END BANK_BLOCK -->
-        </div>
     </div>
     <div id="cards_display">
         <div id="available_certs_display" class="whiteblock">
@@ -30,6 +25,16 @@
                 <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
             </div>
             <!-- END CERTIFICATES_BLOCK -->
+            <div id="bank_container">
+                <h1 class="frx_col_hdr">{BANK}</h1>
+                <!-- BEGIN BANK_ROW -->
+                    <div id="bank_row{R}" class="frx_bank_row">
+                    <!-- BEGIN BANK_BLOCK -->
+                        <div id="bank_{CURR}" class="frx_currency_card frx_note_nonum frx_{CURR}" title="{CURR} Bank Notes"></div>
+                    <!-- END BANK_BLOCK -->
+                </div>
+                <!-- END BANK_ROW -->
+            </div>
         </div>
         <div id="contracts_div" class="whiteblock">
             <div id="contract_display">

@@ -51,6 +51,7 @@ define('ZONE_V_GAP', 107);
         $this->tpl['CONTRACT_DISPLAY'] = self::_("Contract Display");
         $this->tpl['CERTS_AVAILABLE'] = self::_("Available Certificates");
         $this->tpl['CONTRACT_QUEUE'] = self::_("Contract Queue");
+        $this->tpl['BANK'] = self::_("BANK");
 
         $this->page->begin_block($template, 'CURRENCY_PAIRS_BLOCK');
         $y = ZONE_Y;
@@ -89,11 +90,25 @@ define('ZONE_V_GAP', 107);
         }
 
         $this->page->begin_block($template, 'BANK_BLOCK');
-        foreach( $this->game->currencies as $c => $curr ) {
-          $this->page->insert_block('BANK_BLOCK', array(
-            'CURR' => $curr
+        $this->page->begin_block($template, 'BANK_ROW');
+        for ($r = 1; $r <= 3; $r++) {
+          $this->page->reset_subblocks( 'BANK_BLOCK');
+
+          for ( $c = 1; $c <= 3; $c++ ) {
+            $ci = $c + ($r-1)*3;
+            if ($ci <= 7) {
+              $curr = $this->game->currencies[$ci];
+              $this->page->insert_block('BANK_BLOCK', array(
+                'CURR' => $curr
+              ));
+            }
+          }
+  
+          $this->page->insert_block('BANK_ROW', array(
+              'R' => $r
           ));
         }
+
         /*********** Do not change anything below this line  ************/
   	}
   }
