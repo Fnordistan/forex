@@ -339,6 +339,11 @@ function (dojo, declare, on) {
                 const curr_symbol = document.createElement("span");
                 curr_symbol.classList.add("frx_curr_symbol");
                 curr_symbol.style['color'] = COLORS[curr];
+                if (curr == 'CHF' || curr == 'CAD') {
+                    curr_symbol.style['transform'] = "matrix(0.55, 0, 0, 0.8, 15, 0)";
+                } else if (curr == 'CNY') {
+                    curr_symbol.style['transform'] = "scale(0.9)";
+                }
                 curr_symbol.innerHTML = CURR_SYM[curr];
                 dojo.place(curr_symbol, document.getElementById(stack_id).lastChild);
             });
@@ -732,14 +737,16 @@ function (dojo, declare, on) {
                     this.moveDividendStack(end);
                 }
             } else {
+                let d = 0;
                 while (div_q.firstChild) {
                     const c = div_q.firstChild;
                     // create a temp copy to slide
                     const temp_c = dojo.clone(c);
                     const child = div_q.removeChild(c);
                     // show movement
-                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 1000 ).play();
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, d*500 ).play();
                     div_q2.appendChild(child);
+                    d++;
                 }
             }
         },
@@ -754,7 +761,7 @@ function (dojo, declare, on) {
         slideNotesToStack: function(contract, type, curr, amt) {
             for (let p = 0; p < amt; p++) {
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 1000 ).play();
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, p*250 ).play();
             }
         },
 
@@ -905,10 +912,12 @@ function (dojo, declare, on) {
             const stack_container_to = 'contract_promise_'+to;
             const stack_from = stack_container_from+'_'+curr;
             const stack_div = document.getElementById(stack_from);
+            let d = 0;
             while (stack_div.firstChild) {
                 stack_div.removeChild(stack_div.lastChild);
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 1000 ).play();
+                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, d*250 ).play();
+                d++;
             }
             stack_div.remove();
             // now repopulate the stacks
@@ -1268,7 +1277,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < Math.abs(amt); i++) {
-                this.slideTemporaryObject( note_html, parent_id, from, to, 1000 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, i*250 ).play();
             }
         },
 
@@ -1280,18 +1289,20 @@ function (dojo, declare, on) {
          */
         moveContractNotes: function(contract, curr, player_id) {
             const parent_id = 'contract_'+contract;
-            let from = 'contract_promise_'+contract;
+            let from = 'contract_promise_'+contract+'_'+curr;
             let to = 'bank_'+curr;
             if (player_id) {
-                from = 'contract_payout_'+contract;
+                from = 'contract_payout_'+contract+'_'+curr;
                 to = curr+'_note_counter_icon_'+player_id;
             }
             // cleanup: remove notes from stack
             const stack = document.getElementById(from);
+            let d = 0;
             while (stack.firstChild) {
                 const note_html = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note_html, parent_id, from, to, 1000 ).play();
-                stack.removeChild(stack.lastChild);
+                this.slideTemporaryObject( note_html, parent_id, from, to, d*500 ).play();
+                stack.removeChild(stack.firstChild);
+                d++;
             }
         },
 
@@ -1327,7 +1338,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < amt; i++) {
-                this.slideTemporaryObject( cert_html, parent_id, from, to, 1000 ).play();
+                this.slideTemporaryObject( cert_html, parent_id, from, to, i*500 ).play();
             }
         },
 
@@ -1350,14 +1361,14 @@ function (dojo, declare, on) {
                 "curr": off_curr
             });
             for (let i = 0; i < Math.ceil(Math.abs(off_amt)); i++) {
-                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, 1000 ).play();
+                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, i*1000 ).play();
             }
             // animate request currency going req_player -> from_player
             const req_note_html = this.format_block('jstpl_bank_note', {
                 "curr": req_curr
             });
             for (let j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
-                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 1000 ).play();
+                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, j*1000 ).play();
             }
         },
 
@@ -1377,7 +1388,7 @@ function (dojo, declare, on) {
                 "curr": base_curr
             });
             for (let i = 0; i < Math.ceil(amt); i++) {
-                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 1000 ).play();
+                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, i*1000 ).play();
             }
         },
 
