@@ -791,7 +791,7 @@ class ForEx extends Table
             $players = self::loadPlayersBasicInfos();
             $player_name = $players[$player_id]['player_name'];
 
-            self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
+            self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} fulfills Contract ${contract}').'${conL}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
@@ -937,7 +937,7 @@ class ForEx extends Table
         }
         if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
             // we're good, so resolve it
-            self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} resolves loan ${contract}').'${conL}', array(
+            self::notifyAllPlayers("loanResolved", clienttranslate('${player_name} pays loan ${contract}').'${conL}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
@@ -1209,7 +1209,7 @@ class ForEx extends Table
         self::checkAction( 'resolve' );
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
-        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract Queue: ${contract}').'${conL}', array(
+        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),

@@ -908,6 +908,7 @@ function (dojo, declare, on) {
          * @return {Object} the new set of loans
          */
         moveToLoan: function(from, to, curr, amt) {
+            debugger;
             const stack_container_from = 'contract_promise_'+from;
             const stack_container_to = 'contract_promise_'+to;
             const stack_from = stack_container_from+'_'+curr;
