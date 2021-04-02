@@ -1138,7 +1138,6 @@ class ForEx extends Table
     function divestAction($player_id, $curr, $amt) {
         $divested_certs = $this->sellCertificates($player_id, $curr, $amt);
         $cash = $amt*2;
-        $this->adjustMonies($player_id, $curr, $cash);
 
         $x_certs = $this->create_X_monies_arg($amt, $curr, CERTIFICATE);
         $x_notes = $this->create_X_monies_arg($cash, $curr, NOTE);
@@ -1153,6 +1152,7 @@ class ForEx extends Table
             'x_monies2' => $x_notes,
             'x_monies' => 2,
         ));
+        $this->adjustMonies($player_id, $curr, $cash);
 
         self::incStat($amt, 'divested', $player_id);
         $this->weaken($curr, $amt);
