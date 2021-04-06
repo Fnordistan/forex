@@ -567,19 +567,28 @@
 }
 
 /* Shows all available Certificates */
-#available_certs_display {
+#forex_board_col_2 {
     display: flex;
     flex-direction: column;
-    height: 100%;
-    margin: 0 5px;
+    height: calc(var(--board_h)*0.5);
+    margin: 5px 5px;
+}
+
+/** shows all the Contracts */
+#forex_board_col_3 {
+    display: flex;
+    flex-direction: column;
+    height: calc(var(--board_h)*0.5);
+    margin: 5px 5px;
 }
 
 #contracts_div {
     display: flex;
     flex-direction: column;
     height: 100%;
-    margin: 0 5px;
     align-items: center;
+    height: calc(var(--board_h)*0.5);
+    margin: 5px 5px;
 }
 
 /* Holds the vertical Contract Display */
@@ -591,8 +600,8 @@
 }
 
 #contract_queue_display {
-    margin: 0 5px;
     height: 100%;
+    margin: 5px 5px;
 }
 
 #contract_queue_container {

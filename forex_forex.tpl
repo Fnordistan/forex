@@ -17,12 +17,13 @@
             <!-- END CURRENCY_PAIRS_BLOCK -->
         </div>
     </div>
-    <div id="cards_display">
-        <div id="available_certs_display" class="whiteblock">
+
+    <div id="forex_board_col_2" class="whiteblock">
             <h1 class="frx_col_hdr">{CERTS_AVAILABLE}</h1>
             <!-- BEGIN CERTIFICATES_BLOCK -->
             <div id="avail_certs_{CURR}_container" class="frx_certs_container">
-                <div id="avail_certs_{CURR}"></div><span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
+                <div id="avail_certs_{CURR}"></div>
+                <span id="avail_certs_{CURR}_ctr" class="frx_cert_cntr"></span>
             </div>
             <!-- END CERTIFICATES_BLOCK -->
             <div id="bank_container">
@@ -35,28 +36,30 @@
                 </div>
                 <!-- END BANK_ROW -->
             </div>
-        </div>
-        <div id="contracts_div" class="whiteblock">
-            <div id="contract_display">
-                <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
-                <!-- BEGIN CONTRACTS_BLOCK -->
-                <div id="contract_{CONTRACT}" class="frx_contract_container">
-                    <div id="contract_promise_{CONTRACT}" class="frx_contract_curr_box"></div>
-                    <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
-                    <div id="contract_payout_{CONTRACT}" class="frx_contract_curr_box"></div>
-                </div>
-                <!-- END CONTRACTS_BLOCK -->
+    </div>
+
+    <div id="contracts_div" class="whiteblock">
+        <div id="contract_display">
+            <h1 class="frx_col_hdr">{CONTRACT_DISPLAY}</h1>
+            <!-- BEGIN CONTRACTS_BLOCK -->
+            <div id="contract_{CONTRACT}" class="frx_contract_container">
+                <div id="contract_promise_{CONTRACT}" class="frx_contract_curr_box"></div>
+                <div id="contract_card_{CONTRACT}" class="frx_contract_card frx_{CONTRACT}"></div>
+                 <div id="contract_payout_{CONTRACT}" class="frx_contract_curr_box"></div>
             </div>
-            <div id="contract_queue_display">
-                <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
-                <div id="contract_queue_container">
-                    <!-- BEGIN QUEUE_BLOCK -->
-                    <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
-                    <!-- END QUEUE_BLOCK -->
-                </div>
-            </div>
+            <!-- END CONTRACTS_BLOCK -->
         </div>
     </div>
+
+    <div id="contract_queue_display" class="whiteblock">
+            <h1 class="frx_col_hdr">{CONTRACT_QUEUE}</h1>
+            <div id="contract_queue_container">
+                <!-- BEGIN QUEUE_BLOCK -->
+                <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
+                <!-- END QUEUE_BLOCK -->
+            </div>
+    </div>
+
 </div>
 
 <script type="text/javascript">
