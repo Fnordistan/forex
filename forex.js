@@ -684,11 +684,21 @@ function (dojo, declare, on) {
          */
         addDividendsCounter: function() {
             this.dividendCounter = new ebg.counter();
+            // if we're at the bottom, we're going to put the cardback in the zone
+            const bBottom = this.divstack.getItemNumber() == 0;
+            if (bBottom) {
+                const cardback = document.createElement("span");
+                cardback.classList.add("frx_card_back");
+                cardback.id = "divstack_bottom";
+                const bottomcard = dojo.place(cardback, 'contract_queue_container');
+                this.divstack.placeInZone(bottomcard.id);
+            }
+
             const items = this.divstack.getAllItems();
             const last_id = items[items.length-1];
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter.create('dividend_counter');
-            this.dividendCounter.setValue(items.length);
+            this.dividendCounter.setValue(bBottom ? 0 : items.length);
         },
 
         /**

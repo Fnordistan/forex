@@ -308,6 +308,15 @@
     height: calc(var(--scale) * var(--contract_h) * 2);
 }
 
+.frx_card_back {
+    background-size: calc(var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
+    background-image: url(img/cardback.jpg);
+    background-repeat: no-repeat;
+    border: 1px solid black;
+    width: calc(var(--scale) * var(--contract_w));
+    height: calc(var(--scale) * var(--contract_h));
+}
+
 .frx_mon_container {
     display: inline-block;
     width: 100%;

@@ -71,6 +71,9 @@ var jstpl_dividend = '<span id="dividend_${div_num}" class="frx_dividend" style=
 // for showing individual dividends in title text or tooltip
 var jstpl_dividend_card = '<span id="show_dividend_${div_num}" class="frx_dividend_lg" style="display: inline-block; vertical-align: middle; margin: 5px; background-position: ${offset}px 0px; --scale: ${scale}"></span>';
 
+// card back (for bottom of pile)
+var jstpl_card_back = '<span class="frx_card_back"></span>';
+
 // the number of Dividends left, put on top of stack
 var jstpl_dividend_counter = '<span id="dividend_counter" class="frx_dividend_counter"></span>';
 
