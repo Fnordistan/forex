@@ -1302,7 +1302,7 @@ function (dojo, declare, on) {
             let d = 0;
             while (stack.firstChild) {
                 const note_html = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note_html, parent_id, from, to, d*500 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, d*250 ).play();
                 stack.removeChild(stack.firstChild);
                 d++;
             }
