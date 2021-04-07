@@ -25,16 +25,6 @@ const CURRENCY = {
     "CNY" : 7
 }
 
-const CURR_SYM = {
-    "GBP" : '&pound;',
-    "EUR" : '&euro;',
-    "USD" : '&dollar;',
-    "CHF" : 'CHf',
-    "JPY" : '&yen;',
-    "CAD" : 'C&#65284;',
-    "CNY" : '&#20803;'
-}
-
 const COLORS = {
     "GBP" : '#EC1C26',
     "EUR" : '#5156A5',
@@ -160,7 +150,7 @@ function (dojo, declare, on) {
             this.dvdheight = DIVIDEND_BASE_H*scale;
             this.curr_tok_dim = 25;
         },
-        
+
         /*
             setup:
             
@@ -329,8 +319,19 @@ function (dojo, declare, on) {
          * Creates bank stacks
          */
         createBankStacks: function() {
+            const CURR_SYM = {
+                "GBP" : '&pound;',
+                "EUR" : '&euro;',
+                "USD" : '&dollar;',
+                "CHF" : 'CHf',
+                "JPY" : '&yen;',
+                "CAD" : 'C&#65284;',
+                "CNY" : '&#20803;'
+            }
+
             Object.keys(CURRENCY).forEach(curr => {
                 const stack_id = "bank_"+curr;
+
                 for (let i = 1; i < 10; i++) {
                     const offset = -(2*i)+"px";
                     const note = this.format_block('jstpl_bank_note_stacked', {"id": 'bank_'+curr+'_'+i, "curr": curr, "margin": offset});
@@ -1041,17 +1042,15 @@ function (dojo, declare, on) {
         //                        action status bar (ie: the HTML links in the status bar).
         //        
         onUpdateActionButtons: function( stateName, args ) {
+            console.log(stateName);
             if (this.isCurrentPlayerActive()) {
                 switch( stateName ) {
                     case 'playerAction':
                         this.addPlayerActionButtons();
                         break;
                     case 'offerResponse':
-                        const spot = this.SPOT_TRANSACTION;
-                        if (this.player_id == spot[SPOT.TO]) {
+                        if (this.player_id == this.SPOT_TRANSACTION[SPOT.TO]) {
                             this.addSpotTradeButtons();
-                        } else if (this.player_id == spot[SPOT.FROM]) {
-                            this.addCancelSpotTrade();
                         }
                         break;
                     case 'nextDivest':
@@ -1064,6 +1063,8 @@ function (dojo, declare, on) {
                         this.addCurrenciesChooseScoring();
                         break;
                 }
+            } else if (stateName == 'offerResponse' && this.player_id == this.SPOT_TRANSACTION[SPOT.FROM]) {
+                this.addCancelSpotTrade();
             }
         },
 
@@ -2464,12 +2465,10 @@ function (dojo, declare, on) {
          * Clicked "Cancel" button - sends cancellation on a Spot Trade offer.
          */
         cancelSpotTrade: function() {
-            if (this.checkAction('cancelSpotTrade', true)) {
-                this.ajaxcall( "/forex/forex/cancelSpotTrade.html", { 
-                    lock: true 
-                }, this, function( result ) {  }, function( is_error) { } );                        
-                this.SPOT_TRANSACTION = null;
-            }
+            this.ajaxcall( "/forex/forex/cancelSpotTrade.html", { 
+                lock: true 
+            }, this, function( result ) {  }, function( is_error) { } );                        
+            this.SPOT_TRANSACTION = null;
         },
 
         /**

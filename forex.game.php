@@ -1048,7 +1048,7 @@ class ForEx extends Table
      * Spot Trade player cancels his offer before acceptance/rejection
      */
     function cancelSpotTrade() {
-        self::checkAction( 'cancelSpotTrade' ); 
+        // self::checkAction( 'cancelSpotTrade' ); 
         self::notifyAllPlayers('spotTradeCanceled', clienttranslate('${player_name} canceled trade offer'), array(
             'player_name' => self::getActivePlayerName(),
         ));
@@ -1333,7 +1333,8 @@ class ForEx extends Table
     function stSpotOffer() {
         $from_player = self::getGameStateValue(SPOT_FROM);
         $to_player = self::getGameStateValue(SPOT_TO);
-        $this->gamestate->setPlayersMultiactive( array($from_player, $to_player), "getResponse", true );
+        // $this->gamestate->setPlayersMultiactive( array($from_player, $to_player), "getResponse", true );
+        $this->gamestate->changeActivePlayer( $to_player );
         $this->gamestate->nextState("getResponse");
     }
 
