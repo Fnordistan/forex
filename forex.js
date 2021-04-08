@@ -52,6 +52,7 @@ const EXCHANGE_RATE = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8];
 const DIVIDENDS = "Dividends";
 const BTN = "_btn";
 const LOAN = "LN";
+const BOTTOM_CARD = "divstack_bottom";
 
 const CERT_SPRITES = "img/forex_certificates.jpg";
 const NOTE_SPRITES = "img/forex_notes.jpg";
@@ -513,7 +514,10 @@ function (dojo, declare, on) {
                 "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
                 "scale": scale
             });
-            this.addTooltipHtml( $(topdiv), tooltip, 0 ); 
+            if (topdiv != BOTTOM_CARD) {
+                this.addTooltipHtml( $(topdiv), tooltip, 0 ); 
+            }
+            this.addDividendsCounter();
         },
 
         /**
@@ -680,25 +684,29 @@ function (dojo, declare, on) {
         },
 
         /**
+         * Puts the bottom card in the Dividends stack
+         */
+        placeBottomDividendCard: function() {
+            const cardback = document.createElement("span");
+            cardback.classList.add("frx_card_back");
+            cardback.id = BOTTOM_CARD;
+            const bottomcard = dojo.place(cardback, 'contract_queue_container');
+            this.divstack.placeInZone(bottomcard.id);
+        },
+
+        /**
          * Put the Dividends stack counter on top of the stack
          */
         addDividendsCounter: function() {
-            this.dividendCounter = new ebg.counter();
-            // if we're at the bottom, we're going to put the cardback in the zone
-            const bBottom = this.divstack.getItemNumber() == 0;
-            if (bBottom) {
-                const cardback = document.createElement("span");
-                cardback.classList.add("frx_card_back");
-                cardback.id = "divstack_bottom";
-                const bottomcard = dojo.place(cardback, 'contract_queue_container');
-                this.divstack.placeInZone(bottomcard.id);
+            if (this.divstack.getItemNumber() == 0) {
+                this.placeBottomDividendCard();
             }
-
             const items = this.divstack.getAllItems();
             const last_id = items[items.length-1];
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
+            this.dividendCounter = new ebg.counter();
             this.dividendCounter.create('dividend_counter');
-            this.dividendCounter.setValue(bBottom ? 0 : items.length);
+            this.dividendCounter.setValue(last_id == BOTTOM_CARD ? 0 : items.length);
         },
 
         /**
@@ -919,7 +927,6 @@ function (dojo, declare, on) {
          * @return {Object} the new set of loans
          */
         moveToLoan: function(from, to, curr, amt) {
-            debugger;
             const stack_container_from = 'contract_promise_'+from;
             const stack_container_to = 'contract_promise_'+to;
             const stack_from = stack_container_from+'_'+curr;
@@ -1052,7 +1059,6 @@ function (dojo, declare, on) {
         //                        action status bar (ie: the HTML links in the status bar).
         //        
         onUpdateActionButtons: function( stateName, args ) {
-            console.log(stateName);
             if (this.isCurrentPlayerActive()) {
                 switch( stateName ) {
                     case 'playerAction':
@@ -2775,7 +2781,7 @@ function (dojo, declare, on) {
         notif_dividendsPopped: function(notif) {
             const div_items = this.divstack.getAllItems();
             this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contract_queue_display');
-            this.addDividendsCounter();
+            // this.addDividendsCounter();
             this.pushContractQueue();
             this.moveDividendStack(1);
         },
