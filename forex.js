@@ -52,7 +52,6 @@ const EXCHANGE_RATE = [1, 1.5, 2, 2.5, 3, 3.5, 4, 5, 6, 8];
 const DIVIDENDS = "Dividends";
 const BTN = "_btn";
 const LOAN = "LN";
-const BOTTOM_CARD = "divstack_bottom";
 
 const CERT_SPRITES = "img/forex_certificates.jpg";
 const NOTE_SPRITES = "img/forex_notes.jpg";
@@ -514,7 +513,7 @@ function (dojo, declare, on) {
                 "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
                 "scale": scale
             });
-            if (topdiv != BOTTOM_CARD) {
+            if (divcards.length > 1) {
                 this.addTooltipHtml( $(topdiv), tooltip, 0 ); 
             }
             this.addDividendsCounter();
@@ -667,6 +666,16 @@ function (dojo, declare, on) {
             this.divstack = new ebg.zone();
             this.divstack.create(this, div_el, this.dvdwidth, this.dvdheight);
             this.divstack.setPattern('verticalfit');
+
+            // card back
+            const cardback = this.format_block('jstpl_dividend', {
+                "div_num" : "bottom",
+                "offset": -5 * this.dvdwidth,
+                "margin": 0
+            });
+            const divcardback = dojo.place(cardback, 'contract_queue_container');
+            this.divstack.placeInZone(divcardback.id);
+
             // put each remaining dividend in stack, last first
             const dividends = parseInt(this.gamedatas.dividends);
             for (let i = 0; i < dividends; i++) {
@@ -684,29 +693,15 @@ function (dojo, declare, on) {
         },
 
         /**
-         * Puts the bottom card in the Dividends stack
-         */
-        placeBottomDividendCard: function() {
-            const cardback = document.createElement("span");
-            cardback.classList.add("frx_card_back");
-            cardback.id = BOTTOM_CARD;
-            const bottomcard = dojo.place(cardback, 'contract_queue_container');
-            this.divstack.placeInZone(bottomcard.id);
-        },
-
-        /**
          * Put the Dividends stack counter on top of the stack
          */
         addDividendsCounter: function() {
-            if (this.divstack.getItemNumber() == 0) {
-                this.placeBottomDividendCard();
-            }
             const items = this.divstack.getAllItems();
             const last_id = items[items.length-1];
             dojo.place(this.format_block('jstpl_dividend_counter'), last_id);
             this.dividendCounter = new ebg.counter();
             this.dividendCounter.create('dividend_counter');
-            this.dividendCounter.setValue(last_id == BOTTOM_CARD ? 0 : items.length);
+            this.dividendCounter.setValue(items.length-1);
         },
 
         /**
@@ -763,7 +758,7 @@ function (dojo, declare, on) {
                     const temp_c = dojo.clone(c);
                     const child = div_q.removeChild(c);
                     // show movement
-                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, d*500 ).play();
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500, d*500 ).play();
                     div_q2.appendChild(child);
                     d++;
                 }
@@ -780,7 +775,7 @@ function (dojo, declare, on) {
         slideNotesToStack: function(contract, type, curr, amt) {
             for (let p = 0; p < amt; p++) {
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, p*250 ).play();
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500, p*250 ).play();
             }
         },
 
@@ -935,7 +930,7 @@ function (dojo, declare, on) {
             while (stack_div.firstChild) {
                 stack_div.removeChild(stack_div.lastChild);
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, d*250 ).play();
+                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 500, d*250 ).play();
                 d++;
             }
             stack_div.remove();
@@ -1076,7 +1071,7 @@ function (dojo, declare, on) {
                         this.addCurrenciesStrengthen();
                         break;
                     case 'strongestCurrency':
-                        this.addCurrenciesChooseScoring();
+                        this.addCurrenciesChooseScoring(args.currencies);
                         break;
                 }
             } else if (stateName == 'offerResponse' && this.player_id == this.SPOT_TRANSACTION[SPOT.FROM]) {
@@ -1295,7 +1290,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < Math.abs(amt); i++) {
-                this.slideTemporaryObject( note_html, parent_id, from, to, i*250 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 500, i*250 ).play();
             }
         },
 
@@ -1318,7 +1313,7 @@ function (dojo, declare, on) {
             let d = 0;
             while (stack.firstChild) {
                 const note_html = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note_html, parent_id, from, to, d*250 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 500, d*250 ).play();
                 stack.removeChild(stack.firstChild);
                 d++;
             }
@@ -1356,7 +1351,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < amt; i++) {
-                this.slideTemporaryObject( cert_html, parent_id, from, to, i*500 ).play();
+                this.slideTemporaryObject( cert_html, parent_id, from, to, 500, i*500 ).play();
             }
         },
 
@@ -1379,14 +1374,14 @@ function (dojo, declare, on) {
                 "curr": off_curr
             });
             for (let i = 0; i < Math.ceil(Math.abs(off_amt)); i++) {
-                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, i*1000 ).play();
+                this.slideTemporaryObject( off_note_html, off_parent_id, off_player_notes, req_player_notes, 500, i*1000 ).play();
             }
             // animate request currency going req_player -> from_player
             const req_note_html = this.format_block('jstpl_bank_note', {
                 "curr": req_curr
             });
             for (let j = 0; j < Math.ceil(Math.abs(req_amt)); j++) {
-                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, j*1000 ).play();
+                this.slideTemporaryObject( req_note_html, req_parent_id, req_player_notes, off_player_notes, 500, j*1000 ).play();
             }
         },
 
@@ -1406,7 +1401,7 @@ function (dojo, declare, on) {
                 "curr": base_curr
             });
             for (let i = 0; i < Math.ceil(amt); i++) {
-                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, i*1000 ).play();
+                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 500, i*500 ).play();
             }
         },
 
@@ -1717,18 +1712,45 @@ function (dojo, declare, on) {
                 throw "Only one currency is held by most players; should not be in this state";
             }
             this.setDescriptionOnMyTurn(_("Choose which currency will be strengthened:"), {X_CURRENCIES: currencies});
-            this.addChooseCurrencyAction(currencies);
+            this.addChooseStrengthen(currencies);
+        },
+
+        /**
+         * When player must choose which Currency is the final scoring one.
+         * @param {array} currencies 
+         */
+         addCurrenciesChooseScoring: function(currencies) {
+            // sanity check
+            if (currencies.length == 1) {
+                // should not happen!
+                throw "Only one currency to choose from; should not be in this state";
+            }
+            this.setDescriptionOnMyTurn(_("Choose which currency will be used for final scoring:"), {X_CURRENCIES: currencies});
+            this.addChooseStrongest(currencies);
         },
 
         /**
          * Add an action to the buttons for each currency to choose it to be the one that is stronger/strengthened.
          * @param {array} currencies 
          */
-        addChooseCurrencyAction: function(currencies) {
+        addChooseStrengthen: function(currencies) {
             currencies.forEach(curr => {
                 const btn_id = curr+'_cert_btn';
                 $(btn_id).addEventListener('click', () => {
                     this.chooseStrengthen(curr);
+                });
+            });
+        },
+
+        /**
+         * Add an action to the buttons for each currency to choose it to be the one that is stronger/strengthened.
+         * @param {array} currencies 
+         */
+         addChooseStrongest: function(currencies) {
+            currencies.forEach(curr => {
+                const btn_id = curr+'_cert_btn';
+                $(btn_id).addEventListener('click', () => {
+                    this.chooseStrongest(curr);
                 });
             });
         },
@@ -2598,6 +2620,19 @@ function (dojo, declare, on) {
             }
         },
 
+        /**
+         * Player chose the currency which will be strongest for scoring.
+         * @param {string} currStr
+         */
+        chooseStrongest: function(currStr) {
+            if (this.checkAction('chooseStrongestCurrency', true)) {
+                this.ajaxcall( "/forex/forex/chooseStrongestCurrency.html", {
+                    curr: currStr,
+                    lock: true
+                }, this, function( result ) {  }, function( is_error) { } );
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Reaction to cometD notifications
         ///////////////////////////////////////////////////
@@ -2626,6 +2661,8 @@ function (dojo, declare, on) {
             this.notifqueue.setSynchronous( 'notif_certificatesSold', 500 );
             dojo.subscribe( 'contractTaken', this, "notif_contractTaken" );
             this.notifqueue.setSynchronous( 'notif_contractTaken', 500 );
+            dojo.subscribe( 'dividendsPaid', this, "notif_dividendsPaid" );
+            this.notifqueue.setSynchronous( 'notif_dividendsPaid', 500 );
             dojo.subscribe( 'dividendsStackPopped', this, "notif_dividendsPopped" );
             this.notifqueue.setSynchronous( 'notif_dividendsPopped', 500 );
             dojo.subscribe( 'contractPaid', this, "notif_contractPaid");
@@ -2775,13 +2812,24 @@ function (dojo, declare, on) {
         },
 
         /**
+         * Move monies from bank to player board
+         * @param {Object*} notif 
+         */
+        notif_dividendsPaid: function(notif) {
+            const player_id = notif.args.player_id;
+            const curr = notif.args.curr;
+            const amt = parseFloat(notif.args.amt);
+            this.moveBankNotes(player_id, curr, amt);
+        },
+
+        /**
          * Remove top Dividend and move stack to back of queue.
          * @param {Object} notif 
          */
         notif_dividendsPopped: function(notif) {
             const div_items = this.divstack.getAllItems();
             this.divstack.removeFromZone(div_items[div_items.length-1], true, 'contract_queue_display');
-            // this.addDividendsCounter();
+            this.addDividendsCounter();
             this.pushContractQueue();
             this.moveDividendStack(1);
         },

@@ -729,6 +729,10 @@ class ForEx extends Table
             foreach($players as $player_id => $player) {
                 foreach ($this->currencies as $c => $curr) {
                     if (in_array($curr, $nonpaying)) {
+                        self::notifyAllPlayers("noDividendsPaid", clienttranslate('${player_name} receives no dividends for ${curr}'), array(
+                            'player_name' => $player['player_name'],
+                            'curr' => $curr,
+                        ));
                     } else {
                         $certs = count($this->getCertificates($player_id, $curr));
                         if ($certs > 0) {
@@ -736,10 +740,13 @@ class ForEx extends Table
                             $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
                             $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
                             self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
+                                'player_id' => $player_id,
                                 'player_name' => $player['player_name'],
                                 'x_monies1' => $paid_str,
                                 'x_monies2' => $cert_str,
-                                'x_monies' => 2
+                                'x_monies' => 2,
+                                'curr' => $curr,
+                                'amt' => $monies,
                             ));
                             $this->adjustMonies($player_id, $curr, $monies, false);
                         }
@@ -1259,7 +1266,7 @@ class ForEx extends Table
             'currency' => $curr,
         ));
         self::setStat($this->currency_enum[$curr], SCORING_CURRENCY);
-        $this->gamestate->nextState("scoring");
+        $this->gamestate->nextState();
     }
 
 //////////////////////////////////////////////////////////////////////////////
