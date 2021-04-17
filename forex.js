@@ -1625,6 +1625,58 @@ function (dojo, declare, on) {
             return held;
         },
 
+        /**
+         * Checks if player can invest, and adds either active or inactive button.
+         */
+        addInvestActionButton: function() {
+            let may_invest = false;
+            // just need one currency that player can buy
+            Object.keys(CURRENCY).forEach(curr => {
+                if (!may_invest) {
+                    if (this.checkCanInvest(curr) == null) {
+                        may_invest = true;
+                    }
+                }
+            });
+            if (may_invest) {
+                this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
+            } else {
+                this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), null, null, null, "gray");
+            }
+        },
+
+        /**
+         * Checks if player has any Certificates to divest, and adds either active or inactive button.
+         */
+         addDivestActionButton: function() {
+            let may_divest = false;
+            Object.keys(CURRENCY).forEach(curr => {
+                if (!may_divest) {
+                    const certs = this.getMonies(this.player_id, curr, CURRENCY_TYPE.CERTIFICATE);
+                    if (certs > 0) {
+                        may_divest = true;
+                    }
+                }
+            });
+            if (may_divest) {
+                this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
+            } else {
+                this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), null, null, null, "gray");
+            }
+        },
+
+        /**
+         * Checks whether there are any available contracts, then adds either active or inactive button.
+         */
+        addMakeContractButton: function() {
+            const nextContract = this.getAvailableContract();
+            if (nextContract != null) {
+                this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
+            } else {
+                this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), null, null, null, "gray");
+            }
+        },
+
         ///////////////////////////////////////////////////
         //// Client "State" Functions
         ///////////////////////////////////////////////////
@@ -1636,9 +1688,9 @@ function (dojo, declare, on) {
             if (this.SPOT_DONE == 0) {
                 this.addActionButton( ACTIONS.SPOT+BTN, _('Spot Trade'), ACTIONS.SPOT);
             }
-            this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
-            this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
-            this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
+            this.addInvestActionButton();
+            this.addDivestActionButton();
+            this.addMakeContractButton();
             this.addActionButton( ACTIONS.RESOLVE+BTN, _('Resolve Contract'), ACTIONS.RESOLVE);
         },
 
@@ -2676,6 +2728,30 @@ function (dojo, declare, on) {
             dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
             this.notifqueue.setSynchronous( "notif_currencyScored", SCORING_DELAY );
             dojo.subscribe( 'bankruptcy', this, "notif_bankruptcy");
+
+
+        // Load production bug report handler
+        dojo.subscribe("loadBug", this, function loadBug(n) {
+            function fetchNextUrl() {
+            var url = n.args.urls.shift();
+            console.log("Fetching URL", url);
+            dojo.xhrGet({
+                url: url,
+                load: function (success) {
+                console.log("Success for URL", url, success);
+                if (n.args.urls.length > 0) {
+                    fetchNextUrl();
+                } else {
+                    console.log("Done, reloading page");
+                    window.location.reload();
+                }
+                },
+            });
+            }
+            console.log("Notif: load bug", n.args);
+            fetchNextUrl();
+        });
+
         },
 
         /**
