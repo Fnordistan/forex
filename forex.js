@@ -215,6 +215,7 @@ function (dojo, declare, on) {
             this.currencyPairZones = [];
             this.availableCertificates = [];
             this.availableCertCounters = [];
+            this.heldCertCounters = [];
 
             this.createBankStacks();
             this.addMonies();
@@ -381,6 +382,16 @@ function (dojo, declare, on) {
          * First create the Stock piles holding available Certificates.
          */
         createAvailableCertificates: function() {
+            const held_colors = {
+                "GBP": '#ED2026',
+                "EUR": '#5256A5',
+                "USD": '#2BB673',
+                "CHF": '#A04777',
+                "JPY": '#9C8679',
+                "CAD": '#5F3916',
+                "CNY": '#AF7E2B'
+            };
+        
             Object.keys(CURRENCY).forEach( curr => {
                 const avail = new ebg.stock();
                 avail.create( this, $('avail_certs_'+curr), this.cardwidth, this.cardheight );
@@ -394,15 +405,23 @@ function (dojo, declare, on) {
                 avail.addItemType( curr, 0, g_gamethemeurl+CERT_SPRITES, CURRENCY[curr]-1 );
                 avail.autowidth = true;
                 this.availableCertificates.push(avail);
-                // and create a matching counter
-                const counter = new ebg.counter();
-                counter.create('avail_certs_'+curr+'_ctr');
-                $('avail_certs_'+curr+'_ctr').classList.add('frx_ctr');
-                Object.assign($('avail_certs_'+curr+'_ctr').style, {
-                    'color': COLORS[curr],
-                    'vertical-align': 'top'
+                // create held and available counters
+                const ctr_ids = ['held_certs_'+curr+'_ctr', 'avail_certs_'+curr+'_ctr'];
+                ctr_ids.forEach( ctr_id => {
+                    const counter = new ebg.counter();
+                    counter.create(ctr_id);
+                    $(ctr_id).classList.add('frx_ctr');
+                    const clr = ctr_id.startsWith("held") ? held_colors[curr] : COLORS[curr];
+                    Object.assign($(ctr_id).style, {
+                        'color': clr,
+                        'vertical-align': 'top'
+                    });
+                    if (ctr_id.startsWith("held")) {
+                        this.heldCertCounters.push(counter);
+                    } else {
+                        this.availableCertCounters.push(counter);
+                    }
                 });
-                this.availableCertCounters.push(counter);
             });
         },
 
@@ -447,7 +466,10 @@ function (dojo, declare, on) {
                 if (cert.loc == 'available') {
                     this.placeAvailableCertificate(cert);
                 } else if (cert.loc != 'discard') {
-                    this.certCounters[cert.loc][CURRENCY[cert.curr]-1].incValue(1);
+                    // it's held by a player
+                    const curr_i = CURRENCY[cert.curr]-1;
+                    this.certCounters[cert.loc][curr_i].incValue(1);
+                    this.heldCertCounters[curr_i].incValue(1);
                 }
             }
         },
@@ -1629,6 +1651,7 @@ function (dojo, declare, on) {
          * Checks if player can invest, and adds either active or inactive button.
          */
         addInvestActionButton: function() {
+            this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
             let may_invest = false;
             // just need one currency that player can buy
             Object.keys(CURRENCY).forEach(curr => {
@@ -1638,10 +1661,8 @@ function (dojo, declare, on) {
                     }
                 }
             });
-            if (may_invest) {
-                this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), ACTIONS.INVEST);
-            } else {
-                this.addActionButton( ACTIONS.INVEST+BTN, _('Invest'), null, null, null, "gray");
+            if (!may_invest) {
+                $(ACTIONS.INVEST+BTN).classList.add("disabled");
             }
         },
 
@@ -1649,6 +1670,7 @@ function (dojo, declare, on) {
          * Checks if player has any Certificates to divest, and adds either active or inactive button.
          */
          addDivestActionButton: function() {
+            this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
             let may_divest = false;
             Object.keys(CURRENCY).forEach(curr => {
                 if (!may_divest) {
@@ -1658,10 +1680,8 @@ function (dojo, declare, on) {
                     }
                 }
             });
-            if (may_divest) {
-                this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), ACTIONS.DIVEST);
-            } else {
-                this.addActionButton( ACTIONS.DIVEST+BTN, _('Divest'), null, null, null, "gray");
+            if (!may_divest) {
+                $(ACTIONS.DIVEST+BTN).classList.add("disabled");
             }
         },
 
@@ -1669,11 +1689,10 @@ function (dojo, declare, on) {
          * Checks whether there are any available contracts, then adds either active or inactive button.
          */
         addMakeContractButton: function() {
+            this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
             const nextContract = this.getAvailableContract();
-            if (nextContract != null) {
-                this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), ACTIONS.CONTRACT);
-            } else {
-                this.addActionButton( ACTIONS.CONTRACT+BTN, _('Make Contract'), null, null, null, "gray");
+            if (nextContract == null) {
+                $(ACTIONS.CONTRACT+BTN).classList.add("disabled");
             }
         },
 
@@ -2730,27 +2749,27 @@ function (dojo, declare, on) {
             dojo.subscribe( 'bankruptcy', this, "notif_bankruptcy");
 
 
-        // Load production bug report handler
-        dojo.subscribe("loadBug", this, function loadBug(n) {
-            function fetchNextUrl() {
-            var url = n.args.urls.shift();
-            console.log("Fetching URL", url);
-            dojo.xhrGet({
-                url: url,
-                load: function (success) {
-                console.log("Success for URL", url, success);
-                if (n.args.urls.length > 0) {
-                    fetchNextUrl();
-                } else {
-                    console.log("Done, reloading page");
-                    window.location.reload();
-                }
-                },
-            });
-            }
-            console.log("Notif: load bug", n.args);
-            fetchNextUrl();
-        });
+            // // Load production bug report handler
+            // dojo.subscribe("loadBug", this, function loadBug(n) {
+            //     function fetchNextUrl() {
+            //     var url = n.args.urls.shift();
+            //     console.log("Fetching URL", url);
+            //     dojo.xhrGet({
+            //         url: url,
+            //         load: function (success) {
+            //         console.log("Success for URL", url, success);
+            //         if (n.args.urls.length > 0) {
+            //             fetchNextUrl();
+            //         } else {
+            //             console.log("Done, reloading page");
+            //             window.location.reload();
+            //         }
+            //         },
+            //     });
+            //     }
+            //     console.log("Notif: load bug", n.args);
+            //     fetchNextUrl();
+            // });
 
         },
 
@@ -2836,11 +2855,13 @@ function (dojo, declare, on) {
 
             // show money being spent (note counter was already ticked by adjustmonies)
             this.moveBankNotes(player_id, curr, -2);
-            // gain certificate and tick counter
-            this.availableCertCounters[CURRENCY[curr]-1].incValue(-1);
+            // gain certificate and tick counters
+            const curr_i = CURRENCY[curr]-1;
+            this.availableCertCounters[curr_i].incValue(-1);
+            this.heldCertCounters[curr_i].incValue(1);
             // show it moving to player's pile
-            this.availableCertificates[CURRENCY[curr]-1].removeFromStockById( id, curr+'_cert_counter_icon_'+player_id);
-            this.certCounters[player_id][CURRENCY[curr]-1].incValue(1);
+            this.availableCertificates[curr_i].removeFromStockById( id, curr+'_cert_counter_icon_'+player_id);
+            this.certCounters[player_id][curr_i].incValue(1);
         },
 
         /**
@@ -2860,6 +2881,7 @@ function (dojo, declare, on) {
                 this.moveCertificates(this.player_id, curr, amt);
                 // decrement player's certs counter
                 this.certCounters[player_id][CURRENCY[curr]-1].incValue(-amt);
+                this.heldCertCounters[CURRENCY[curr]-1].incValue(-amt);
                 // show notes being acquired
                 this.moveBankNotes(player_id, curr, amt*2);
             }

@@ -49,7 +49,9 @@ define('ZONE_V_GAP', 107);
 
         // this will make labels text translatable
         $this->tpl['CONTRACT_DISPLAY'] = self::_("Contract Display");
-        $this->tpl['CERTS_AVAILABLE'] = self::_("Available Certificates");
+        $this->tpl['CERTIFICATES_DISPLAY'] = self::_("Certificates");
+        $this->tpl['CERTS_HELD'] = self::_("Held");
+        $this->tpl['CERTS_AVAIL'] = self::_("Available");
         $this->tpl['CONTRACT_QUEUE'] = self::_("Contract Queue");
         $this->tpl['BANK'] = self::_("BANK");
 
