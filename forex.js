@@ -472,6 +472,13 @@ function (dojo, declare, on) {
                     this.heldCertCounters[curr_i].incValue(1);
                 }
             }
+            // hide any available cert that shows 0 since the pile is empty
+            for (const ctr in this.availableCertCounters) {
+                if (this.availableCertCounters[ctr].getValue() == 0) {
+                    const id = "avail_certs_"+CURRENCIES[ctr]+"_ctr";
+                    $(id).style['display'] = "none";
+                }
+            }
         },
 
         /**
@@ -1450,7 +1457,7 @@ function (dojo, declare, on) {
          * @param {enum} type 
          */
         getMonies: function(player_id, curr, type) {
-            let counters = type == CURRENCY_TYPE.NOTE ? this.noteCounters : this.certCounters;
+            const counters = (type == CURRENCY_TYPE.NOTE) ? this.noteCounters : this.certCounters;
             return counters[player_id][CURRENCY[curr]-1].getValue();
         },
 
