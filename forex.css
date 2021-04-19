@@ -58,6 +58,11 @@
     font-weight: bold;
     text-align: center;
     margin-bottom: 10px;
+    border: #f6f2f2;
+    border-style: ridge;
+    color: darkgoldenrod;
+    background-color: #d9d9d9;
+    background-image: linear-gradient(315deg, #d9d9d9 0%, #f6f2f2 74%);
 }
 
 .frx_certs_container > * {
@@ -92,6 +97,7 @@
 .frx_bank_row {
     display: flex;
     flex-direction: row;
+    margin-top: 15px;
 }
 
 .frx_curr_symbol {

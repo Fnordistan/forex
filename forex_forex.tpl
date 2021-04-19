@@ -21,7 +21,7 @@
     <div id="forex_board_col_2" class="whiteblock">
             <h1 class="frx_col_hdr">{CERTIFICATES_DISPLAY}</h1>
             <div style="display: inline-block;">
-                <h2 class="frx_col_hdr" style="float:left;">{CERTS_HELD}</h2><h2 class="frx_col_hdr" style="float:right;">{CERTS_AVAIL}</h2>
+                <h2 style="float:left;">{CERTS_HELD}</h2><h2 style="float:right;">{CERTS_AVAIL}</h2>
             </div>
             <!-- BEGIN CERTIFICATES_BLOCK -->
             <div id="avail_certs_{CURR}_container" class="frx_certs_container">
