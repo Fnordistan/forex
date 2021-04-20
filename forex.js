@@ -263,7 +263,11 @@ function (dojo, declare, on) {
                     }
                     if (args.currency) {
                         // only for curr quantities without a number
-                        args.currency = this.createMoniesXstr('', args.currency, CURRENCY_TYPE.NOTE, true);
+                        let curr_str = "";
+                        for (const s of args.currency.split(",")) {
+                            curr_str += this.createMoniesXstr('', s, CURRENCY_TYPE.NOTE, true) + " ";
+                        }
+                        args.currency = curr_str;
                     }
                     if (args.contract) {
                         const scale = 0.25;

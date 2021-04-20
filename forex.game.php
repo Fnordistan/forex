@@ -727,13 +727,16 @@ class ForEx extends Table
             $players = self::loadPlayersBasicInfos();
 
             foreach($players as $player_id => $player) {
+                // first list nonplaying certificates
+                if (count($nonpaying) > 0) {
+                    self::notifyAllPlayers("noDividendsPaid", clienttranslate('${player_name} receives no dividends for ${currency}'), array(
+                        'player_name' => $player['player_name'],
+                        'currency' => implode(",", $nonpaying),
+                    ));
+                }
+
                 foreach ($this->currencies as $c => $curr) {
-                    if (in_array($curr, $nonpaying)) {
-                        self::notifyAllPlayers("noDividendsPaid", clienttranslate('${player_name} receives no dividends for ${curr}'), array(
-                            'player_name' => $player['player_name'],
-                            'curr' => $curr,
-                        ));
-                    } else {
+                    if (!in_array($curr, $nonpaying)) {
                         $certs = count($this->getCertificates($player_id, $curr));
                         if ($certs > 0) {
                             $monies = $certs * $mult;
