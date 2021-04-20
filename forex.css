@@ -479,7 +479,7 @@
 }
 
 .frx_curr_btn:hover {
-    box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2), 0 6px 20px 0 rgba(0,0,0,0.19);
+    box-shadow: 0 8px 16px 0 rgba(212, 175, 55, .8), 5px 6px 8px 6px rgba(0,0,0,0.19);
 }
 
 .frx_curr_btn:focus {
@@ -491,7 +491,7 @@
     cursor: not-allowed;
     box-shadow: none;
     outline: 3px solid gray;
-    opacity: 0.5;
+    opacity: 0.3;
 }
 
 .frx_curr_btn_deactivate:hover {
