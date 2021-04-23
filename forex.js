@@ -461,6 +461,25 @@ function (dojo, declare, on) {
         },
 
         /**
+         * When an certificate stack is empty, clear the counter (don't show 0) and place
+         * and empty cert symbol.
+         * @param {int} ctr 
+         */
+        placeEmptyCertificateStack: function(ctr) {
+            const div_i = "avail_certs_"+CURRENCIES[ctr];
+            const id = div_i+"_ctr";
+            $(id).style['display'] = "none";
+            const empty_cert_div = document.createElement("div");
+            empty_cert_div.id = "empty_certs_"+CURRENCIES[ctr];
+            empty_cert_div.classList.add("frx_currency_card", "frx_cert", "frx_"+CURRENCIES[ctr]);
+            dojo.place(empty_cert_div, "avail_certs_"+CURRENCIES[ctr]);
+            Object.assign(empty_cert_div.style, {
+                "margin": "0 -5px",
+                "opacity": 0.4
+            });
+        },
+
+        /**
          * Put all the Certificates in appropriate place.
          */
         placeCertificates: function() {
@@ -479,8 +498,7 @@ function (dojo, declare, on) {
             // hide any available cert that shows 0 since the pile is empty
             for (const ctr in this.availableCertCounters) {
                 if (this.availableCertCounters[ctr].getValue() == 0) {
-                    const id = "avail_certs_"+CURRENCIES[ctr]+"_ctr";
-                    $(id).style['display'] = "none";
+                    this.placeEmptyCertificateStack(ctr);
                 }
             }
         },
@@ -2869,6 +2887,9 @@ function (dojo, declare, on) {
             // gain certificate and tick counters
             const curr_i = CURRENCY[curr]-1;
             this.availableCertCounters[curr_i].incValue(-1);
+            if (this.availableCertCounters[curr_i].getValue() == 0) {
+                this.placeEmptyCertificateStack(curr_i);
+            }
             this.heldCertCounters[curr_i].incValue(1);
             // show it moving to player's pile
             this.availableCertificates[curr_i].removeFromStockById( id, curr+'_cert_counter_icon_'+player_id);
