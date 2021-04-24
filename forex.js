@@ -226,6 +226,7 @@ function (dojo, declare, on) {
             this.createContractQueue();
             this.setupContracts();
             this.setupNotifications();
+            this.updateNextContractBanner();
 
             // may be null
             this.SPOT_TRANSACTION = this.gamedatas[SPOT_TRANSACTION] ? this.createSpotTransactionFromDatas() : null;
@@ -784,10 +785,10 @@ function (dojo, declare, on) {
         },
 
         /**
-         * Push all items in a ContractQueue slot to the left.
+         * Push all items in a ContractQueue slot to the right.
          */
         pushContractQueue: function() {
-            // start with leftmost
+            // start with rightmost
             for (let q = 7; q > 0; q--) {
                 this.slideContractQueue(q, q+1);
             }
@@ -1730,6 +1731,18 @@ function (dojo, declare, on) {
             if (nextContract == null) {
                 $(ACTIONS.CONTRACT+BTN).classList.add("disabled");
             }
+        },
+
+        /**
+         * Fill in the text in the next contract field below Contract Queue.
+         * @param {string} conL optional
+         */
+        updateNextContractBanner: function(conL) {
+            if (conL == null) {
+                conL = this.getContractToResolve();
+            }
+            const next = document.getElementById("next_contract");
+            next.innerHTML = _("Next Contract: ") + conL;
         },
 
         ///////////////////////////////////////////////////
@@ -2783,7 +2796,7 @@ function (dojo, declare, on) {
             dojo.subscribe( 'currencyScored', this, "notif_currencyScored");
             this.notifqueue.setSynchronous( "notif_currencyScored", SCORING_DELAY );
             dojo.subscribe( 'bankruptcy', this, "notif_bankruptcy");
-
+            dojo.subscribe( 'queueMoved', this, "notif_queueMoved");
 
             // // Load production bug report handler
             // dojo.subscribe("loadBug", this, function loadBug(n) {
@@ -2933,7 +2946,7 @@ function (dojo, declare, on) {
         notif_contractTaken: function( notif ) {
             // put Contract in Queue
             const contract = this.createContractFromNotif(notif);
-            // slide existing Contracts in Queue to left
+            // slide existing Contracts in Queue to right
             this.pushContractQueue();
             const contract_card = this.format_block('jstpl_contract_card', {"contract": contract.contract, "scale": 0.5});
             // slide contract to Queue
@@ -3101,11 +3114,20 @@ function (dojo, declare, on) {
 
         /**
          * When a player goes bankrupt
-         * @param {Object*} notif 
+         * @param {Object} notif 
          */
         notif_bankruptcy: function(notif) {
             const player_id = notif.args.player_id;
             this.decorateBankrupt(player_id);
+        },
+
+
+        /**
+         * When the queue is adjusted and needs to change the banner
+         * @param {Object} notif 
+         */
+        notif_queueMoved: function(notif) {
+            this.updateNextContractBanner(notif.args.contract);
         },
 
         /**

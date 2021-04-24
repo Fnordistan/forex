@@ -62,6 +62,7 @@
                 <div id="queue_{Q}" class="frx_contract_queue_slot"></div>
                 <!-- END QUEUE_BLOCK -->
             </div>
+            <span id="next_contract"></span>
     </div>
 
 </div>

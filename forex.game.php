@@ -549,19 +549,32 @@ class ForEx extends Table
     }
 
     /**
+     * Send notification that changes the Next Contract span on board.
+     */
+    function notifyNextContract() {
+        $newtail = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location in (SELECT MAX(location) FROM CONTRACTS)");
+        self::notifyAllPlayers("queueMoved", "", array(
+            'contract' => $newtail,
+        ));
+    }
+
+    /**
      * Take a Contract (by letter) and clear all values.
      * Also clears any Loans attached to this letter.
      */
     function clearContract($conL) {
         self::DbQuery("UPDATE CONTRACTS SET owner = NULL, promise = NULL, promise_amt = NULL, payout = NULL, payout_amt = NULL, location = NULL WHERE contract = \"$conL\"");
         self::DbQuery("DELETE FROM LOANS WHERE contract = \"$conL\"");
+        $this->notifyNextContract();
     }
 
     /**
-     * Slide left: adds 1 to every Contract in the queue
+     * Slide right: adds 1 to every Contract in the queue.
+     * Also send notification that there is a new end-queue slot.
      */
     function pushContractQueue() {
         self::DBQuery("UPDATE CONTRACTS SET location = location+1 WHERE location IS NOT NULL");
+        $this->notifyNextContract();
     }
 
     /**
@@ -609,7 +622,7 @@ class ForEx extends Table
             }
         }
         if (count($strongest) == 1) {
-            $this->notifyAllPlayers("currencyChosen", clienttranslate('${currency} is strongest in most pairs'), array(
+            self::notifyAllPlayers("currencyChosen", clienttranslate('${currency} is strongest in most pairs'), array(
                 'i18n' => array ('currency'),
                 'currency' => $strongest[0],
             ));
@@ -617,7 +630,7 @@ class ForEx extends Table
             // next tiebreaker is most certificates in hand
             $strongest = $this->countHeldCertificates($strongest);
             if (count($strongest) == 1) {
-                $this->notifyAllPlayers("currencyChosen", clienttranslate('${currency} has most Certificates in hand'), array(
+                self::notifyAllPlayers("currencyChosen", clienttranslate('${currency} has most Certificates in hand'), array(
                     'i18n' => array ('currency'),
                     'currency' => $strongest[0],
                 ));
@@ -1219,7 +1232,7 @@ class ForEx extends Table
         self::checkAction( 'resolve' );
         $player_id = self::getActivePlayerId();
         $contract = self::getUniqueValueFromDB("SELECT contract FROM CONTRACTS WHERE location IS NOT NULL ORDER BY location DESC LIMIT 1");
-        $this->notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
+        self::notifyAllPlayers("resolvedContractQueue", clienttranslate('${player_name} resolves Contract ${contract}').'${conL}', array(
             'i18n' => array ('contract'),
             'player_id' => $player_id,
             'player_name' => self::getActivePlayerName(),
@@ -1248,7 +1261,7 @@ class ForEx extends Table
      */
     function chooseCurrencyToStrengthen($curr) {
         self::checkAction( 'chooseCurrencyToStrengthen' );
-        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} strengthens ${currency}'), array(
+        self::notifyAllPlayers("currencyChosen", clienttranslate('${player_name} strengthens ${currency}'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
@@ -1263,7 +1276,7 @@ class ForEx extends Table
      */
     function chooseStrongestCurrency($curr) {
         self::checkAction( 'chooseStrongestCurrency' );
-        $this->notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses ${currency} for final scoring'), array(
+        self::notifyAllPlayers("currencyChosen", clienttranslate('${player_name} chooses ${currency} for final scoring'), array(
             'i18n' => array ('currency'),
             'player_name' => self::getActivePlayerName(),
             'currency' => $curr,
@@ -1452,7 +1465,7 @@ class ForEx extends Table
                             $conv_amt = $this->convertCurrency($base, $base_amt, $score_currency);
                             $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
                             $x_score = $this->create_X_monies_arg($conv_amt, $score_currency, NOTE);
-                            $this->notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
+                            self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
                                 'player_id' => $player_id,
                                 'player_name' => $player['player_name'],
                                 'score_curr' => $score_currency,
