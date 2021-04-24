@@ -359,9 +359,9 @@ class ForEx extends Table
      * Currencies can be decreased by more than 1 inc at a time.
      */
     function weaken($curr, $amt) {
-        $pairs = $this->getCurrencypairs($curr);
-        foreach ($pairs as $pair) {
-            for ($i = 0; $i < $amt; $i++) {
+        for ($i = 0; $i < $amt; $i++) {
+            $pairs = $this->getCurrencypairs($curr);
+            foreach ($pairs as $pair) {
                 $this->decrease($curr, $pair);
             }
         }
