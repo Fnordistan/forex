@@ -599,6 +599,7 @@ function (dojo, declare, on) {
                 const payout_id = 'contract_payout_'+contract.contract+'_'+contract.payout;
                 this.addTooltip(payout_id, this.createMoniesXstr(contract.payout_amt, contract.payout, CURRENCY_TYPE.NOTE, true), '');
             }
+            this.highlightContracts(contract, false);
         },
 
         /**
@@ -608,10 +609,15 @@ function (dojo, declare, on) {
          */
         highlightContracts: function(contract, bOn) {
             let highlightstyle = "none";
-            if (bOn) {
+
+            if (contract.player_id != 0) {
                 const player = this.gamedatas.players[contract.player_id];
                 const pcolor = player.color == "" ? '4871b6' : player.color;
-                highlightstyle = "2px 2px 6px 2px #"+pcolor;
+                if (bOn) {
+                    highlightstyle = "2px 2px 6px 2px #"+pcolor;
+                } else {
+                    highlightstyle = "inset 0 0 0 1000px #"+pcolor+"33";
+                }
             }
 
             for (const c_div of this.getContractDivs(contract)) {
@@ -628,8 +634,9 @@ function (dojo, declare, on) {
                             <span style="width: 100%; text-align: center">Available</span>';
             this.addTooltipHtml("contract_card_"+C, tooltip, 0);
             // stub contract for clearing previous loan if any
-            const loan = {"contract": C, "player_id": 0};
-            this.decorateLoan(loan, true);
+            const stubC = {"contract": C, "player_id": 0};
+            this.decorateLoan(stubC, true);
+            this.highlightContracts(stubC, false);
         },
 
         /**
