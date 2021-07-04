@@ -477,7 +477,7 @@
 }
 
 .frx_curr_btn:hover {
-    box-shadow: 0 8px 16px 0 rgba(212, 175, 55, .8), 5px 6px 8px 6px rgba(224, 197, 110, 0.19);
+    box-shadow: 0 5px 10px 0 lightgray, 3px 4px 6px 4px goldenrod;
 }
 
 .frx_curr_btn:focus {
