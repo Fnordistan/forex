@@ -1447,7 +1447,6 @@ class ForEx extends Table
         $score_currency = $this->currencies[$c_sc];
         foreach ($players as $player_id => $player) {
             $score = 0;
-            self::debug("player $player_id score=$score");
             if ($player_id == self::getGameStateValue(BANKRUPT_PLAYER)) {
                 foreach ($this->currencies as $cu => $currency) {
                     $certsheld = $this->getCertificates($player_id, $currency);
@@ -1455,7 +1454,6 @@ class ForEx extends Table
                 }
             } else {
                 $monies = $this->getMonies($player_id, $score_currency);
-                self::debug("player $player_id monies=$monies");
                 foreach ($this->currencies as $c => $base) {
                     $certs = $this->getCertificates($player_id, $base);
                     self::setStat(count($certs), $base."_certs", $player_id);
@@ -1477,14 +1475,12 @@ class ForEx extends Table
                                 'x_monies' => 2,
                             ));
                             $monies += $conv_amt;
-                            self::debug("player $player_id curr=$base monies=$monies");
                             $this->adjustMonies($player_id, $base, -$base_amt, false);
                             $this->adjustMonies($player_id, $score_currency, $conv_amt, false);
                         }
                     }
                 }
                 $score = $monies;
-                self::debug("player $player_id score=$score");
             }
             self::DbQuery( "UPDATE player SET player_score=$score WHERE player_id=$player_id" );
         }

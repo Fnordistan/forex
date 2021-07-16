@@ -415,7 +415,7 @@ function (dojo, declare, on) {
                 ctr_ids.forEach( ctr_id => {
                     const counter = new ebg.counter();
                     counter.create(ctr_id);
-                    $(ctr_id).classList.add('frx_ctr');
+                    $(ctr_id).classList.add('frx_heldavail_ctr');
                     const clr = ctr_id.startsWith("held") ? held_colors[curr] : COLORS[curr];
                     Object.assign($(ctr_id).style, {
                         'color': clr,

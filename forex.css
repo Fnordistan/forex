@@ -194,13 +194,13 @@
 
 .frx_dividend_counter {
     font-family: 'DM Mono';
-    font-size: 44px;
+    font-size: 48px;
     font-weight: 500px;
     position: absolute;
     left: calc(var(--scale) * 0.25 * var(--contract_w));
     color: #F9F4EA;
     text-shadow:
-        3px 3px 0 black,
+        2px 2px 0 black,
         -1px -1px 0 black,  
         1px -1px 0 black,
         -1px 1px 0 black,
@@ -339,6 +339,19 @@
         -1px 1px 0 lightgray,
         1px 1px 0 lightgray;
 }
+
+.frx_heldavail_ctr {
+    font-family: 'DM Mono';
+    font-size: 36px;
+    font-weight: 500;
+    text-shadow:
+        1px 1px 0 black,
+        -1px -1px 0 black,  
+        1px -1px 0 black,
+        -1px 1px 0 black,
+        1px 1px 0 black;
+}
+
 
 .frx_stack_ctr {
     font-family: 'DM Mono';
