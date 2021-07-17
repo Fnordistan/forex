@@ -500,10 +500,10 @@ class ForEx extends Table
 
         $x_adj = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
-        self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${adj} ${x_monies1}').'${x_monies}' : '', array(
+        self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${pays_or_gets} ${x_monies1}').'${x_monies}' : '', array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'adj' => $amt < 0 ? self::_("pays") : self::_("receives"),
+            'pays_or_gets' => $amt < 0 ? self::_("pays") : self::_("receives"),
             'amt' => $amt,
             'curr' => $curr,
             'x_monies1' => $x_adj,
@@ -1453,34 +1453,66 @@ class ForEx extends Table
                     self::setStat(count($certsheld), $currency."_certs", $player_id);
                 }
             } else {
-                $monies = $this->getMonies($player_id, $score_currency);
+                $score_monies = $this->getMonies($player_id, $score_currency);
+                $x_score = $this->create_X_monies_arg($score_monies, $score_currency, NOTE);
+                $log_msg = clienttranslate('${player_name} has ${x_monies1}');
+                $notify_args = array(
+                    'player_id' => $player_id,
+                    'player_name' => $player['player_name'],
+                    'score_curr' => $score_currency,
+                    'x_monies1' => $x_score
+                );
+                // $base_num = array();
+                $score_num = array();
+                $x = 1;
                 foreach ($this->currencies as $c => $base) {
                     $certs = $this->getCertificates($player_id, $base);
                     self::setStat(count($certs), $base."_certs", $player_id);
+
                     if ($base != $score_currency) {
                         $base_amt = $this->getMonies($player_id, $base);
                         if ($base_amt > 0) {
                             $conv_amt = $this->convertCurrency($base, $base_amt, $score_currency);
                             $x_base = $this->create_X_monies_arg($base_amt, $base, NOTE);
-                            $x_score = $this->create_X_monies_arg($conv_amt, $score_currency, NOTE);
-                            self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ${x_monies1} worth ${x_monies2}').'${x_monies}', array(
-                                'player_id' => $player_id,
-                                'player_name' => $player['player_name'],
-                                'score_curr' => $score_currency,
-                                'score_amt' => $conv_amt,
-                                'base_curr' => $base,
-                                'base_amt' => $base_amt,
-                                'x_monies1' => $x_base,
-                                'x_monies2' => $x_score,
-                                'x_monies' => 2,
-                            ));
-                            $monies += $conv_amt;
+                            $x_convert = $this->create_X_monies_arg($conv_amt, $score_currency, NOTE);
+
+                            // $base_num[$base] = $base_amt;
+                            $score_num[$base] = $conv_amt;
+
+                            $x++;
+                            switch($x) {
+                                case 2:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies2} worth ${x_monies3}');
+                                    break;
+                                case 3:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies4} worth ${x_monies5}');
+                                    break;
+                                case 4:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies6} worth ${x_monies7}');
+                                    break;
+                                case 5:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies8} worth ${x_monies9}');
+                                    break;
+                                case 6:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies10} worth ${x_monies11}');
+                                    break;
+                            }
+                            $n = ($x-1)*2;
+                            $n1 = $n+1;
+                            $notify_args["x_monies$n"] = $x_base;
+                            $notify_args["x_monies$n1"] = $x_convert;
+                            $score_monies += $conv_amt;
                             $this->adjustMonies($player_id, $base, -$base_amt, false);
                             $this->adjustMonies($player_id, $score_currency, $conv_amt, false);
                         }
                     }
                 }
-                $score = $monies;
+                // $notify_args['base_curr'] = $base_num;
+                $notify_args['score_amt'] = $score_num;
+                $notify_args['x_monies'] = (($x-1)*2)+1;
+                self::notifyAllPlayers("currencyScored", $log_msg.'${x_monies}', $notify_args);
+
+                $score = $score_monies;
             }
             self::DbQuery( "UPDATE player SET player_score=$score WHERE player_id=$player_id" );
         }

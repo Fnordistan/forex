@@ -314,6 +314,7 @@ function (dojo, declare, on) {
                         }
                         log = log.replace('${x_monies}', '');
                     }
+                    log = log.replace(/_PLUSNL_/g, '<br/>+ ');
                 }
             } catch (e) {
                 console.error(log, args, "Exception thrown", e.stack);
@@ -1447,8 +1448,8 @@ function (dojo, declare, on) {
         /**
          * Move notes from player's base stack to the converted stack (final scoring).
          * @param {integer} player_id 
-         * @param {string} base_curr 
-         * @param {string} conv_curr 
+         * @param {string} base_curr currency being converted
+         * @param {string} conv_curr currency being scored
          * @param {float} amt
          */
         moveBaseNotes: function(player_id, base_curr, conv_curr, amt) {
@@ -3103,14 +3104,17 @@ function (dojo, declare, on) {
         notif_currencyScored: function(notif) {
             const player_id = notif.args.player_id;
             const score_curr = notif.args.score_curr;
-            const score_amt = parseFloat(notif.args.score_amt);
-            const base_curr = notif.args.base_curr;
-            const animation_duration = SCORING_DELAY;
-            // animate moving money from the player's base pile to the winning currency pile
-            this.moveBaseNotes(player_id, score_curr, base_curr, score_amt);
-            const player_notes = base_curr+'_note_counter_icon_'+player_id;
             const score_color = COLORS[score_curr];
-            this.displayScoring( player_notes, score_color, score_amt, animation_duration, 100, 0 );
+
+            const animation_duration = SCORING_DELAY;
+            const score_arr = notif.args.score_amt;
+            for (const curr in score_arr) {
+                const score_amt = parseFloat(score_arr[curr]);
+                // animate moving money from the player's base pile to the winning currency pile
+                this.moveBaseNotes(player_id, curr, score_curr, score_amt);
+                const player_notes = curr+'_note_counter_icon_'+player_id;
+                this.displayScoring( player_notes, score_color, score_amt, animation_duration, 100, 0 );
+            }
         },
 
         /**
