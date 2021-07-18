@@ -810,11 +810,13 @@ class ForEx extends Table
             $payout_amt = $contract['payout_amt'];
             $location = $contract['location'];
             // can the owner pay it?
-            $cash = $this->getMonies($player_id, $promise);
             $players = self::loadPlayersBasicInfos();
             $player_name = $players[$player_id]['player_name'];
 
-            self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} fulfills Contract ${contract}').'${conL}', array(
+            $x_prom = $this->create_X_monies_arg($promise_amt, $promise, NOTE);
+            $x_pay = $this->create_X_monies_arg($payout_amt, $payout, NOTE);
+
+            self::notifyAllPlayers("contractPaid", clienttranslate('${player_name} fulfills Contract ${contract} and receives ${x_monies2} for ${x_monies1}').'${conL}${x_monies}', array(
                 'player_id' => $player_id,
                 'player_name' => $player_name,
                 'contract' => $conL,
@@ -824,9 +826,12 @@ class ForEx extends Table
                 'payout_amt' => $payout_amt,
                 'location' => $location,
                 'conL' => $conL,
+                'x_monies1' => $x_prom,
+                'x_monies2' => $x_pay,
+                'x_monies' => 2
             ));
-            $this->adjustMonies($player_id, $promise, -$promise_amt);
-            $this->adjustMonies($player_id, $payout, $payout_amt);
+            $this->adjustMonies($player_id, $promise, -$promise_amt, false);
+            $this->adjustMonies($player_id, $payout, $payout_amt, false);
             // clear the contract
             $this->clearContract($conL);
             self::incStat(1, 'contracts_paid', $player_id);
