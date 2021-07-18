@@ -87,7 +87,7 @@
 /* contract card */
 .frx_contract_card {
     background-size: calc(6 * var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
-    background-image: url(img/forex_contracts.jpg);
+    background-image: url(img/forex_contracts.png);
     background-repeat: no-repeat;
     width: calc(var(--scale) * var(--contract_w));
     height: calc(var(--scale) * var(--contract_h));
@@ -254,15 +254,15 @@
 
 /* these share the same dimensions, just different sprites */
 .frx_note {
-    background-image: url(img/forex_notes.jpg);
+    background-image: url(img/forex_notes.png);
 }
 
 .frx_note_nonum {
-    background-image: url(img/forex_notes_un.jpg);
+    background-image: url(img/forex_notes_un.png);
 }
 
 .frx_cert {
-    background-image: url(img/forex_certificates.jpg);
+    background-image: url(img/forex_certificates.png);
 }
 
 .frx_GBP {
@@ -296,7 +296,7 @@
 /* same dims as contracts */
 .frx_dividend {
     background-size: calc(6 * var(--contract_w) * var(--scale)) calc(var(--contract_h) * var(--scale));
-    background-image: url(img/forex_dividends.jpg);
+    background-image: url(img/forex_dividends.png);
     background-repeat: no-repeat;
     border: 1px solid black;
     width: calc(var(--scale) * var(--contract_w));
@@ -305,7 +305,7 @@
 
 .frx_dividend_lg {
     background-size: calc(6 * var(--contract_w) * var(--scale) * 2) calc(var(--contract_h) * var(--scale) * 2);
-    background-image: url(img/forex_dividends_lg.jpg);
+    background-image: url(img/forex_dividends_lg.png);
     background-repeat: no-repeat;
     border: 1px solid black;
     width: calc(var(--scale) * var(--contract_w) * 2);

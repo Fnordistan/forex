@@ -53,8 +53,8 @@ const DIVIDENDS = "Dividends";
 const BTN = "_btn";
 const LOAN = "LN";
 
-const CERT_SPRITES = "img/forex_certificates.jpg";
-const NOTE_SPRITES = "img/forex_notes.jpg";
+const CERT_SPRITES = "img/forex_certificates.png";
+const NOTE_SPRITES = "img/forex_notes.png";
 
 // these to match css
 const CURR_BASE_W = 150;
