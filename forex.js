@@ -2106,7 +2106,7 @@ function (dojo, declare, on) {
             const avail = this.availableCertCounters[CURRENCY[curr]-1].getValue();
             if (avail == 0) {
                 const cert_str = this.createMoniesXstr('', curr, CURRENCY_TYPE.CERTIFICATE, true);
-                return _(`There are no ${cert_str} Certificates available for purchase`);
+                return _("There are no ")+cert_str+_(" Certificates available for purchase");
             }
             return null;
         },

@@ -16,7 +16,7 @@ $gameinfos = array(
 'game_name' => totranslate("For-Ex"),
 
 // Game designer (or game designers, separated by commas)
-'designer' => 'Tom Russell',
+'designer' => 'Amabel Holland',
 
 // Game artist (or game artists, separated by commas)
 'artist' => 'Cole Wehrle',

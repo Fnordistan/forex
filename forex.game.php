@@ -503,7 +503,7 @@ class ForEx extends Table
         self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${pays_or_gets} ${x_monies1}').'${x_monies}' : '', array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'pays_or_gets' => $amt < 0 ? self::_("pays") : self::_("receives"),
+            'pays_or_gets' => $amt < 0 ? clienttranslate("pays") : clienttranslate("receives"),
             'amt' => $amt,
             'curr' => $curr,
             'x_monies1' => $x_adj,
@@ -535,7 +535,7 @@ class ForEx extends Table
         $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
-            throw new BgaUserException(self::_("You only have $count $curr Certificates"));
+            throw new BgaUserException(self::_('You only have $count $curr Certificates'));
         }
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
@@ -669,15 +669,15 @@ class ForEx extends Table
      function checkAvailableCerts($player_id, $curr) {
         $mybucks = $this->getMonies($player_id, $curr);
         if ($mybucks < 2) {
-            throw new BgaUserException(self::_("You do not have enough $curr to buy a Certificate"));
+            throw new BgaUserException(self::_('You do not have enough $curr to buy a Certificate'));
         }
         $mycerts = $this->getCertificates($player_id, $curr);
         if (count($mycerts) >= 4) {
-            throw new BgaUserException(self::_("You may not hold more than 4 $curr Certificates"));
+            throw new BgaUserException(self::_('You may not hold more than 4 $curr Certificates'));
         }
         $availablecerts = $this->getAvailableCertificates($curr);
         if (count($availablecerts) == 0) {
-            throw new BgaUserException(self::_("No $curr Certificates available for purchase"));
+            throw new BgaUserException(self::_('No $curr Certificates available for purchase'));
         }
         return $availablecerts;
     }
@@ -1019,11 +1019,11 @@ class ForEx extends Table
         $req_amt = $spot[1];
         $mybucks = $this->getMonies($player_id, $offer);
         if ($off_amt > $mybucks) {
-            throw new BgaUserException(self::_("You do not have $off_amt $offer"));
+            throw new BgaUserException(self::_('You do not have $off_amt $offer'));
         }
         $theirbucks = $this->getMonies($to_player, $request);
         if ($req_amt > $theirbucks) {
-            throw new BgaUserException(self::_("$theirname does not have $req_amt $request"));
+            throw new BgaUserException(self::_('$theirname does not have $req_amt $request'));
         }
 
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
