@@ -500,10 +500,10 @@ class ForEx extends Table
 
         $x_adj = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
-        self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${pays_or_gets} ${x_monies1}').'${x_monies}' : '', array(
+        self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${pays_or_receives} ${x_monies1}').'${x_monies}' : '', array(
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
-            'pays_or_gets' => $amt < 0 ? clienttranslate("pays") : clienttranslate("receives"),
+            'pays_or_receives' => $amt < 0 ? clienttranslate("pays") : clienttranslate("receives"),
             'amt' => $amt,
             'curr' => $curr,
             'x_monies1' => $x_adj,
@@ -535,7 +535,7 @@ class ForEx extends Table
         $mycerts = $this->getCertificates($player_id, $curr);
         $count = count($mycerts);
         if ($count < $amt) {
-            throw new BgaUserException(self::_('You only have $count $curr Certificates'));
+            throw new BgaUserException(self::_("You only have $count $curr Certificates"));
         }
         // only choose n certs
         $certs_to_divest = array_values(array_slice($mycerts, 0, $amt));
@@ -669,15 +669,15 @@ class ForEx extends Table
      function checkAvailableCerts($player_id, $curr) {
         $mybucks = $this->getMonies($player_id, $curr);
         if ($mybucks < 2) {
-            throw new BgaUserException(self::_('You do not have enough $curr to buy a Certificate'));
+            throw new BgaUserException(self::_("You do not have enough $curr to buy a Certificate"));
         }
         $mycerts = $this->getCertificates($player_id, $curr);
         if (count($mycerts) >= 4) {
-            throw new BgaUserException(self::_('You may not hold more than 4 $curr Certificates'));
+            throw new BgaUserException(self::_("You may not hold more than 4 $curr Certificates"));
         }
         $availablecerts = $this->getAvailableCertificates($curr);
         if (count($availablecerts) == 0) {
-            throw new BgaUserException(self::_('No $curr Certificates available for purchase'));
+            throw new BgaUserException(self::_("No $curr Certificates available for purchase"));
         }
         return $availablecerts;
     }
@@ -740,14 +740,22 @@ class ForEx extends Table
             $players = self::loadPlayersBasicInfos();
 
             foreach($players as $player_id => $player) {
-                // first list nonplaying certificates
+                // first list nonpaying certificates
                 if (count($nonpaying) > 0) {
                     self::notifyAllPlayers("noDividendsPaid", clienttranslate('${player_name} receives no dividends for ${currency}'), array(
                         'player_name' => $player['player_name'],
                         'currency' => implode(",", $nonpaying),
                     ));
                 }
+                $notify_args = array(
+                    'player_id' => $player_id,
+                    'player_name' => $player['player_name'],
+                );
 
+                $log_msg = clienttranslate('${player_name} receives dividends:');
+                $x_monies = 0;
+                $currencies = array();
+                $dividendspaid = array();
                 foreach ($this->currencies as $c => $curr) {
                     if (!in_array($curr, $nonpaying)) {
                         $certs = count($this->getCertificates($player_id, $curr));
@@ -755,19 +763,58 @@ class ForEx extends Table
                             $monies = $certs * $mult;
                             $paid_str = $this->create_X_monies_arg($monies, $curr, NOTE);
                             $cert_str = $this->create_X_monies_arg($certs, $curr, CERTIFICATE);
-                            self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends of ${x_monies1} for ${x_monies2}').'${x_monies}', array(
-                                'player_id' => $player_id,
-                                'player_name' => $player['player_name'],
-                                'x_monies1' => $paid_str,
-                                'x_monies2' => $cert_str,
-                                'x_monies' => 2,
-                                'curr' => $curr,
-                                'amt' => $monies,
-                            ));
+                            $currencies[] = $curr;
+                            $dividendspaid[] = $monies;
+                            switch ($x_monies) {
+                                case 0:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies1} for ${x_monies2}');
+                                    $notify_args['x_monies1'] = $paid_str;
+                                    $notify_args['x_monies2'] = $cert_str;
+                                    break;
+                                case 2:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies3} for ${x_monies4}');
+                                    $notify_args['x_monies3'] = $paid_str;
+                                    $notify_args['x_monies4'] = $cert_str;
+                                    break;
+                                case 4;
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies5} for ${x_monies6}');
+                                    $notify_args['x_monies5'] = $paid_str;
+                                    $notify_args['x_monies6'] = $cert_str;
+                                    break;
+                                case 6:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies7} for ${x_monies8}');
+                                    $notify_args['x_monies7'] = $paid_str;
+                                    $notify_args['x_monies8'] = $cert_str;
+                                    break;
+                                case 8:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies9} for ${x_monies10}');
+                                    $notify_args['x_monies9'] = $paid_str;
+                                    $notify_args['x_monies10'] = $cert_str;
+                                    break;
+                                case 10:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies11} for ${x_monies12}');
+                                    $notify_args['x_monies11'] = $paid_str;
+                                    $notify_args['x_monies12'] = $cert_str;
+                                    break;
+                                case 12:
+                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies13} for ${x_monies14}');
+                                    $notify_args['x_monies13'] = $paid_str;
+                                    $notify_args['x_monies14'] = $cert_str;
+                                    break;
+                                default:
+                                    throw new BgaVisibleSystemException("Unexpected x_monies value in paid dividends: $x_monies");
+                            }
                             $this->adjustMonies($player_id, $curr, $monies, false);
+                            $x_monies += 2;
                         }
                     }
                 }
+
+                $notify_args['x_monies'] = $x_monies;
+                $notify_args['currencies'] = $currencies;
+                $notify_args['dividends'] = $dividendspaid;
+
+                self::notifyAllPlayers("dividendsPaid", $log_msg.'${x_monies}', $notify_args);
             }
         }
         // the currency held by most players is strengthened
@@ -1019,11 +1066,11 @@ class ForEx extends Table
         $req_amt = $spot[1];
         $mybucks = $this->getMonies($player_id, $offer);
         if ($off_amt > $mybucks) {
-            throw new BgaUserException(self::_('You do not have $off_amt $offer'));
+            throw new BgaUserException(self::_("You do not have $off_amt $offer"));
         }
         $theirbucks = $this->getMonies($to_player, $request);
         if ($req_amt > $theirbucks) {
-            throw new BgaUserException(self::_('$theirname does not have $req_amt $request'));
+            throw new BgaUserException(self::_("$theirname does not have $req_amt $request"));
         }
 
         $x_offer = $this->create_X_monies_arg($off_amt, $offer, NOTE);
@@ -1104,18 +1151,20 @@ class ForEx extends Table
             // take the first cert
             $cert = array_pop($availablecerts[$curr]);
             $this->certificates->moveCard($cert['id'], $player_id);
-            $this->adjustMonies($player_id, $curr, -2);
+            $this->adjustMonies($player_id, $curr, -2, false);
 
             $x_certs = $this->create_X_monies_arg(1, $curr, CERTIFICATE);
+            $x_notes = $this->create_X_monies_arg(2, $curr, NOTE);
 
             // movedeck for certificates
-            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_monies1} Certificate').'${x_monies}', array (
+            self::notifyAllPlayers('certificatesBought', clienttranslate('${player_name} buys ${x_monies1} Certificate for ${x_monies2}').'${x_monies}', array (
                 'player_id' => self::getActivePlayerId(),
                 'player_name' => self::getActivePlayerName(),
                 'curr' => $curr,
                 'cert_id' => $cert['id'],
                 'x_monies1' => $x_certs,
-                'x_monies' => 1
+                'x_monies2' => $x_notes,
+                'x_monies' => 2
             ));
 
             $this->strengthen($curr);
@@ -1180,7 +1229,7 @@ class ForEx extends Table
             'x_monies2' => $x_notes,
             'x_monies' => 2,
         ));
-        $this->adjustMonies($player_id, $curr, $cash);
+        $this->adjustMonies($player_id, $curr, $cash, false);
 
         self::incStat($amt, 'divested', $player_id);
         $this->weaken($curr, $amt);
