@@ -684,7 +684,7 @@ function (dojo, declare, on) {
             contract_txt = contract_txt.replace('${player_name}', this.spanPlayerName(contract.player_id));
             contract_txt ="<h3>"+contract_txt+"</h3>";
             if (contract.promise == LOAN) {
-                contract_txt += _("Loan for");
+                contract_txt += _("Loan for")+' ';
                 const loans = contract.loans;
                 for (const [curr, amt] of Object.entries(loans)) {
                     contract_txt += this.createMoniesXstr(amt, curr);
