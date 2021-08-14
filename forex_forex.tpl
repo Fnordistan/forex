@@ -35,7 +35,7 @@
                 <!-- BEGIN BANK_ROW -->
                     <div id="bank_row{R}" class="frx_bank_row">
                     <!-- BEGIN BANK_BLOCK -->
-                        <div id="bank_{CURR}" class="frx_currency_card frx_note_nonum frx_{CURR}" title="{CURR} Bank Notes"></div>
+                        <div id="bank_{CURR}" class="frx_currency_card frx_note_nonum frx_{CURR}"></div>
                     <!-- END BANK_BLOCK -->
                 </div>
                 <!-- END BANK_ROW -->
@@ -96,10 +96,10 @@ var jstpl_stack_counter = '<span id="${curr}_${type}_stack_ctr_${id}" class="frx
 var jstpl_certificate = '<div class="frx_currency_card frx_cert frx_${curr}"></div>';
 
 // "# Currency" string
-var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span>';
+var jstpl_curr_ct = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num}</span>';
 
 // "# Currency [ICON]" string
-var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num} ${curr}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}" title="${curr} ${type}"></span>';
+var jstpl_monies = '<span class="frx_curr_val" style="color: var(--color_${type}_${curr});">${num}</span> <span class="frx_curr_icon frx_currency_card frx_${type} frx_${curr}"></span>';
 
 // "# Currency [ICON]" + Counter
 var jstpl_currency_counter = '<div id="contract_creation_container" class="frx_ctr_container">\
@@ -116,7 +116,7 @@ var jstpl_cert_note_container = '<div id="${curr}_${id}_monies" class="frx_mon_c
 
 // holds a Note or Certificate + Counter on player board
 var jstpl_player_monies = '<div id="${curr}_${type}_${id}_container" class="frx_ctr_container">\
-                            <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${curr} ${type}s"></span>\
+                            <span id="${curr}_${type}_counter_icon_${id}" class="frx_currency_card frx_${type} frx_${curr}" style="--scale: 0.25;" title="${title}"></span>\
                             <span id="${curr}_${type}_counter_${id}" class="frx_ctr" style="color: var(--color_${type}_${curr});"></span>\
                         </div>';
 

@@ -501,6 +501,7 @@ class ForEx extends Table
         $x_adj = $this->create_X_monies_arg(abs($amt), $curr, NOTE);
 
         self::notifyAllPlayers('moniesChanged', $bLogMsg ? clienttranslate('${player_name} ${pays_or_receives} ${x_monies1}').'${x_monies}' : '', array(
+            'i18n' => array('pays_or_receives'),
             'player_id' => $player_id,
             'player_name' => $players[$player_id]['player_name'],
             'pays_or_receives' => $amt < 0 ? clienttranslate("pays") : clienttranslate("receives"),
@@ -1247,7 +1248,7 @@ class ForEx extends Table
             throw new BgaUserException(self::_("There are no Contracts available"));
         }
         if (min($prom_amt, $pay_amt) > 10) {
-            throw new BgaUserException(self::_("You may not make a Contract for more than 10 units of the stronger Currency"));
+            throw new BgaUserException(self::_("You may not make a Contract for more than 10 units of the stronger currency"));
         }
         self::DBQuery("UPDATE CONTRACTS SET promise = \"$prom_curr\", promise_amt = $prom_amt, payout = \"$pay_curr\", payout_amt = $pay_amt, owner = $player_id, location = 0 WHERE contract = \"$contract\"");
         // now push everything forward in queue
@@ -1408,9 +1409,7 @@ class ForEx extends Table
      * This is the handler to send an offer to the recipient
      */
     function stSpotOffer() {
-        $from_player = self::getGameStateValue(SPOT_FROM);
         $to_player = self::getGameStateValue(SPOT_TO);
-        // $this->gamestate->setPlayersMultiactive( array($from_player, $to_player), "getResponse", true );
         $this->gamestate->changeActivePlayer( $to_player );
         $this->gamestate->nextState("getResponse");
     }

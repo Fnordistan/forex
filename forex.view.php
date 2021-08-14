@@ -101,7 +101,7 @@ define('ZONE_V_GAP', 107);
             if ($ci <= 7) {
               $curr = $this->game->currencies[$ci];
               $this->page->insert_block('BANK_BLOCK', array(
-                'CURR' => $curr
+                'CURR' => $curr              
               ));
             }
           }

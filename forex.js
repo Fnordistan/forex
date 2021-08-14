@@ -184,15 +184,21 @@ function (dojo, declare, on) {
                         "curr": curr,
                         "type": CURRENCY_TYPE.NOTE
                     }), container);
+                    let cert_str = _("${currency} Certificates");
+                    cert_str = cert_str.replace('${currency}', curr);
+                    let note_str = _("${currency} Notes");
+                    note_str = note_str.replace('${currency}', curr);
                     dojo.place( this.format_block('jstpl_player_monies', {
                         "curr": curr,
                         "type": CURRENCY_TYPE.NOTE,
-                        "id": player_id
+                        "id": player_id,
+                        "title": note_str
                     }), container);
                     dojo.place( this.format_block('jstpl_player_monies', {
                         "curr": curr,
                         "type": CURRENCY_TYPE.CERTIFICATE,
-                        "id": player_id
+                        "id": player_id,
+                        "title": cert_str
                     }), container);
 
                     // create player Note counters
@@ -343,6 +349,11 @@ function (dojo, declare, on) {
                     const note = this.format_block('jstpl_bank_note_stacked', {"id": 'bank_'+curr+'_'+i, "curr": curr, "margin": offset});
                     dojo.place(note, stack_id, i);
                 }
+                // put tooltip on top note
+                const topnote = document.getElementById('bank_'+curr+'_9');
+                bankstr = _("${currency} Bank Notes");
+                bankstr = bankstr.replace('${currency}', curr);
+                topnote.title = bankstr;
                 const curr_symbol = document.createElement("span");
                 curr_symbol.classList.add("frx_curr_symbol");
                 curr_symbol.style['color'] = COLORS[curr];
@@ -631,8 +642,10 @@ function (dojo, declare, on) {
          * @param {string} C letter
          */
         decorateAvailableContract: function(C) {
-            const tooltip = '<h3>Contract '+C+'</h3>\
-                            <span style="width: 100%; text-align: center">Available</span>';
+            let contract_str = _("Contract ${contract}");
+            contract_str = contract_str.replace('${contract}', C);
+            const tooltip = '<h3>'+contract_str+'</h3>\
+                            <span style="width: 100%; text-align: center">'+_("Available")+'</span>';
             this.addTooltipHtml("contract_card_"+C, tooltip, 0);
             // stub contract for clearing previous loan if any
             const stubC = {"contract": C, "player_id": 0};
@@ -684,11 +697,14 @@ function (dojo, declare, on) {
             contract_txt = contract_txt.replace('${player_name}', this.spanPlayerName(contract.player_id));
             contract_txt ="<h3>"+contract_txt+"</h3>";
             if (contract.promise == LOAN) {
-                contract_txt += _("Loan for")+' ';
+                let loan_txt = _("Loan for ${loan}");
                 const loans = contract.loans;
+                let loan_str = "";
                 for (const [curr, amt] of Object.entries(loans)) {
-                    contract_txt += this.createMoniesXstr(amt, curr);
+                    loan_str += this.createMoniesXstr(amt, curr);
                 }
+                loan_txt = loan_txt.replace('${loan}', loan_str);
+                contract_txt += loan_txt;
             } else {
                 let contract_txt2 = _("${pay} for ${receive}");
                 contract_txt2 = contract_txt2.replace('${pay}', this.createMoniesXstr(contract.promise_amt, contract.promise));
@@ -1480,8 +1496,11 @@ function (dojo, declare, on) {
          */
         createMoniesXstr: function(num, curr, type = CURRENCY_TYPE.NOTE, no_icon = false) {
             const jstpl = no_icon ? 'jstpl_curr_ct' : 'jstpl_monies';
+            let num_str = _("${num} ${currency}");
+            num_str = num_str.replace('${num}', num);
+            num_str = num_str.replace('${currency}', curr);
             return this.format_block(jstpl, {
-                "num": num,
+                "num": num_str,
                 "curr": curr,
                 "type": type
             });
@@ -1990,7 +2009,7 @@ function (dojo, declare, on) {
         spotTradeAction: function(btn_id) {
             if (this.SPOT_TRANSACTION[SPOT.TO] == null) {
                 // need a player chosen first
-                this.showMessage("You must choose the Player you wish to trade with first", "info");
+                this.showMessage(_("You must choose the player you wish to trade with first"), "info");
                 return;
             }
 
@@ -2208,7 +2227,7 @@ function (dojo, declare, on) {
                     // sanity check
                     // should only ever be one!
                     if (selected.length > 1) {
-                        throw "Error: clicked " + curr + " but more than 1 selected Currency found";
+                        throw "Error: clicked " + curr + " but more than 1 selected currency found";
                     }
                     $(selected[0]).classList.toggle("frx_curr_btn_selected");
                 }
@@ -2350,13 +2369,13 @@ function (dojo, declare, on) {
                         "curr": exchg_pair[PAIR.STRONGER]
                     });
         
-                    contract_txt = _("Pay${pay_amt}for${receive_amt}");
-                    contract_txt = contract_txt.replace('${pay_amt}', pay_counter);
+                    contract_txt = _("Pay ${pay_amt} for ${receive_amt}");
+                    contract_txt = contract_txt.replace(' ${pay_amt} ', pay_counter);
                     if (exchg_pair[PAIR.STRONGER] == pay_curr) {
                         contract_txt = contract_txt.replace("for", "for"+contract_buttons);
                     }
 
-                    contract_txt = contract_txt.replace('${receive_amt}', receive_counter);
+                    contract_txt = contract_txt.replace(' ${receive_amt}', receive_counter);
                     if (exchg_pair[PAIR.STRONGER] == payoff_curr) {
                         contract_txt += contract_buttons;
                     }
@@ -2489,7 +2508,7 @@ function (dojo, declare, on) {
                 });
                 if (hasCerts) {
                     this.removeActionButtons();
-                    this.setDescriptionOnMyTurn(_("You may sell 1 Currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: DIVEST_MSG});
+                    this.setDescriptionOnMyTurn(_("You may sell 1 currency"), {X_CURRENCY: CURRENCY_TYPE.CERTIFICATE, X_ACTION_TEXT: DIVEST_MSG});
                     this.addDivestActions();
                     this.addConfirmButton(ACTIONS.DIVEST);
                     this.addCancelButton();
@@ -2510,11 +2529,13 @@ function (dojo, declare, on) {
                 this.RECEIVE_COUNTER = null;
                 const nextContract = this.getAvailableContract();
                 if (nextContract == null) {
-                    this.showMessage("No Contracts Available!");
+                    this.showMessage(_("No Contracts Available!"));
                 } else {
                     this.removeActionButtons();
                     const contract_div = this.format_block('jstpl_contract_card', {"contract" : nextContract, "scale": 0.25 });
-                    this.setDescriptionOnMyTurn(_("You may take Contract") + contract_div, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
+                    let contract_str = _("You may take Contract ${contract}");
+                    contract_str = contract_str.replace('${contract}', contract_div);
+                    this.setDescriptionOnMyTurn(contract_str, {X_CURRENCY: CURRENCY_TYPE.NOTE, X_ACTION_TEXT: CONTRACT_MSG});
                     this.addContractActions();
                     this.addConfirmButton(ACTIONS.CONTRACT);
                     this.addCancelButton();
@@ -2546,7 +2567,9 @@ function (dojo, declare, on) {
                         "scale": 0.5
                     });
                 }
-                this.setDescriptionOnMyTurn(_("Resolve") + contract_div+"<br/>");
+                let resolve_str = _("Resolve ${contract}");
+                resolve_str = resolve_str.replace('${contract}', contract_div);
+                this.setDescriptionOnMyTurn(resolve_str+"<br/>");
                 this.addConfirmButton(ACTIONS.RESOLVE);
                 this.addCancelButton();
             }
@@ -2677,7 +2700,7 @@ function (dojo, declare, on) {
                     buys.push(curr);
                 });
                 if (buys.length == 0) {
-                    this.showMessage(_("No Currencies selected!"), "info");
+                    this.showMessage(_("No currencies selected!"), "info");
                 } else {
                     this.ajaxcall( "/forex/forex/investCurrency.html", { 
                         buys: buys.join(' '),
@@ -2748,7 +2771,7 @@ function (dojo, declare, on) {
                     }
                 }
                 if (!is_valid) {
-                    this.showMessage(_("You must choose the Currencies to pay and receive"), 'info');
+                    this.showMessage(_("You must choose the currencies to pay and receive"), 'info');
                 }
             }
         },
