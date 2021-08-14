@@ -753,7 +753,7 @@ class ForEx extends Table
                     'player_name' => $player['player_name'],
                 );
 
-                $log_msg = clienttranslate('${player_name} receives dividends:');
+                $dividends = ' ';
                 $x_monies = 0;
                 $currencies = array();
                 $dividendspaid = array();
@@ -768,37 +768,37 @@ class ForEx extends Table
                             $dividendspaid[] = $monies;
                             switch ($x_monies) {
                                 case 0:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies1} for ${x_monies2}');
+                                    $dividends = $dividends.clienttranslate('${x_monies1} for ${x_monies2}');
                                     $notify_args['x_monies1'] = $paid_str;
                                     $notify_args['x_monies2'] = $cert_str;
                                     break;
                                 case 2:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies3} for ${x_monies4}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies3} for ${x_monies4}');
                                     $notify_args['x_monies3'] = $paid_str;
                                     $notify_args['x_monies4'] = $cert_str;
                                     break;
                                 case 4;
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies5} for ${x_monies6}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies5} for ${x_monies6}');
                                     $notify_args['x_monies5'] = $paid_str;
                                     $notify_args['x_monies6'] = $cert_str;
                                     break;
                                 case 6:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies7} for ${x_monies8}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies7} for ${x_monies8}');
                                     $notify_args['x_monies7'] = $paid_str;
                                     $notify_args['x_monies8'] = $cert_str;
                                     break;
                                 case 8:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies9} for ${x_monies10}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies9} for ${x_monies10}');
                                     $notify_args['x_monies9'] = $paid_str;
                                     $notify_args['x_monies10'] = $cert_str;
                                     break;
                                 case 10:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies11} for ${x_monies12}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies11} for ${x_monies12}');
                                     $notify_args['x_monies11'] = $paid_str;
                                     $notify_args['x_monies12'] = $cert_str;
                                     break;
                                 case 12:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies13} for ${x_monies14}');
+                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies13} for ${x_monies14}');
                                     $notify_args['x_monies13'] = $paid_str;
                                     $notify_args['x_monies14'] = $cert_str;
                                     break;
@@ -813,9 +813,9 @@ class ForEx extends Table
 
                 $notify_args['x_monies'] = $x_monies;
                 $notify_args['currencies'] = $currencies;
-                $notify_args['dividends'] = $dividendspaid;
+                $notify_args['dividendspaid'] = $dividendspaid;
 
-                self::notifyAllPlayers("dividendsPaid", $log_msg.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends:').$dividends.'${x_monies}', $notify_args);
             }
         }
         // the currency held by most players is strengthened
@@ -1508,7 +1508,7 @@ class ForEx extends Table
             } else {
                 $score_monies = $this->getMonies($player_id, $score_currency);
                 $x_score = $this->create_X_monies_arg($score_monies, $score_currency, NOTE);
-                $log_msg = clienttranslate('${player_name} has ${x_monies1}');
+                $monies = '${x_monies1}';
                 $notify_args = array(
                     'player_id' => $player_id,
                     'player_name' => $player['player_name'],
@@ -1535,19 +1535,19 @@ class ForEx extends Table
                             $x++;
                             switch($x) {
                                 case 2:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies2} worth ${x_monies3}');
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies2} worth ${x_monies3}');
                                     break;
                                 case 3:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies4} worth ${x_monies5}');
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies4} worth ${x_monies5}');
                                     break;
                                 case 4:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies6} worth ${x_monies7}');
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies6} worth ${x_monies7}');
                                     break;
                                 case 5:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies8} worth ${x_monies9}');
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies8} worth ${x_monies9}');
                                     break;
                                 case 6:
-                                    $log_msg = $log_msg.'_PLUSNL_'.clienttranslate('${x_monies10} worth ${x_monies11}');
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies10} worth ${x_monies11}');
                                     break;
                             }
                             $n = ($x-1)*2;
@@ -1560,10 +1560,11 @@ class ForEx extends Table
                         }
                     }
                 }
-                // $notify_args['base_curr'] = $base_num;
+
                 $notify_args['score_amt'] = $score_num;
                 $notify_args['x_monies'] = (($x-1)*2)+1;
-                self::notifyAllPlayers("currencyScored", $log_msg.'${x_monies}', $notify_args);
+                $notify_args['monies'] = $monies;
+                self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ').$monies.'${x_monies}', $notify_args);
 
                 $score = $score_monies;
             }

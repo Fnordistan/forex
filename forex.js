@@ -3031,7 +3031,7 @@ function (dojo, declare, on) {
 
             for (let c in currencies) {
                 const curr = currencies[c];
-                const amt = parseFloat(notif.args.dividends[c]);
+                const amt = parseFloat(notif.args.dividendspaid[c]);
                 this.moveBankNotes(player_id, curr, amt);
             }
         },
