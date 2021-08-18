@@ -2369,15 +2369,17 @@ function (dojo, declare, on) {
                         "curr": exchg_pair[PAIR.STRONGER]
                     });
         
-                    contract_txt = _("Pay ${pay_amt} for ${receive_amt}");
-                    contract_txt = contract_txt.replace(' ${pay_amt} ', pay_counter);
+                    contract_txt = _("Pay ${pay_amt}${pct} for ${receive_amt}${rct}");
+                    contract_txt = contract_txt.replace('${pay_amt}', pay_counter);
                     if (exchg_pair[PAIR.STRONGER] == pay_curr) {
-                        contract_txt = contract_txt.replace("for", "for"+contract_buttons);
+                        contract_txt = contract_txt.replace('${pct}', contract_buttons);
+                        contract_txt = contract_txt.replace('${rct}', '');
                     }
 
-                    contract_txt = contract_txt.replace(' ${receive_amt}', receive_counter);
+                    contract_txt = contract_txt.replace('${receive_amt}', receive_counter);
                     if (exchg_pair[PAIR.STRONGER] == payoff_curr) {
-                        contract_txt += contract_buttons;
+                        contract_txt = contract_txt.replace('${rct}', contract_buttons);
+                        contract_txt = contract_txt.replace('${pct}', '');
                     }
                     this.setMessageText(CONTRACT_MSG, contract_txt);
                     this.PAY_COUNTER = new forex.fcounter();

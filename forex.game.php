@@ -1508,7 +1508,7 @@ class ForEx extends Table
             } else {
                 $score_monies = $this->getMonies($player_id, $score_currency);
                 $x_score = $this->create_X_monies_arg($score_monies, $score_currency, NOTE);
-                $monies = '${x_monies1}';
+                $monies = ' ${x_monies1}';
                 $notify_args = array(
                     'player_id' => $player_id,
                     'player_name' => $player['player_name'],
@@ -1564,7 +1564,7 @@ class ForEx extends Table
                 $notify_args['score_amt'] = $score_num;
                 $notify_args['x_monies'] = (($x-1)*2)+1;
                 $notify_args['monies'] = $monies;
-                self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has ').$monies.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has').$monies.'${x_monies}', $notify_args);
 
                 $score = $score_monies;
             }
