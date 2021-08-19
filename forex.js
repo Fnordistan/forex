@@ -44,6 +44,10 @@ const CONTRACT = {
     F: 5
 }
 
+// sent by notification in game.php
+const DIVIDENDS_STRING = 'DIVIDENDS_STRING';
+const SCORING_STRING = 'SCORING_STRING';
+
 // 0-indexed array of currencies
 const CURRENCIES = ["GBP", "EUR", "USD", "CHF", "JPY", "CAD", "CNY"];
 // 0-indexed array
@@ -321,13 +325,13 @@ function (dojo, declare, on) {
                     }
                     log = log.replace(/_PLUSNL_/g, '<br/>+ ');
 
-                    if (log.includes('DIVIDENDS_STRING')) {
-                        const dividends_list = log.substring(log.indexOf('DIVIDENDS_STRING')+1);
+                    if (log.includes(DIVIDENDS_STRING)) {
+                        const dividends_list = log.substring(log.indexOf(DIVIDENDS_STRING)+DIVIDENDS_STRING.length+1);
                         log = _('${player_name} receives dividends: ${dividends}');
                         log = log.replace('${dividends}', dividends_list);
                     }
-                    if (log.includes('SCORING_STRING')) {
-                        const monies_list = log.substring(log.indexOf('SCORING_STRING')+1);
+                    if (log.includes(SCORING_STRING)) {
+                        const monies_list = log.substring(log.indexOf(SCORING_STRING)+SCORING_STRING.length+1);
                         log = _('${player_name} has ${monies}');
                         log = log.replace('${monies}', monies_list);
                     }
