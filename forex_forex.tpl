@@ -127,7 +127,7 @@ var jstpl_contract_card_wid = '<span id="${id}" class="frx_contract_card frx_${c
 
 // "Sell $n $curr [ICON] + -"
 var jstpl_sell_buttons = '<div id="sell_container_${curr}" class="frx_ctr_container">\
-                            <span>Sell</span>\
+                            <span>${sell}</span>\
                             <span id="sell_counter_${curr}" class="frx_ctr" style="color: var(--color_cert_${curr}); font-size: 24px; vertical-align: baseline;"></span>\
                             <span id="sell_${curr}" class="frx_curr_val" style="color: var(--color_cert_${curr});">${curr}</span>\
                             <span id="sell_cert_icon_${curr}" class="frx_currency_card frx_cert frx_${curr}" style="--scale: 0.25; margin: 0px 5px;" title="${curr}"></span>\

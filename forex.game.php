@@ -815,7 +815,7 @@ class ForEx extends Table
                 $notify_args['currencies'] = $currencies;
                 $notify_args['dividendspaid'] = $dividendspaid;
 
-                self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends:').$dividends.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("dividendsPaid", 'DIVIDENDS_STRING'.$dividends.'${x_monies}', $notify_args);
             }
         }
         // the currency held by most players is strengthened
@@ -1564,7 +1564,7 @@ class ForEx extends Table
                 $notify_args['score_amt'] = $score_num;
                 $notify_args['x_monies'] = (($x-1)*2)+1;
                 $notify_args['monies'] = $monies;
-                self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} has').$monies.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("currencyScored", 'SCORING_STRING'.$monies.'${x_monies}', $notify_args);
 
                 $score = $score_monies;
             }

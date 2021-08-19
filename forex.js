@@ -320,6 +320,17 @@ function (dojo, declare, on) {
                         log = log.replace('${x_monies}', '');
                     }
                     log = log.replace(/_PLUSNL_/g, '<br/>+ ');
+
+                    if (log.includes('DIVIDENDS_STRING')) {
+                        const dividends_list = log.substring(log.indexOf('DIVIDENDS_STRING')+1);
+                        log = _('${player_name} receives dividends: ${dividends}');
+                        log = log.replace('${dividends}', dividends_list);
+                    }
+                    if (log.includes('SCORING_STRING')) {
+                        const monies_list = log.substring(log.indexOf('SCORING_STRING')+1);
+                        log = _('${player_name} has ${monies}');
+                        log = log.replace('${monies}', monies_list);
+                    }
                 }
             } catch (e) {
                 console.error(log, args, "Exception thrown", e.stack);
@@ -2254,7 +2265,7 @@ function (dojo, declare, on) {
          * @param {string} curr 
          */
         createSellCounter: function(curr) {
-            const sell_buttons = this.format_block('jstpl_sell_buttons', {"curr": curr});
+            const sell_buttons = this.format_block('jstpl_sell_buttons', {"curr": curr, "sell": _("Sell")});
             document.getElementById(DIVEST_MSG).innerHTML = sell_buttons;
             this.SELL_COUNTER = new ebg.counter();
             this.SELL_COUNTER.create('sell_counter_'+curr);
