@@ -310,20 +310,23 @@ function (dojo, declare, on) {
                     if (args.X_ACTION_TEXT) {
                         log = log + '<br/><span id="'+args.X_ACTION_TEXT+'"></span><br/>';
                     }
+
                     if (args['x_monies']) {
                         const n = parseInt(args['x_monies']);
                         for (let i = 1; i <= n; i++) {
                             const argm = 'x_monies'+i;
-                            const mon_str = args[argm];
-                            const monies = mon_str.split('_');
-                            const num = parseFloat(monies[0]);
-                            const curr = monies[1];
-                            const monies_span = (monies.length == 3) ? this.createMoniesXstr(num, curr, monies[2]) : this.createMoniesXstr(num, curr);
-                            args[argm] = monies_span;
+
+                            if (args[argm]) {
+                                const mon_str = args[argm];
+                                const monies = mon_str.split('_');
+                                const num = parseFloat(monies[0]);
+                                const curr = monies[1];
+                                const monies_span = (monies.length == 3) ? this.createMoniesXstr(num, curr, monies[2]) : this.createMoniesXstr(num, curr);
+                                args[argm] = monies_span;
+                            }
                         }
                         log = log.replace('${x_monies}', '');
                     }
-                    log = log.replace(/_PLUSNL_/g, '<br/>+ ');
 
                     if (log.includes(DIVIDENDS_STRING)) {
                         const dividends_list = log.substring(log.indexOf(DIVIDENDS_STRING)+DIVIDENDS_STRING.length+1);
@@ -335,6 +338,9 @@ function (dojo, declare, on) {
                         log = _('${player_name} has ${monies}');
                         log = log.replace('${monies}', monies_list);
                     }
+                    log = log.replace(/_PLUSNL_/g, '<br/>+ ');
+
+
                 }
             } catch (e) {
                 console.error(log, args, "Exception thrown", e.stack);
