@@ -1469,15 +1469,14 @@ class ForEx extends Table
      */
     function stLastResolve() {
         // is this a bankruptcy or last dividend was paid?
-        if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
+        $sql = "SELECT contract FROM CONTRACTS WHERE (location IS NOT NULL AND contract != \"".DIVIDENDS."\") ORDER BY location DESC";
+        $contract_queue = self::getObjectListFromDB($sql, true);
+        while (self::getGameStateValue(BANKRUPT_PLAYER) == 0 && !empty($contract_queue)) {
             // last dividend - resolve remaining contracts
-            $contract_queue = self::getObjectListFromDB("SELECT contract FROM CONTRACTS WHERE (location IS NOT NULL AND contract != \"".DIVIDENDS."\") ORDER BY location DESC", true);
-            foreach ($contract_queue as $conL) {
-                $this->resolveContract($conL);
-                if (self::getGameStateValue(BANKRUPT_PLAYER) != 0) {
-                    // someone went bankrupt - no further contracts are resolved
-                    break;
-                }
+            $conL = array_shift($contract_queue);
+            $this->resolveContract($conL);
+            if (self::getGameStateValue(BANKRUPT_PLAYER) == 0) {
+                $contract_queue = self::getObjectListFromDB($sql, true);
             }
         }
         $nextState = "scoring";
