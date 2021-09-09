@@ -339,8 +339,6 @@ function (dojo, declare, on) {
                         log = log.replace('${monies}', monies_list);
                     }
                     log = log.replace(/_PLUSNL_/g, '<br/>+ ');
-
-
                 }
             } catch (e) {
                 console.error(log, args, "Exception thrown", e.stack);
@@ -1788,6 +1786,9 @@ function (dojo, declare, on) {
             if (conL == null) {
                 conL = this.getContractToResolve();
             }
+            if (conL == DIVIDENDS) {
+                conL = _("Dividends");
+            }
             const next = document.getElementById("next_contract");
             let contract_text = _("Next Contract: ${contract}");
             contract_text = contract_text.replace('${contract}', conL);
@@ -2459,7 +2460,7 @@ function (dojo, declare, on) {
                     // first look for Dividend in the name
                     const child = q_div.firstChild;
                     if (child.classList.contains("frx_dividend")) {
-                        return _("Dividends");
+                        return DIVIDENDS;
                     }
                     for (const cl of ['A', 'B', 'C', 'D', 'E', 'F']) {
                         if (child.classList.contains("frx_"+cl)) {
