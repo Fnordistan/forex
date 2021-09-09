@@ -2459,7 +2459,7 @@ function (dojo, declare, on) {
                     // first look for Dividend in the name
                     const child = q_div.firstChild;
                     if (child.classList.contains("frx_dividend")) {
-                        return DIVIDENDS;
+                        return _("Dividends");
                     }
                     for (const cl of ['A', 'B', 'C', 'D', 'E', 'F']) {
                         if (child.classList.contains("frx_"+cl)) {
