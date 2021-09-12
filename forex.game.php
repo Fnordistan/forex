@@ -1548,6 +1548,9 @@ class ForEx extends Table
                                 case 6:
                                     $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies10} worth ${x_monies11}');
                                     break;
+                                case 7:
+                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies12} worth ${x_monies13}');
+                                    break;
                             }
                             $n = ($x-1)*2;
                             $n1 = $n+1;
