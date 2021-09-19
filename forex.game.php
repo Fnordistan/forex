@@ -773,32 +773,32 @@ class ForEx extends Table
                                     $notify_args['x_monies2'] = $cert_str;
                                     break;
                                 case 2:
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies3} for ${x_monies4}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies3} for ${x_monies4}');
                                     $notify_args['x_monies3'] = $paid_str;
                                     $notify_args['x_monies4'] = $cert_str;
                                     break;
                                 case 4;
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies5} for ${x_monies6}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies5} for ${x_monies6}');
                                     $notify_args['x_monies5'] = $paid_str;
                                     $notify_args['x_monies6'] = $cert_str;
                                     break;
                                 case 6:
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies7} for ${x_monies8}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies7} for ${x_monies8}');
                                     $notify_args['x_monies7'] = $paid_str;
                                     $notify_args['x_monies8'] = $cert_str;
                                     break;
                                 case 8:
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies9} for ${x_monies10}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies9} for ${x_monies10}');
                                     $notify_args['x_monies9'] = $paid_str;
                                     $notify_args['x_monies10'] = $cert_str;
                                     break;
                                 case 10:
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies11} for ${x_monies12}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies11} for ${x_monies12}');
                                     $notify_args['x_monies11'] = $paid_str;
                                     $notify_args['x_monies12'] = $cert_str;
                                     break;
                                 case 12:
-                                    $dividends = $dividends.'_PLUSNL_'.clienttranslate('${x_monies13} for ${x_monies14}');
+                                    $dividends = $dividends.'<br/>'.clienttranslate('${x_monies13} for ${x_monies14}');
                                     $notify_args['x_monies13'] = $paid_str;
                                     $notify_args['x_monies14'] = $cert_str;
                                     break;
@@ -815,7 +815,7 @@ class ForEx extends Table
                 $notify_args['currencies'] = $currencies;
                 $notify_args['dividendspaid'] = $dividendspaid;
 
-                self::notifyAllPlayers("dividendsPaid", '${player_name}DIVIDENDS_STRING'.$dividends.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("dividendsPaid", $dividends.'${x_monies}', $notify_args);
             }
         }
         // the currency held by most players is strengthened
@@ -1534,22 +1534,22 @@ class ForEx extends Table
                             $x++;
                             switch($x) {
                                 case 2:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies2} worth ${x_monies3}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies2} worth ${x_monies3}');
                                     break;
                                 case 3:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies4} worth ${x_monies5}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies4} worth ${x_monies5}');
                                     break;
                                 case 4:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies6} worth ${x_monies7}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies6} worth ${x_monies7}');
                                     break;
                                 case 5:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies8} worth ${x_monies9}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies8} worth ${x_monies9}');
                                     break;
                                 case 6:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies10} worth ${x_monies11}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies10} worth ${x_monies11}');
                                     break;
                                 case 7:
-                                    $monies = $monies.'_PLUSNL_'.clienttranslate('${x_monies12} worth ${x_monies13}');
+                                    $monies = $monies.'<br/>'.clienttranslate('${x_monies12} worth ${x_monies13}');
                                     break;
                             }
                             $n = ($x-1)*2;
@@ -1566,7 +1566,7 @@ class ForEx extends Table
                 $notify_args['score_amt'] = $score_num;
                 $notify_args['x_monies'] = (($x-1)*2)+1;
                 $notify_args['monies'] = $monies;
-                self::notifyAllPlayers("currencyScored", '${player_name}SCORING_STRING'.$monies.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("currencyScored", $monies.'${x_monies}', $notify_args);
 
                 $score = $score_monies;
             }
