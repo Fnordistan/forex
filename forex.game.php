@@ -1519,9 +1519,13 @@ class ForEx extends Table
                 $x = 1;
                 foreach ($this->currencies as $c => $base) {
                     $certs = $this->getCertificates($player_id, $base);
-                    self::setStat(count($certs), $base."_certs", $player_id);
+                    $cert_num = count($certs);
+                    self::setStat($cert_num, $base."_certs", $player_id);
 
-                    if ($base != $score_currency) {
+                    if ($base == $score_currency) {
+                        // count certs in strongest currency for tie-breaking
+                        self::DbQuery( "UPDATE player SET player_score_aux=$cert_num WHERE player_id=$player_id" );
+                    } else {
                         $base_amt = $this->getMonies($player_id, $base);
                         if ($base_amt > 0) {
                             $conv_amt = $this->convertCurrency($base, $base_amt, $score_currency);
