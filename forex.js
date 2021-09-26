@@ -275,6 +275,9 @@ function (dojo, declare, on) {
                         }
                         args.currency = curr_str;
                     }
+                    if (args.scoring_currency) {
+                        args.scoring_currency = this.createMoniesXstr('', args.scoring_currency, CURRENCY_TYPE.NOTE, true);
+                    }
                     if (args.contract) {
                         const scale = 0.25;
                         if (args.contract == DIVIDENDS) {
@@ -322,18 +325,6 @@ function (dojo, declare, on) {
                             }
                         }
                         log = log.replace('${x_monies}', '');
-                    }
-                    // dividends string
-                    if (args['dividendspaid']) {
-                        const dividends_list = log;
-                        log = _('${player_name} receives dividends: ${dividends}');
-                        log = log.replace('${dividends}', dividends_list);
-                    }
-                    // final scoring string
-                    if (args['score_amt']) {
-                        const monies_list = log;
-                        log = _('${player_name} has ${monies}');
-                        log = log.replace('${monies}', monies_list);
                     }
                 }
             } catch (e) {

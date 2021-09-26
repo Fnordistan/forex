@@ -753,7 +753,7 @@ class ForEx extends Table
                     'player_name' => $player['player_name'],
                 );
 
-                $dividends = ' ';
+                $dividends = '<br/>';
                 $x_monies = 0;
                 $currencies = array();
                 $dividendspaid = array();
@@ -815,7 +815,7 @@ class ForEx extends Table
                 $notify_args['currencies'] = $currencies;
                 $notify_args['dividendspaid'] = $dividendspaid;
 
-                self::notifyAllPlayers("dividendsPaid", $dividends.'${x_monies}', $notify_args);
+                self::notifyAllPlayers("dividendsPaid", clienttranslate('${player_name} receives dividends:').$dividends.'${x_monies}', $notify_args);
             }
         }
         // the currency held by most players is strengthened
@@ -1507,7 +1507,7 @@ class ForEx extends Table
             } else {
                 $score_monies = $this->getMonies($player_id, $score_currency);
                 $x_score = $this->create_X_monies_arg($score_monies, $score_currency, NOTE);
-                $monies = ' ${x_monies1}'; // NOI18N
+                $monies = '<br/>${x_monies1}'; // NOI18N
                 $notify_args = array(
                     'player_id' => $player_id,
                     'player_name' => $player['player_name'],
@@ -1570,7 +1570,8 @@ class ForEx extends Table
                 $notify_args['score_amt'] = $score_num;
                 $notify_args['x_monies'] = (($x-1)*2)+1;
                 $notify_args['monies'] = $monies;
-                self::notifyAllPlayers("currencyScored", $monies.'${x_monies}', $notify_args);
+                $notify_args['scoring_currency'] = $score_currency;
+                self::notifyAllPlayers("currencyScored", clienttranslate('${player_name} converts all Notes to ${scoring_currency}:').$monies.'${x_monies}', $notify_args);
 
                 $score = $score_monies;
             }
