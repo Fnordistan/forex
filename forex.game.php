@@ -1504,6 +1504,8 @@ class ForEx extends Table
                     $certsheld = $this->getCertificates($player_id, $currency);
                     self::setStat(count($certsheld), $currency."_certs", $player_id);
                 }
+                // give bankrupt player -1 for tiebreaking
+                self::DbQuery( "UPDATE player SET player_score_aux=-1 WHERE player_id=$player_id" );
             } else {
                 $score_monies = $this->getMonies($player_id, $score_currency);
                 $x_score = $this->create_X_monies_arg($score_monies, $score_currency, NOTE);
