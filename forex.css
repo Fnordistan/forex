@@ -631,3 +631,8 @@
     display: flex;
     flex-direction: column;
 }
+
+/* to keep tall stacks from covering it */
+#page-title {
+    z-index: 99;
+}

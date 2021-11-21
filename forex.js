@@ -844,7 +844,7 @@ function (dojo, declare, on) {
                     const temp_c = dojo.clone(c);
                     const child = div_q.removeChild(c);
                     // show movement
-                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 500, d*500 ).play();
+                    this.slideTemporaryObject( temp_c, 'contract_queue_container', div_q, div_q2, 250, d*125 ).play();
                     div_q2.appendChild(child);
                     d++;
                 }
@@ -861,7 +861,7 @@ function (dojo, declare, on) {
         slideNotesToStack: function(contract, type, curr, amt) {
             for (let p = 0; p < amt; p++) {
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 500, p*250 ).play();
+                this.slideTemporaryObject( note, 'bank_container', 'bank_'+curr, 'contract_'+type+'_'+contract, 250, p*125 ).play();
             }
         },
 
@@ -1016,7 +1016,7 @@ function (dojo, declare, on) {
             while (stack_div.firstChild) {
                 stack_div.removeChild(stack_div.lastChild);
                 const note = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 500, d*250 ).play();
+                this.slideTemporaryObject( note, stack_container_from, stack_from, stack_container_to, 250, d*125 ).play();
                 d++;
             }
             stack_div.remove();
@@ -1119,6 +1119,7 @@ function (dojo, declare, on) {
         //                  You can use this method to perform some user interface changes at this moment.
         //
         onEnteringState: function( stateName, args ) {
+            // so huge stacks don't hide buttons
             switch( stateName ) {
                 case 'playerAction':
                     this.DIVEST_CURRENCY = null;
@@ -1185,8 +1186,7 @@ function (dojo, declare, on) {
          * @param {string} text 
          */
         setMainTitle : function(text) {
-            const main = $('pagemaintitletext');
-            main.innerHTML = text;
+            $('pagemaintitletext').innerHTML = text;
         },
 
         /**
@@ -1378,7 +1378,7 @@ function (dojo, declare, on) {
                 "curr": curr
             });
             for (let i = 0; i < Math.abs(amt); i++) {
-                this.slideTemporaryObject( note_html, parent_id, from, to, 500, i*250 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 250, i*125 ).play();
             }
         },
 
@@ -1401,7 +1401,7 @@ function (dojo, declare, on) {
             let d = 0;
             while (stack.firstChild) {
                 const note_html = this.format_block('jstpl_bank_note', {"curr": curr});
-                this.slideTemporaryObject( note_html, parent_id, from, to, 500, d*250 ).play();
+                this.slideTemporaryObject( note_html, parent_id, from, to, 250, d*125 ).play();
                 stack.removeChild(stack.firstChild);
                 d++;
             }
@@ -1489,7 +1489,7 @@ function (dojo, declare, on) {
                 "curr": base_curr
             });
             for (let i = 0; i < Math.ceil(amt); i++) {
-                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 500, i*500 ).play();
+                this.slideTemporaryObject( base_note_html, parent_id, base_notes, conv_notes, 500, i*250 ).play();
             }
         },
 
