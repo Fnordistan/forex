@@ -1293,6 +1293,8 @@ class ForEx extends Table
             'player_name' => self::getActivePlayerName(),
             'contract' => $contract,
             'conL' => $contract,
+            'dividend' => self::getGameStateValue(DIVIDEND_COUNT),
+            'preserve' => ['dividend']
         ));
 
         $nextState;

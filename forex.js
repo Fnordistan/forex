@@ -279,13 +279,14 @@ function (dojo, declare, on) {
                         args.scoring_currency = this.createMoniesXstr('', args.scoring_currency, CURRENCY_TYPE.NOTE, true);
                     }
                     if (args.contract) {
-                        const scale = 0.25;
+                        let scale = 0.25;
                         if (args.contract == DIVIDENDS) {
-                            const div_num = this.dividendCounter.getValue();
+                            scale *= 0.5;
+                            const div_num = args.dividend;
                             args.contract = this.format_block('jstpl_dividend_card', {
                                 "div_num" : div_num,
                                 "offset": -(5-div_num) * DIVIDEND_BASE_W*scale*2,
-                                "scale": scale*0.5
+                                "scale": scale
                             });
                         } else {
                             args.contract = this.format_block('jstpl_contract_card', {
