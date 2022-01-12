@@ -2176,23 +2176,40 @@ function (dojo, declare, on) {
                     this.showMessage(_("You may only buy 1 or 2 Certificates"), "info");
                 } else {
                     dojo.toggleClass(btn_id, 'frx_curr_btn_selected');
+                    if (sel.length == 1) {
+                        sel[0].setAttribute("data-buy", 1);
+                    } else if (sel.length == 1) {
+                        sel[1].setAttribute("data-buy", 2);
+                    }
                 }
             }
             // now construct message
             let text = "";
-            dojo.query('.frx_curr_btn_selected').forEach(btn => {
+            const buybtns = dojo.query('.frx_curr_btn_selected');
+            if (buybtns.length == 1) {
+                const btn = buybtns[0];
                 const id = btn.id;
                 const selcurr = id.substring(0, 3);
-                if (text == "") {
-                    text = _("Buy ${cert1}");
-                    text = text.replace('${cert1}', this.createMoniesXstr(1, selcurr, CURRENCY_TYPE.CERTIFICATE));
+                text = _("Buy ${cert1}");
+                text = text.replace('${cert1}', this.createMoniesXstr(1, selcurr, CURRENCY_TYPE.CERTIFICATE));
+            } else if (buybtns.length == 2) {
+                const btn1 = buybtns[0];
+                const id1 = btn1.id;
+                const selcurr1 = id1.substring(0, 3);
+                const btn2 = buybtns[1];
+                const id2 = btn2.id;
+                const selcurr2 = id2.substring(0, 3);
+
+                const buynum = btn1.getAttribute("data-buy");
+                text = _("Buy ${cert1} and ${cert2}");
+                if (buynum == 1) {
+                    text = text.replace('${cert1}', this.createMoniesXstr(1, selcurr1, CURRENCY_TYPE.CERTIFICATE));
+                    text = text.replace('${cert2}', this.createMoniesXstr(1, selcurr2, CURRENCY_TYPE.CERTIFICATE));
                 } else {
-                    var text2 = _("${Buy} and ${cert2}");
-                    text2 = text2.replace('${Buy}', text);
-                    text2 = text2.replace('${cert2}', this.createMoniesXstr(1, selcurr, CURRENCY_TYPE.CERTIFICATE));
-                    text = text2;
+                    text = text.replace('${cert1}', this.createMoniesXstr(1, selcurr2, CURRENCY_TYPE.CERTIFICATE));
+                    text = text.replace('${cert2}', this.createMoniesXstr(1, selcurr1, CURRENCY_TYPE.CERTIFICATE));
                 }
-            });
+            }
 
             document.getElementById(INVEST_MSG).innerHTML = text;
         },
@@ -2706,14 +2723,29 @@ function (dojo, declare, on) {
          */
         buyCertificates: function() {
             if (this.checkAction('investCurrency', true)) {
-                const buys = [];
-                dojo.query('.frx_curr_btn_selected').forEach(btn => {
-                    const curr = btn.id.substring(0, 3);
-                    buys.push(curr);
-                });
-                if (buys.length == 0) {
+                const bought = dojo.query('.frx_curr_btn_selected');
+                if (bought.length == 0) {
                     this.showMessage(_("No currencies selected!"), "info");
                 } else {
+                    const buys = [];
+                    if (bought.length == 1) {
+                        const btn = bought[0];
+                        const curr = btn.id.substring(0, 3);
+                        buys.push(curr);
+                    } else if (bought.length == 2) {
+                        const btn1 = bought[0];
+                        const curr1 = btn1.id.substring(0, 3);
+                        const btn2 = bought[1];
+                        const curr2 = btn2.id.substring(0, 3);
+                        if (btn1.getAttribute("data-buy") == 1) {
+                            buys.push(curr1, curr2);
+                        } else {
+                            buys.push(curr2, curr1);
+                        }
+                    } else {
+                        throw "Invalid currency count: "+ bought.length;
+                    }
+
                     this.ajaxcall( "/forex/forex/investCurrency.html", { 
                         buys: buys.join(' '),
                         lock: true 
