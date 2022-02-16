@@ -57,7 +57,8 @@
      */
     public function cancelSpotTrade() {
       self::setAjaxMode();
-      $this->game->cancelSpotTrade();
+      $player_id = self::getArg( "player", AT_posint, true );
+      $this->game->cancelSpotTrade($player_id);
       self::ajaxResponse();
     }
 

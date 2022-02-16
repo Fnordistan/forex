@@ -2713,7 +2713,8 @@ function (dojo, declare, on) {
          */
         cancelSpotTrade: function() {
             this.ajaxcall( "/forex/forex/cancelSpotTrade.html", { 
-                lock: true 
+                player: this.player_id,
+                lock: true
             }, this, function( result ) {  }, function( is_error) { } );                        
             this.SPOT_TRANSACTION = null;
         },
