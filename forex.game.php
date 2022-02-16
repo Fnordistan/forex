@@ -1124,8 +1124,8 @@ class ForEx extends Table
      * Spot Trade player cancels his offer before acceptance/rejection
      */
     function cancelSpotTrade($player_id) {
-        $players = self::loadPlayersBasicInfos();
         // self::checkAction( 'cancelSpotTrade' ); 
+        $players = self::loadPlayersBasicInfos();
         self::notifyAllPlayers('spotTradeCanceled', clienttranslate('${player_name} canceled trade offer'), array(
             'player_name' => $players[$player_id]['player_name'],
         ));
